@@ -18,12 +18,12 @@ package csidriver
 
 import (
 	"context"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/pkg/errors"
 	storagev1 "k8s.io/api/storage/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"topolvm-operator/pkg/cluster"
 )
 
 func CheckTopolvmCsiDriverExisting(clientset kubernetes.Interface) error {

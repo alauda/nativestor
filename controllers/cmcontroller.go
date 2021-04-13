@@ -19,6 +19,9 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
+	"github.com/alauda/topolvm-operator/pkg/operator/node"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
@@ -27,9 +30,6 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"strings"
 	"time"
-	topolvmv1 "topolvm-operator/api/v1"
-	"topolvm-operator/pkg/cluster"
-	"topolvm-operator/pkg/operator/node"
 )
 
 var logger = capnslog.NewPackageLogger("topolvm/operator", "lvmd-config")

@@ -19,11 +19,11 @@ package k8sutil
 import (
 	"context"
 	"fmt"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"os"
-	"topolvm-operator/pkg/cluster"
 )
 
 // GetRunningPod reads the name and namespace of a pod from the

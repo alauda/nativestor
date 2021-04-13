@@ -17,13 +17,13 @@ limitations under the License.
 package controller
 
 import (
+	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
-	topolvmv1 "topolvm-operator/api/v1"
 )
 
 func TestAddFinalizerIfNotPresent(t *testing.T) {

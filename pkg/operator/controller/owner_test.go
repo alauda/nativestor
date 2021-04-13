@@ -18,13 +18,13 @@ package controller
 
 import (
 	"fmt"
+	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"reflect"
 	"testing"
-	topolvmv1 "topolvm-operator/api/v1"
 )
 
 func TestMatch(t *testing.T) {

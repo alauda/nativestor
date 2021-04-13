@@ -18,11 +18,11 @@ package sys
 
 import (
 	"fmt"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
+	"github.com/alauda/topolvm-operator/pkg/util/exec"
 	"github.com/pkg/errors"
 	"path"
 	"strconv"
-	"topolvm-operator/pkg/cluster"
-	"topolvm-operator/pkg/util/exec"
 )
 
 const (

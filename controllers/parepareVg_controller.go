@@ -19,6 +19,10 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
+	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
+	"github.com/alauda/topolvm-operator/pkg/util/sys"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
@@ -28,10 +32,6 @@ import (
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	topolvmv1 "topolvm-operator/api/v1"
-	"topolvm-operator/pkg/cluster"
-	"topolvm-operator/pkg/operator/k8sutil"
-	"topolvm-operator/pkg/util/sys"
 )
 
 const (

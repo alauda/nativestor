@@ -17,11 +17,11 @@ limitations under the License.
 package sys
 
 import (
+	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
+	"github.com/alauda/topolvm-operator/pkg/util/exec"
 	"github.com/stretchr/testify/assert"
 	osexec "os/exec"
 	"testing"
-	topolvmv1 "topolvm-operator/api/v1"
-	"topolvm-operator/pkg/util/exec"
 )
 
 func TestCreatePhysicalVolume(t *testing.T) {

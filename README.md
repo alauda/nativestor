@@ -62,4 +62,4 @@ Docker images
 
 ## Report a Bug
 
-For filing bugs, suggesting improvements, or requesting new features, please open an [issue](https://github.com/operator/topolvm-operator/issues).
+For filing bugs, suggesting improvements, or requesting new features, please open an [issue](https://github.com/alauda/topolvm-operator/issues).

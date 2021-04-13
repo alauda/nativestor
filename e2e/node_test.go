@@ -19,13 +19,13 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
 	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"topolvm-operator/pkg/cluster"
 )
 
 func testNode() {

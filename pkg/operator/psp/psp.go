@@ -18,12 +18,12 @@ package psp
 
 import (
 	"context"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/pkg/errors"
 	"k8s.io/api/policy/v1beta1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"topolvm-operator/pkg/cluster"
 )
 
 func CreateTopolvmNodePsp(clientset kubernetes.Interface) error {

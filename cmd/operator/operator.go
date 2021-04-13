@@ -19,6 +19,12 @@ package operator
 import (
 	"flag"
 	"fmt"
+	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
+	"github.com/alauda/topolvm-operator/cmd/topolvm"
+	"github.com/alauda/topolvm-operator/controllers"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
+	"github.com/alauda/topolvm-operator/pkg/operator/csidriver"
+	"github.com/alauda/topolvm-operator/pkg/operator/psp"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -28,12 +34,6 @@ import (
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	topolvmv1 "topolvm-operator/api/v1"
-	"topolvm-operator/cmd/topolvm"
-	"topolvm-operator/controllers"
-	"topolvm-operator/pkg/cluster"
-	"topolvm-operator/pkg/operator/csidriver"
-	"topolvm-operator/pkg/operator/psp"
 )
 
 var OperatorCmd = &cobra.Command{

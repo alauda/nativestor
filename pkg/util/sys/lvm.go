@@ -18,11 +18,11 @@ package sys
 
 import (
 	"errors"
+	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
+	"github.com/alauda/topolvm-operator/pkg/util/exec"
 	perrors "github.com/pkg/errors"
 	"strconv"
 	"strings"
-	topolvmv1 "topolvm-operator/api/v1"
-	"topolvm-operator/pkg/util/exec"
 )
 
 const (
