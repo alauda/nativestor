@@ -1,0 +1,55 @@
+apiVersion:  kind.x-k8s.io/v1alpha4
+kind: Cluster
+# patch the generated kubeadm config with some extra settings
+featureGates:
+  CSIStorageCapacity: true
+kubeadmConfigPatches:
+- |
+  apiVersion: "@KUBEADM_APIVERSION@"
+  kind: ClusterConfiguration
+  metadata:
+    name: config
+  kubernetesVersion: "v@KUBERNETES_VERSION@"
+  networking:
+    serviceSubnet: 10.0.0.0/16
+  controllerManager:
+    extraArgs:
+      "v": "5"
+  apiServer:
+    extraArgs:
+      "runtime-config": "storage.k8s.io/v1alpha1"
+- |
+  apiVersion: "@KUBEADM_APIVERSION@"
+  kind: JoinConfiguration
+  metadata:
+    name: config
+  nodeRegistration:
+    kubeletExtraArgs:
+      read-only-port: "10255"
+# 1 control plane node and 3 workers
+nodes:
+# the control plane node config
+- role: control-plane
+  extraMounts:
+    - containerPath: /dev
+      hostPath: /dev
+# the three workers
+- role: worker
+  extraMounts:
+    - containerPath: /dev
+      hostPath: /dev
+    - containerPath: /run/udev
+      hostPath: /run/udev
+
+- role: worker
+  extraMounts:
+    - containerPath: /dev
+      hostPath: /dev
+    - containerPath: /run/udev
+      hostPath: /run/udev
+- role: worker
+  extraMounts:
+    - containerPath: /dev
+      hostPath: /dev
+    - containerPath: /run/udev
+      hostPath: /run/udev

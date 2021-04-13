@@ -1,0 +1,356 @@
+/*
+Copyright 2016 The Rook Authors. All rights reserved.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+	http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+package sys
+
+import (
+	"fmt"
+	osexec "os/exec"
+	"path"
+	"strconv"
+	"strings"
+	"topolvm-operator/pkg/util/exec"
+
+	"github.com/google/uuid"
+)
+
+const (
+	// DiskType is a disk type
+	DiskType = "disk"
+	// SSDType is an sdd type
+	SSDType = "ssd"
+	// PartType is a partition type
+	PartType = "part"
+	// CryptType is an encrypted type
+	CryptType = "crypt"
+	// LVMType is an LVM type
+	LVMType = "lvm"
+	// MultiPath is for multipath devices
+	MultiPath = "mpath"
+	// LinearType is a linear type
+	LinearType = "linear"
+	sgdiskCmd  = "sgdisk"
+
+	LoopType = "loop"
+)
+
+// Partition represents a partition metadata
+type Partition struct {
+	Name       string
+	Size       uint64
+	Label      string
+	Filesystem string
+}
+
+// LocalDisk contains information about an unformatted block device
+type LocalDisk struct {
+	// Name is the device name
+	Name string `json:"name"`
+	// Parent is the device parent's name
+	Parent string `json:"parent"`
+	// HasChildren is whether the device has a children device
+	HasChildren bool `json:"hasChildren"`
+	// DevLinks is the persistent device path on the host
+	DevLinks string `json:"devLinks"`
+	// Size is the device capacity in byte
+	Size uint64 `json:"size"`
+	// UUID is used by /dev/disk/by-uuid
+	UUID string `json:"uuid"`
+	// Serial is the disk serial used by /dev/disk/by-id
+	Serial string `json:"serial"`
+	// Type is disk type
+	Type string `json:"type"`
+	// Rotational is the boolean whether the device is rotational: true for hdd, false for ssd and nvme
+	Rotational bool `json:"rotational"`
+	// ReadOnly is the boolean whether the device is readonly
+	Readonly bool `json:"readOnly"`
+	// Partitions is a partition slice
+	Partitions []Partition
+	// Filesystem is the filesystem currently on the device
+	Filesystem string `json:"filesystem"`
+	// Vendor is the device vendor
+	Vendor string `json:"vendor"`
+	// Model is the device model
+	Model string `json:"model"`
+	// WWN is the world wide name of the device
+	WWN string `json:"wwn"`
+	// WWNVendorExtension is the WWN_VENDOR_EXTENSION from udev info
+	WWNVendorExtension string `json:"wwnVendorExtension"`
+	// Empty checks whether the device is completely empty
+	Empty bool `json:"empty"`
+	// RealPath is the device pathname behind the PVC, behind /mnt/<pvc>/name
+	RealPath string `json:"real-path,omitempty"`
+	// KernelName is the kernel name of the device
+	KernelName string `json:"kernel-name,omitempty"`
+	// Whether this device should be encrypted
+	Encrypted bool `json:"encrypted,omitempty"`
+}
+
+// ListDevices list all devices available on a machine
+func ListDevices(executor exec.Executor) ([]string, error) {
+	devices, err := executor.ExecuteCommandWithOutput("lsblk", "--all", "--noheadings", "--list", "--output", "KNAME")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all devices: %v", err)
+	}
+
+	return strings.Split(devices, "\n"), nil
+}
+
+// GetDevicePartitions gets partitions on a given device
+func GetDevicePartitions(device string, executor exec.Executor) (partitions []Partition, unusedSpace uint64, err error) {
+
+	var devicePath string
+	splitDevicePath := strings.Split(device, "/")
+	if len(splitDevicePath) == 1 {
+		devicePath = fmt.Sprintf("/dev/%s", device) //device path for OSD on devices.
+	} else {
+		devicePath = device //use the exact device path (like /mnt/<pvc-name>) in case of PVC block device
+	}
+
+	output, err := executor.ExecuteCommandWithOutput("lsblk", devicePath,
+		"--bytes", "--pairs", "--output", "NAME,SIZE,TYPE,PKNAME")
+	logger.Infof("Output: %+v", output)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get device %s partitions. %+v", device, err)
+	}
+	partInfo := strings.Split(output, "\n")
+	var deviceSize uint64
+	var totalPartitionSize uint64
+	for _, info := range partInfo {
+		props := parseKeyValuePairString(info)
+		name := props["NAME"]
+		if name == device {
+			// found the main device
+			logger.Info("Device found - ", name)
+			deviceSize, err = strconv.ParseUint(props["SIZE"], 10, 64)
+			if err != nil {
+				return nil, 0, fmt.Errorf("failed to get device %s size. %+v", device, err)
+			}
+		} else if props["PKNAME"] == device && props["TYPE"] == PartType {
+			// found a partition
+			p := Partition{Name: name}
+			p.Size, err = strconv.ParseUint(props["SIZE"], 10, 64)
+			if err != nil {
+				return nil, 0, fmt.Errorf("failed to get partition %s size. %+v", name, err)
+			}
+			totalPartitionSize += p.Size
+
+			info, err := GetUdevInfo(name, executor)
+			if err != nil {
+				return nil, 0, err
+			}
+			if v, ok := info["PARTNAME"]; ok {
+				p.Label = v
+			}
+			if v, ok := info["ID_PART_ENTRY_NAME"]; ok {
+				p.Label = v
+			}
+			if v, ok := info["ID_FS_TYPE"]; ok {
+				p.Filesystem = v
+			}
+
+			partitions = append(partitions, p)
+		}
+	}
+
+	if deviceSize > 0 {
+		unusedSpace = deviceSize - totalPartitionSize
+	}
+	return partitions, unusedSpace, nil
+}
+
+// GetDeviceProperties gets device properties
+func GetDeviceProperties(device string, executor exec.Executor) (map[string]string, error) {
+	// As we are mounting the block mode PVs on /mnt we use the entire path,
+	// e.g., if the device path is /mnt/example-pvc then its taken completely
+	// else if its just vdb then the following is used
+	devicePath := strings.Split(device, "/")
+	if len(devicePath) == 1 {
+		device = fmt.Sprintf("/dev/%s", device)
+	}
+	return GetDevicePropertiesFromPath(device, executor)
+}
+
+// GetDevicePropertiesFromPath gets a device property from a path
+func GetDevicePropertiesFromPath(devicePath string, executor exec.Executor) (map[string]string, error) {
+	output, err := executor.ExecuteCommandWithOutput("lsblk", devicePath,
+		"--bytes", "--nodeps", "--pairs", "--paths", "--output", "SIZE,ROTA,RO,TYPE,PKNAME,NAME,KNAME")
+	if err != nil {
+		// The "not a block device" error also returns code 32 so the ExitStatus() check hides this error
+		if strings.Contains(output, "not a block device") {
+			return nil, err
+		}
+
+		// try to get more information about the command error
+		if code, ok := exec.ExitStatus(err); ok && code == 32 {
+			// certain device types (such as loop) return exit status 32 when probed further,
+			// ignore and continue without logging
+			return map[string]string{}, nil
+		}
+
+		return nil, err
+	}
+
+	return parseKeyValuePairString(output), nil
+}
+
+// IsLV returns if a device is owned by LVM, is a logical volume
+func IsLV(devicePath string, executor exec.Executor) (bool, error) {
+	devProps, err := GetDevicePropertiesFromPath(devicePath, executor)
+	if err != nil {
+		return false, fmt.Errorf("failed to get device properties for %q: %+v", devicePath, err)
+	}
+	diskType, ok := devProps["TYPE"]
+	if !ok {
+		return false, fmt.Errorf("TYPE property is not found for %q", devicePath)
+	}
+	return diskType == LVMType, nil
+}
+
+// GetUdevInfo gets udev information
+func GetUdevInfo(device string, executor exec.Executor) (map[string]string, error) {
+	output, err := executor.ExecuteCommandWithOutput("udevadm", "info", "--query=property", fmt.Sprintf("/dev/%s", device))
+	if err != nil {
+		return nil, err
+	}
+
+	return parseUdevInfo(output), nil
+}
+
+// GetDeviceFilesystems get the file systems available
+func GetDeviceFilesystems(device string, executor exec.Executor) (string, error) {
+	devicePath := strings.Split(device, "/")
+	if len(devicePath) == 1 {
+		device = fmt.Sprintf("/dev/%s", device)
+	}
+	output, err := executor.ExecuteCommandWithOutput("udevadm", "info", "--query=property", device)
+	if err != nil {
+		return "", err
+	}
+
+	return parseFS(output), nil
+}
+
+// GetDiskUUID look up the UUID for a disk.
+func GetDiskUUID(device string, executor exec.Executor) (string, error) {
+	if _, err := osexec.LookPath(sgdiskCmd); err != nil {
+		logger.Warningf("sgdisk not found. skipping disk UUID.")
+		return "sgdiskNotFound", nil
+	}
+
+	devicePath := strings.Split(device, "/")
+	if len(devicePath) == 1 {
+		device = fmt.Sprintf("/dev/%s", device)
+	}
+
+	output, err := executor.ExecuteCommandWithOutput(sgdiskCmd, "--print", device)
+	if err != nil {
+		return "", err
+	}
+
+	return parseUUID(device, output)
+}
+
+// GetLVName returns the LV name of the device in the form of "VG/LV".
+func GetLVName(executor exec.Executor, devicePath string) (string, error) {
+	devInfo, err := executor.ExecuteCommandWithOutput("dmsetup", "info", "-c", "--noheadings", "-o", "name", devicePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to execute dmsetup info for %q. %v", devicePath, err)
+	}
+	out, err := executor.ExecuteCommandWithOutput("dmsetup", "splitname", "--noheadings", devInfo)
+	if err != nil {
+		return "", fmt.Errorf("failed to execute dmsetup splitname for %q. %v", devInfo, err)
+	}
+	split := strings.Split(out, ":")
+	if len(split) < 2 {
+		return "", fmt.Errorf("dmsetup splitname returned unexpected result for %q. output: %q", devInfo, out)
+	}
+	return fmt.Sprintf("%s/%s", split[0], split[1]), nil
+}
+
+// finds the disk uuid in the output of sgdisk
+func parseUUID(device, output string) (string, error) {
+
+	// find the line with the uuid
+	lines := strings.Split(output, "\n")
+	for _, line := range lines {
+		if strings.Contains(line, "Disk identifier (GUID)") {
+			words := strings.Split(line, " ")
+			for _, word := range words {
+				// we expect most words in the line not to be a uuid, but will return the first one that is
+				result, err := uuid.Parse(word)
+				if err == nil {
+					return result.String(), nil
+				}
+			}
+		}
+	}
+
+	return "", fmt.Errorf("uuid not found for device %s. output=%s", device, output)
+}
+
+// converts a raw key value pair string into a map of key value pairs
+// example raw string of `foo="0" bar="1" baz="biz"` is returned as:
+// map[string]string{"foo":"0", "bar":"1", "baz":"biz"}
+func parseKeyValuePairString(propsRaw string) map[string]string {
+	// first split the single raw string on spaces and initialize a map of
+	// a length equal to the number of pairs
+	props := strings.Split(propsRaw, " ")
+	propMap := make(map[string]string, len(props))
+
+	for _, kvpRaw := range props {
+		// split each individual key value pair on the equals sign
+		kvp := strings.Split(kvpRaw, "=")
+		if len(kvp) == 2 {
+			// first element is the final key, second element is the final value
+			// (don't forget to remove surrounding quotes from the value)
+			propMap[kvp[0]] = strings.Replace(kvp[1], `"`, "", -1)
+		}
+	}
+
+	return propMap
+}
+
+// find fs from udevadm info
+func parseFS(output string) string {
+	m := parseUdevInfo(output)
+	if v, ok := m["ID_FS_TYPE"]; ok {
+		return v
+	}
+	return ""
+}
+
+func parseUdevInfo(output string) map[string]string {
+	lines := strings.Split(output, "\n")
+	result := make(map[string]string, len(lines))
+	for _, v := range lines {
+		pairs := strings.Split(v, "=")
+		if len(pairs) > 1 {
+			result[pairs[0]] = pairs[1]
+		}
+	}
+	return result
+}
+
+// ListDevicesChild list all child available on a device
+func ListDevicesChild(executor exec.Executor, device string) ([]string, error) {
+	childListRaw, err := executor.ExecuteCommandWithOutput("lsblk", "--noheadings", "--pairs", path.Join("/dev", device))
+	if err != nil {
+		return []string{}, fmt.Errorf("failed to list child devices of %q. %v", device, err)
+	}
+
+	return strings.Split(childListRaw, "\n"), nil
+}

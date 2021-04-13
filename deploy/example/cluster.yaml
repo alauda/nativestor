@@ -1,0 +1,31 @@
+apiVersion: topolvm.cybozu.com/v1
+kind: TopolvmCluster
+metadata:
+  name: topolvmcluster-sample
+  namespace: topolvm-system
+spec:
+  # Add fields here
+  topolvmVersion: harbor-b.alauda.cn/acp/topolvm:v3.3-4-g36b8bce
+  deviceClasses:
+    - nodeName: "192.168.16.98"
+      classes:
+        - className: "hdd"
+          volumeGroup: "test"
+          default: true
+          devices:
+            - name: "/dev/sdb"
+            - name: "/dev/sdc"
+        - className: "ssd"
+          volumeGroup: "test1"
+          default: false
+          devices:
+            - name: "/dev/sdd"
+            - name: "/dev/sde"
+    - nodeName: "192.168.16.99"
+      classes:
+        - className: "ssd"
+          volumeGroup: "test"
+          default: true
+          devices:
+            - name: "/dev/sdb"
+           
