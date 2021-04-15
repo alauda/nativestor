@@ -71,8 +71,14 @@ the changes are below:
 - remove topolvm-scheduler 
 - lvmd containerized
 
+Docker images
+------------
+
+- topolvm-operator [alaudapublic/topolvm-operator](https://hub.docker.com/repository/docker/alaudapublic/topolvm-operator)
+- topolvm [alaudapublic/topolvm](https://hub.docker.com/repository/docker/alaudapublic/topolvm-operator)
 
 
-## Report a Bug
 
+Report a Bug
+----------
 For filing bugs, suggesting improvements, or requesting new features, please open an [issue](https://github.com/alauda/topolvm-operator/issues).

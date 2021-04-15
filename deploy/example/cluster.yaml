@@ -2,16 +2,23 @@ apiVersion: topolvm.cybozu.com/v1
 kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample
+  # namespace must be the same with topolvm-operator
   namespace: topolvm-system
 spec:
   # Add fields here
   topolvmVersion: harbor-b.alauda.cn/acp/topolvm:v3.3-4-g36b8bce
   deviceClasses:
+      # kubernetes node name
     - nodeName: "192.168.16.98"
+      # node classes
       classes:
+        # node class name
         - className: "hdd"
+          # user should specific volume group name , operator will create it
           volumeGroup: "test"
+          # a node must a class should set default, when StorageClass not specific device class name , the default class will be used
           default: true
+          # available devices used for creating volume group
           devices:
             - name: "/dev/sdb"
             - name: "/dev/sdc"

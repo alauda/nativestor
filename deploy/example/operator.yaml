@@ -18,6 +18,7 @@ spec:
       serviceAccountName: topolvm-operator
       containers:
         - name: topolvm-operator
+          # set the stable version
           image: harbor-b.alauda.cn/acp/topolvm-operator:test
           command:
             - /topolvm
