@@ -24,6 +24,8 @@ Features
 ### Planned features
 
 - Raid of volume group
+- Auto discover available devices
+- Manage volume group that user created
 
 
 Components
@@ -57,8 +59,19 @@ Getting started and Documentation
 
 
 
-Docker images
+Topolvm
 -------------
+
+topolvm-operator is based on topolvm, we fork [topolvm/topolvm](https://github.com/topolvm/topolvm)  and do some changes. 
+
+see [alauda/topolvm](https://github.com/alauda/topolvm)
+
+the changes are below:
+
+- remove topolvm-scheduler 
+- lvmd containerized
+
+
 
 ## Report a Bug
 

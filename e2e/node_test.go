@@ -62,9 +62,14 @@ func testNode() {
 					return err
 				}
 				nodename := cm.Annotations[cluster.LvmdAnnotationsNodeKey]
-				if lmvdConf.DeviceClasses[0].Name != classNameMap[nodename] {
-					return fmt.Errorf("cm %s lvmd class name %s not equal %s", cm.Name, lmvdConf.DeviceClasses[0].Name, classNameMap[nodename])
+				if len(lmvdConf.DeviceClasses) > 0 {
+					if lmvdConf.DeviceClasses[0].Name != classNameMap[nodename] {
+						return fmt.Errorf("cm %s lvmd class name %s not equal %s", cm.Name, lmvdConf.DeviceClasses[0].Name, classNameMap[nodename])
+					}
+				} else {
+					return fmt.Errorf("cm lvmd class name is empty")
 				}
+
 			}
 			return nil
 		}).Should(Succeed())
