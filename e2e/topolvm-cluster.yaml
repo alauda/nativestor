@@ -30,16 +30,6 @@ kubeadmConfigPatches:
 nodes:
 # the control plane node config
 - role: control-plane
-  extraMounts:
-    - containerPath: /dev
-      hostPath: /dev
-# the three workers
-- role: worker
-  extraMounts:
-    - containerPath: /dev
-      hostPath: /dev
-    - containerPath: /run/udev
-      hostPath: /run/udev
 
 - role: worker
   extraMounts:
@@ -47,9 +37,24 @@ nodes:
       hostPath: /dev
     - containerPath: /run/udev
       hostPath: /run/udev
+    - containerPath: /run/lock/lvm
+      hostPath: /run/lock/lvm
+
+
 - role: worker
   extraMounts:
     - containerPath: /dev
       hostPath: /dev
     - containerPath: /run/udev
       hostPath: /run/udev
+    - containerPath: /run/lock/lvm
+      hostPath: /run/lock/lvm
+
+- role: worker
+  extraMounts:
+    - containerPath: /dev
+      hostPath: /dev
+    - containerPath: /run/udev
+      hostPath: /run/udev
+    - containerPath: /run/lock/lvm
+      hostPath: /run/lock/lvm

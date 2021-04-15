@@ -18,10 +18,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/alauda/topolvm-operator/cmd/operator"
+	"github.com/alauda/topolvm-operator/cmd/preparevg"
+	"github.com/alauda/topolvm-operator/cmd/topolvm"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"topolvm-operator/cmd/operator"
-	"topolvm-operator/cmd/preparevg"
-	"topolvm-operator/cmd/topolvm"
 )
 
 func main() {

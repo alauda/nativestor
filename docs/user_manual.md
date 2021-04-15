@@ -45,7 +45,24 @@ spec:
             - name: "/dev/sdb"
 ```
 `namespace` must be the same with the namespace of operator. one class of one node must set `default` to true.  
-a kubernetes cluster only existing a TopolvmCluster , not support multi TopolvmClusters 
+a kubernetes cluster only existing a TopolvmCluster , not support multi TopolvmClusters.
+`topolvmVersion` topolvm image version, the image include csi sidecar.  
+`nodeName` kubernetes cluster node name, the node has some available devices.  
+`classes` you can define multi classes up to your need, for example the node has ssd and hdd disk
+
+The class settings can be specified in the following fields:
+
+| Name           | Type        | Default | Description                                                                        |
+| -------------- | ------      | ------- | ---------------------------------------------------------------------------------- |
+| `name`         | string      | -       | The name of a class.                                                               |
+| `volumeGroup`  | string      | -       | The group where this class creates the logical volumes.                            |
+| `spare-gb`     | uint64      | `1`    | Storage capacity in GiB to be spared.                                              |
+| `default`      | bool        | `false` | A flag to indicate that this device-class is used by default.                      |
+| `devices`      | array/name  | -       | The available devices used for creating volume group                               |
+| `stripe`       | uint        | -       | The number of stripes in the logical volume.                                       |
+| `stripe-size`  | string      | -       | The amount of data that is written to one device before moving to the next device. |
+
+
 
 StorageClass
 ------------

@@ -19,13 +19,13 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
 	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	"topolvm-operator/pkg/cluster"
 )
 
 func testNode() {
@@ -62,9 +62,14 @@ func testNode() {
 					return err
 				}
 				nodename := cm.Annotations[cluster.LvmdAnnotationsNodeKey]
-				if lmvdConf.DeviceClasses[0].Name != classNameMap[nodename] {
-					return fmt.Errorf("cm %s lvmd class name %s not equal %s", cm.Name, lmvdConf.DeviceClasses[0].Name, classNameMap[nodename])
+				if len(lmvdConf.DeviceClasses) > 0 {
+					if lmvdConf.DeviceClasses[0].Name != classNameMap[nodename] {
+						return fmt.Errorf("cm %s lvmd class name %s not equal %s", cm.Name, lmvdConf.DeviceClasses[0].Name, classNameMap[nodename])
+					}
+				} else {
+					return fmt.Errorf("cm lvmd class name is empty")
 				}
+
 			}
 			return nil
 		}).Should(Succeed())

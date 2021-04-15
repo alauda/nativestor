@@ -19,6 +19,12 @@ package controllers
 import (
 	"context"
 	"fmt"
+	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
+	"github.com/alauda/topolvm-operator/pkg/operator/controller"
+	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
+	"github.com/alauda/topolvm-operator/pkg/operator/volumectr"
+	"github.com/alauda/topolvm-operator/pkg/operator/volumegroup"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -33,12 +39,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strings"
 	"syscall"
-	topolvmv1 "topolvm-operator/api/v1"
-	"topolvm-operator/pkg/cluster"
-	"topolvm-operator/pkg/operator/controller"
-	"topolvm-operator/pkg/operator/k8sutil"
-	"topolvm-operator/pkg/operator/volumectr"
-	"topolvm-operator/pkg/operator/volumegroup"
 )
 
 var (

@@ -19,8 +19,8 @@ import (
 	"fmt"
 	"testing"
 
+	exectest "github.com/alauda/topolvm-operator/pkg/util/exec/test"
 	"github.com/stretchr/testify/assert"
-	exectest "topolvm-operator/pkg/util/exec/test"
 )
 
 const (

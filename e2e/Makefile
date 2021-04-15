@@ -7,7 +7,10 @@ SUDO=sudo
 KIND_CLUSTER_NAME=topolvm-e2e
 KIND := $(BINDIR)/kind
 KUBECTL := $(BINDIR)/kubectl
-GINKGO := $(BINDIR)/kindginkgo
+GINKGO := $(BINDIR)/ginkgo
+
+
+PACKAGES := unzip lvm2 xfsprogs
 
 TEST_KUBERNETES_VERSION=1.20
 export TEST_KUBERNETES_VERSION
@@ -26,7 +29,6 @@ GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -na
 SERVER_CERT_FILES=./certs/cert.pem ./certs/key.pem
 BACKING_STORE=./build
 
-# need go mod tidy first
 topolvm-operator.img: $(GO_FILES)
 	rm -rf tmpbin
 	mkdir -p tmpbin
@@ -58,9 +60,14 @@ start-create-dev:
 	if [ -f $(BACKING_STORE)/backing_store* ]; then $(MAKE) delete-dev; fi
 
 	for i in $$(seq 4); do \
-		truncate --size=2G $(BACKING_STORE)/backing_store$${i}_1; \
+		truncate --size=5G $(BACKING_STORE)/backing_store$${i}_1; \
 		$(SUDO) losetup -f $(BACKING_STORE)/backing_store$${i}_1; \
 	done
+
+	sed -e "s|@DEVICE_LOOP1@|$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store1_1 | cut -d: -f1)|" \
+	    -e "s|@DEVICE_LOOP2@|$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store2_1 | cut -d: -f1)|" \
+	    -e "s|@DEVICE_LOOP3@|$$($(SUDO) losetup -j $(BACKING_STORE)/backing_store3_1 | cut -d: -f1)|"  ./manifest/cluster.yaml > /tmp/cluster.yaml
+
 delete-dev:
 	$(MAKE) shutdown-kind
 	for i in $$(seq 4); do \
@@ -77,9 +84,8 @@ test: topolvm-operator.img $(SERVER_CERT_FILES)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
 	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) topolvm-operator.img
-	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) topolvm.img
 	$(KUBECTL) apply -f ./manifest/all.yaml
-	$(KUBECTL) apply -f ./manifest/cluster.yaml
+	$(KUBECTL) apply -f /tmp/cluster.yaml
 	$(SUDO) -E env PATH=${PATH} E2ETEST=1 $(GINKGO) --failFast -v .
 
 $(SERVER_CERT_FILES):
@@ -89,8 +95,9 @@ $(SERVER_CERT_FILES):
 clean: delete-dev
 	rm -rf $(SERVER_CERT_FILES) topolvm-operator.img build/ $(BACKING_STORE)/backing_store*
 
-# need add arm64 support
 setup:
+	$(SUDO) apt-get update
+	$(SUDO) apt-get -y install --no-install-recommends $(PACKAGES)
 	mkdir -p $(BINDIR)
 	curl -o $(BINDIR)/kind -sfL https://kind.sigs.k8s.io/dl/v$(KIND_VERSION)/kind-linux-amd64
 	curl -o $(BINDIR)/kubectl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl

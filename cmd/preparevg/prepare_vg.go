@@ -18,6 +18,9 @@ package preparevg
 
 import (
 	"fmt"
+	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
+	"github.com/alauda/topolvm-operator/controllers"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,9 +28,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
-	topolvmv1 "topolvm-operator/api/v1"
-	"topolvm-operator/controllers"
-	"topolvm-operator/pkg/cluster"
 )
 
 var (

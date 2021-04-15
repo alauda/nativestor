@@ -101,7 +101,7 @@ func getNodeAnnotationMapWithPrefix(prefix string) (map[string]map[string]string
 
 	capacities := make(map[string]map[string]string)
 	for _, node := range nodeList.Items {
-		if node.Name == "topolvm-e2e-control-plane" {
+		if node.Name == "topolvm-e2e-control-plane" || node.Name == "topolvm-e2e-worker" {
 			continue
 		}
 

@@ -18,13 +18,13 @@ package volumegroup
 
 import (
 	"fmt"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
+	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/coreos/pkg/capnslog"
 	batch "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"topolvm-operator/pkg/cluster"
-	"topolvm-operator/pkg/operator/k8sutil"
 )
 
 var (

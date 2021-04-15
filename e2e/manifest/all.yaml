@@ -647,6 +647,13 @@ metadata:
   name: topolvm-global
 rules:
   - apiGroups:
+      - policy
+    resources:
+      - podsecuritypolicies
+    verbs:
+      - create
+      - get
+  - apiGroups:
       - ""
     resources:
       # Pod access is needed for fencing

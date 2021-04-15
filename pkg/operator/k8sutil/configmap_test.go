@@ -18,8 +18,8 @@ package k8sutil
 
 import (
 	"context"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"testing"
-	"topolvm-operator/pkg/cluster"
 
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"

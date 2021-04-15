@@ -19,10 +19,10 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	"topolvm-operator/pkg/cluster"
 )
 
 func testPrepareVg() {

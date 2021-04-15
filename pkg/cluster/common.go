@@ -66,10 +66,10 @@ const (
 	TopolvmControllerContainerLivenessPort  = int32(9808)
 	TopolvmControllerContainerReadinessPort = int32(8080)
 
-	TopolvmNodeMemRequest = "150Mi"
-	TopolvmNodeMemLimit   = "150Mi"
-	TopolvmNodeCPURequest = "100m"
-	TopolvmNodeCPULimit   = "100m"
+	TopolvmNodeMemRequest = "250Mi"
+	TopolvmNodeMemLimit   = "250Mi"
+	TopolvmNodeCPURequest = "250m"
+	TopolvmNodeCPULimit   = "250m"
 
 	TopolvmControllerMemRequest = "250Mi"
 	TopolvmControllerMemLimit   = "250Mi"

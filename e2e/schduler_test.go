@@ -88,8 +88,8 @@ spec:
 
 		podNodeMap := map[string]string{
 			"test-pod1": "topolvm-e2e-worker",
-			"test-pod2": "topolvm-e2e-worker1",
-			"test-pod3": "topolvm-e2e-worker2",
+			"test-pod2": "topolvm-e2e-worker2",
+			"test-pod3": "topolvm-e2e-worker3",
 		}
 
 		for key, val := range storageClassPodMap {

@@ -1,4 +1,4 @@
-module topolvm-operator
+module github.com/alauda/topolvm-operator
 
 go 1.15
 
