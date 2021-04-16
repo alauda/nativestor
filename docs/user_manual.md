@@ -44,7 +44,7 @@ spec:
           devices:
             - name: "/dev/sdb"
 ```
-`namespace` must be the same with the namespace of operator. one class of one node must set `default` to true.  
+`namespace` must be the same with the namespace of operator. one and only one class in a node must set `default` to true. 
 a kubernetes cluster only existing a TopolvmCluster , not support multi TopolvmClusters.
 `topolvmVersion` topolvm image version, the image include csi sidecar.  
 `nodeName` kubernetes cluster node name, the node has some available devices.  
