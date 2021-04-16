@@ -134,22 +134,23 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 		return
 	}
 
+	err = c.updateClusterStatus(oldCm, newCm)
+	if err != nil {
+		logger.Errorf("update cluster failed err %v", err)
+	}
+
 	if _, ok := newCm.Data[cluster.LvmdConfigMapKey]; !ok {
 
-		err := c.updateClusterStatus(oldCm, newCm)
-		if err != nil {
-			logger.Errorf("update cluster failed err %v", err)
+		nodeName, ok := newCm.Annotations[cluster.LvmdAnnotationsNodeKey]
+		if !ok {
+			logger.Errorf("cm %s can not get node name", newCm.Name)
+			return
 		}
+		logger.Errorf("node %s all volume groups are not available", nodeName)
 		return
-
 	}
 
 	if oldCm.Data[cluster.LvmdConfigMapKey] == newCm.Data[cluster.LvmdConfigMapKey] {
-
-		err := c.updateClusterStatus(oldCm, newCm)
-		if err != nil {
-			logger.Errorf("update cluster failed err %v", err)
-		}
 		logger.Infof("cm%s  update but data not change no need to update node deployment", oldCm.ObjectMeta.Name)
 		return
 	}
