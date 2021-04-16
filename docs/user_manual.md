@@ -158,6 +158,11 @@ spec:
 
 ```
 
+How to use block pvc
+-----------
+[PersistentVolumeClaim requesting a Raw Block Volume](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volume-claim-requesting-a-raw-block-volume)
+
+
 How to use loop device 
 ----------
 
