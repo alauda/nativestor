@@ -26,12 +26,15 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func CreateTopolvmNodePsp(clientset kubernetes.Interface) error {
+func CreateTopolvmNodePsp(clientset kubernetes.Interface, ref *metav1.OwnerReference) error {
 
 	allowPrivilegeEscalation := true
 
 	topolvmNodePsp := &v1beta1.PodSecurityPolicy{
-		ObjectMeta: metav1.ObjectMeta{Name: cluster.TopolvmNodePsp},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            cluster.TopolvmNodePsp,
+			OwnerReferences: []metav1.OwnerReference{*ref},
+		},
 		Spec: v1beta1.PodSecurityPolicySpec{
 			Privileged:               true,
 			AllowPrivilegeEscalation: &allowPrivilegeEscalation,
@@ -66,12 +69,15 @@ func CheckPspExisting(clientset kubernetes.Interface, name string) (bool, error)
 	return false, nil
 }
 
-func CreateTopolvmPrepareVgPsp(clientset kubernetes.Interface) error {
+func CreateTopolvmPrepareVgPsp(clientset kubernetes.Interface, ref *metav1.OwnerReference) error {
 
 	allowPrivilegeEscalation := true
 
 	topolvmPrepareVgPsp := &v1beta1.PodSecurityPolicy{
-		ObjectMeta: metav1.ObjectMeta{Name: cluster.TopolvmPrepareVgPsp},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            cluster.TopolvmPrepareVgPsp,
+			OwnerReferences: []metav1.OwnerReference{*ref},
+		},
 		Spec: v1beta1.PodSecurityPolicySpec{
 			Privileged:               true,
 			AllowPrivilegeEscalation: &allowPrivilegeEscalation,

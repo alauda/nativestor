@@ -23,13 +23,9 @@ import (
 	"github.com/alauda/topolvm-operator/cmd/topolvm"
 	"github.com/alauda/topolvm-operator/controllers"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
-	"github.com/alauda/topolvm-operator/pkg/operator/csidriver"
-	"github.com/alauda/topolvm-operator/pkg/operator/psp"
 	"github.com/coreos/pkg/capnslog"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -94,16 +90,10 @@ func startOperator(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get env:%s failed ", cluster.PodNameSpaceEnv)
 	}
 
-	err = checkAndCreatePsp(ctx.Clientset)
-	if err != nil {
-		logger.Errorf("checkAndCreatePsp failed err %v", err)
-		return err
-	}
-
-	err = csidriver.CheckTopolvmCsiDriverExisting(ctx.Clientset)
-	if err != nil {
-		logger.Errorf("CheckTopolvmCsiDriverExisting failed err %v", err)
-		return err
+	cluster.IsOperatorHub = os.Getenv(cluster.IsOperatorHubEnv)
+	if cluster.NameSpace == "" {
+		logger.Errorf("unable get env %s ", cluster.IsOperatorHubEnv)
+		return fmt.Errorf("get env:%s failed ", cluster.IsOperatorHubEnv)
 	}
 
 	operatorImage := topolvm.GetOperatorImage(ctx.Clientset, "")
@@ -118,39 +108,6 @@ func startOperator(cmd *cobra.Command, args []string) error {
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		logger.Error(err, "problem running manager")
 		os.Exit(1)
-	}
-
-	return nil
-}
-
-func checkAndCreatePsp(clientset kubernetes.Interface) error {
-
-	existing, err := psp.CheckPspExisting(clientset, cluster.TopolvmNodePsp)
-	if err != nil {
-		return errors.Wrapf(err, "check psp %s failed", cluster.TopolvmNodePsp)
-	}
-
-	if !existing {
-		err = psp.CreateTopolvmNodePsp(clientset)
-		if err != nil {
-			return errors.Wrapf(err, "create psp %s failed", cluster.TopolvmNodePsp)
-		}
-	} else {
-		logger.Infof("psp %s existing", cluster.TopolvmNodePsp)
-	}
-
-	existing, err = psp.CheckPspExisting(clientset, cluster.TopolvmPrepareVgPsp)
-	if err != nil {
-		return errors.Wrapf(err, "check psp %s failed", cluster.TopolvmPrepareVgPsp)
-	}
-
-	if !existing {
-		err = psp.CreateTopolvmPrepareVgPsp(clientset)
-		if err != nil {
-			return errors.Wrapf(err, "create psp %s failed", cluster.TopolvmPrepareVgPsp)
-		}
-	} else {
-		logger.Infof("psp %s existing", cluster.TopolvmPrepareVgPsp)
 	}
 
 	return nil

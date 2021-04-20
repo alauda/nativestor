@@ -19,6 +19,7 @@ nameOverride: ""
 fullnameOverride: ""
 
 logLevel: "DEBUG"
+isOperatorHub: "0"
 
 podAnnotations: {}
 
