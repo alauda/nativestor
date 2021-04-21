@@ -5,7 +5,9 @@ User manual
 
 - [TopolvmCluster](#topolvmcluster)
 - [StorageClass](#storageclass)
-- [Topology Scheduler](#How to make pod be scheduler to specific node)
+- [How to make pod be scheduler to specific node](#How-to-make-pod-be-scheduler-to-specific-node)
+- [How to use block pvc](#How-to-use-block-pvc)
+- [How to use loop device](#How-to-use-loop-device)
 
 
 TopolvmCluster

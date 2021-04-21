@@ -1,3 +1,5 @@
+<img alt="Topolvm-Operator" src="./docs/logo.svg" width="250"/>  
+
 Topolvm-Operator
 ========
 
@@ -74,8 +76,8 @@ the changes are below:
 Docker images
 ------------
 
-- topolvm-operator [alaudapublic/topolvm-operator](https://hub.docker.com/repository/docker/alaudapublic/topolvm-operator)
-- topolvm [alaudapublic/topolvm](https://hub.docker.com/repository/docker/alaudapublic/topolvm-operator)
+- topolvm-operator [alaudapublic/topolvm-operator](https://hub.docker.com/r/alaudapublic/topolvm-operator)
+- topolvm [alaudapublic/topolvm](https://hub.docker.com/r/alaudapublic/topolvm-operator)
 
 
 
