@@ -1,4 +1,5 @@
 
+TEST_KUBERNETES_TARGET ?= current
 ## Dependency versions
 KIND_VERSION=0.10.0
 BINDIR=$(PWD)/bin
@@ -12,8 +13,16 @@ GINKGO := $(BINDIR)/ginkgo
 
 PACKAGES := unzip lvm2 xfsprogs
 
+
+ifeq ($(TEST_KUBERNETES_TARGET),current)
 TEST_KUBERNETES_VERSION=1.20
+else ifeq ($(TEST_KUBERNETES_TARGET),prev)
+TEST_KUBERNETES_VERSION=1.19
+endif
+
+
 export TEST_KUBERNETES_VERSION
+
 
 
 ifeq ($(TEST_KUBERNETES_VERSION),1.20)

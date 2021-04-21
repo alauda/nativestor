@@ -17,9 +17,10 @@ limitations under the License.
 package cluster
 
 var (
-	TopolvmImage string
-	NameSpace    string
-	ClusterName  string
+	TopolvmImage  string
+	NameSpace     string
+	ClusterName   string
+	IsOperatorHub string
 )
 
 const (
@@ -28,11 +29,12 @@ const (
 	// ClusterAttr cluster label
 	ClusterAttr = "topolvm_cluster"
 
-	NodeNameEnv     = "NODE_NAME"
-	ClusterNameEnv  = "CLUSTER_NAME"
-	PodNameSpaceEnv = "POD_NAMESPACE"
-	PodNameEnv      = "POD_NAME"
-	LogLevelEnv     = "TOPOLVM_LOG_LEVEL"
+	NodeNameEnv      = "NODE_NAME"
+	ClusterNameEnv   = "CLUSTER_NAME"
+	PodNameSpaceEnv  = "POD_NAMESPACE"
+	IsOperatorHubEnv = "IS_OPERATOR_HUB"
+	PodNameEnv       = "POD_NAME"
+	LogLevelEnv      = "TOPOLVM_LOG_LEVEL"
 
 	TopolvmNodeDeploymentNamePrefix = "topolvm-node-"
 	NodeServiceAccount              = "topolvm-node"
@@ -86,4 +88,5 @@ const (
 	TopolvmPrepareVgPsp = "topolvm-preparevg"
 
 	TopolvmCSIDriverName = "topolvm.cybozu.com"
+	IsOperator           = "1"
 )

@@ -126,7 +126,7 @@ func (c *PrePareVg) provision() error {
 		return err
 	} else if err == nil {
 
-		logger.Info("cm is existing start check whether need create new vg or expand vg")
+		logger.Info("cm is existing check if need update")
 
 		err := json.Unmarshal([]byte(cm.Data[cluster.VgStatusConfigMapKey]), &nodeStatus)
 		if err != nil {
@@ -165,11 +165,9 @@ func (c *PrePareVg) provision() error {
 
 		}
 
-		if len(sucVgs) > 0 {
-			err = updateLvmdConf(cm, sucVgs)
-			if err != nil {
-				return errors.Wrap(err, "update lvmd conf failed")
-			}
+		err = c.updateLvmdConf(cm, sucVgs)
+		if err != nil {
+			return errors.Wrap(err, "update lvmd conf failed")
 		}
 
 		err = updateVgStatus(cm, &nodeStatus, sucClassMap, failClassMap)
@@ -374,7 +372,7 @@ func (c *PrePareVg) createVg(availaDisks map[string]*sys.LocalDisk, class *topol
 
 }
 
-func updateLvmdConf(cm *v1.ConfigMap, newVgs []topolvmv1.DeviceClass) error {
+func (c *PrePareVg) updateLvmdConf(cm *v1.ConfigMap, newVgs []topolvmv1.DeviceClass) error {
 
 	lvmdConf := cluster.LmvdConf{}
 	dataLvmd, ok := cm.Data[cluster.LvmdConfigMapKey]
@@ -385,6 +383,14 @@ func updateLvmdConf(cm *v1.ConfigMap, newVgs []topolvmv1.DeviceClass) error {
 		}
 	} else {
 		return errors.New("lvmd configmap has not config info")
+	}
+
+	for _, dev := range c.nodeDevices.DeviceClasses {
+		for index, ele := range lvmdConf.DeviceClasses {
+			if (ele.Name == dev.ClassName) && (ele.Default != dev.Default) {
+				lvmdConf.DeviceClasses[index].Default = dev.Default
+			}
+		}
 	}
 
 	// add new vgs

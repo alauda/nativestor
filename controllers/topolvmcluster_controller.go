@@ -22,7 +22,9 @@ import (
 	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/controller"
+	"github.com/alauda/topolvm-operator/pkg/operator/csidriver"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
+	"github.com/alauda/topolvm-operator/pkg/operator/psp"
 	"github.com/alauda/topolvm-operator/pkg/operator/volumectr"
 	"github.com/alauda/topolvm-operator/pkg/operator/volumegroup"
 	"github.com/coreos/pkg/capnslog"
@@ -31,6 +33,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes"
 	"os"
 	"os/signal"
 	"reflect"
@@ -170,6 +173,20 @@ func NewClusterContoller(ctx *cluster.Context, operatorImage string) *ClusterCon
 }
 
 func (c *ClusterController) onAdd(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference) error {
+
+	if cluster.IsOperatorHub == cluster.IsOperator {
+
+		err := csidriver.CheckTopolvmCsiDriverExisting(c.context.Clientset, ref)
+		if err != nil {
+			logger.Errorf("CheckTopolvmCsiDriverExisting failed err %v", err)
+			return err
+		}
+		err = checkAndCreatePsp(c.context.Clientset, ref)
+		if err != nil {
+			logger.Errorf("checkAndCreatePsp failed err %v", err)
+			return err
+		}
+	}
 
 	// Start the main topolvm cluster orchestration
 
@@ -349,6 +366,39 @@ func removeFinalizer(client client.Client, name types.NamespacedName) error {
 	err = controller.RemoveFinalizer(client, topolvmCluster)
 	if err != nil {
 		return errors.Wrap(err, "failed to remove finalizer")
+	}
+
+	return nil
+}
+
+func checkAndCreatePsp(clientset kubernetes.Interface, ref *metav1.OwnerReference) error {
+
+	existing, err := psp.CheckPspExisting(clientset, cluster.TopolvmNodePsp)
+	if err != nil {
+		return errors.Wrapf(err, "check psp %s failed", cluster.TopolvmNodePsp)
+	}
+
+	if !existing {
+		err = psp.CreateTopolvmNodePsp(clientset, ref)
+		if err != nil {
+			return errors.Wrapf(err, "create psp %s failed", cluster.TopolvmNodePsp)
+		}
+	} else {
+		logger.Infof("psp %s existing", cluster.TopolvmNodePsp)
+	}
+
+	existing, err = psp.CheckPspExisting(clientset, cluster.TopolvmPrepareVgPsp)
+	if err != nil {
+		return errors.Wrapf(err, "check psp %s failed", cluster.TopolvmPrepareVgPsp)
+	}
+
+	if !existing {
+		err = psp.CreateTopolvmPrepareVgPsp(clientset, ref)
+		if err != nil {
+			return errors.Wrapf(err, "create psp %s failed", cluster.TopolvmPrepareVgPsp)
+		}
+	} else {
+		logger.Infof("psp %s existing", cluster.TopolvmPrepareVgPsp)
 	}
 
 	return nil

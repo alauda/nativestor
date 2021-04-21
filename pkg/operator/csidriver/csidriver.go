@@ -26,7 +26,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func CheckTopolvmCsiDriverExisting(clientset kubernetes.Interface) error {
+func CheckTopolvmCsiDriverExisting(clientset kubernetes.Interface, ref *metav1.OwnerReference) error {
 
 	_, err := clientset.StorageV1().CSIDrivers().Get(context.TODO(), cluster.TopolvmCSIDriverName, metav1.GetOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
@@ -39,7 +39,10 @@ func CheckTopolvmCsiDriverExisting(clientset kubernetes.Interface) error {
 	podInfoOnMount := true
 	storageCapacity := true
 	csiDriver := &storagev1.CSIDriver{
-		ObjectMeta: metav1.ObjectMeta{Name: cluster.TopolvmCSIDriverName},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            cluster.TopolvmCSIDriverName,
+			OwnerReferences: []metav1.OwnerReference{*ref},
+		},
 		Spec: storagev1.CSIDriverSpec{
 			AttachRequired:       &attachRequired,
 			PodInfoOnMount:       &podInfoOnMount,

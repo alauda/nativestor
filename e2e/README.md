@@ -16,13 +16,8 @@ Setup environment
 How to run tests
 ----------------
 
-Place the topolvm image to e2e
-
-```console
-
-docker save topolvm:v1.10 -o ./e2e/topolvm.img
-```
-
+if you want to provide your own topolvm image, please edit the [cluster.yaml](./manifest/cluster.yaml), 
+change the spec.topolvmVersion field
 
 run as follows:
 
