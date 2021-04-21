@@ -1,3 +1,5 @@
+<img alt="Topolvm-Operator" src="./docs/logo.svg" width="250"/>  
+
 Topolvm-Operator
 ========
 
