@@ -74,8 +74,8 @@ the changes are below:
 Docker images
 ------------
 
-- topolvm-operator [alaudapublic/topolvm-operator](https://hub.docker.com/repository/docker/alaudapublic/topolvm-operator)
-- topolvm [alaudapublic/topolvm](https://hub.docker.com/repository/docker/alaudapublic/topolvm-operator)
+- topolvm-operator [alaudapublic/topolvm-operator](https://hub.docker.com/r/alaudapublic/topolvm-operator)
+- topolvm [alaudapublic/topolvm](https://hub.docker.com/r/alaudapublic/topolvm-operator)
 
 
 
