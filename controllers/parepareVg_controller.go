@@ -382,7 +382,7 @@ func (c *PrePareVg) updateLvmdConf(cm *v1.ConfigMap, newVgs []topolvmv1.DeviceCl
 			return err
 		}
 	} else {
-		return errors.New("lvmd configmap has not config info")
+		return createLvmdConf(cm, newVgs)
 	}
 
 	for _, dev := range c.nodeDevices.DeviceClasses {
