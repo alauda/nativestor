@@ -19,7 +19,7 @@ spec:
       containers:
         - name: topolvm-operator
           # set the stable version
-          image: harbor-b.alauda.cn/acp/topolvm-operator:test
+          image: alaudapublic/topolvm-operator:1.0.0
           command:
             - /topolvm
           args:
