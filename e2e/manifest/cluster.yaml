@@ -4,7 +4,7 @@ metadata:
   name: topolvmcluster-sample
   namespace: topolvm-system
 spec:
-  topolvmVersion: littleguylxr/topolvm:v0.0.1
+  topolvmVersion: alaudapublic/topolvm:1.0.0
   deviceClasses:
     - nodeName: "topolvm-e2e-worker"
       classes:

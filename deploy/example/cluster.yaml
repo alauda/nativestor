@@ -6,7 +6,7 @@ metadata:
   namespace: topolvm-system
 spec:
   # Add fields here
-  topolvmVersion: harbor-b.alauda.cn/acp/topolvm:v3.3-4-g36b8bce
+  topolvmVersion: alaudapublic/topolvm:1.0.0
   deviceClasses:
       # kubernetes node name
     - nodeName: "192.168.16.98"
