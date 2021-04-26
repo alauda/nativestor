@@ -378,6 +378,7 @@ func removeFinalizer(client client.Client, name types.NamespacedName) error {
 }
 
 func RemoveNodeCapacityAnnotations(clientctr client.Client) error {
+
 	ctx := context.TODO()
 	nodeList := corev1.NodeList{}
 	err := clientctr.List(ctx, &nodeList)

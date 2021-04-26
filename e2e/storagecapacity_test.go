@@ -164,8 +164,7 @@ spec:
 			Expect(err).ShouldNot(HaveOccurred())
 
 			capacity := csiStorageCapacities.Capacity
-
-			if !capacity.Equal(*csiStorageCapacitiesMap["topolvm-provisioner1"]) {
+			if capacity.Equal(*csiStorageCapacitiesMap["topolvm-provisioner1"]) {
 				return errors.New("capacity should change when vg expand")
 			}
 			return nil
