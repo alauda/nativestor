@@ -89,4 +89,5 @@ const (
 
 	TopolvmCSIDriverName = "topolvm.cybozu.com"
 	IsOperator           = "1"
+	CapacityKeyPrefix    = "capacity.topolvm.cybozu.com/"
 )

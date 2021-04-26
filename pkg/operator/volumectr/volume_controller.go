@@ -228,11 +228,11 @@ func getLivenessProbeContainer() *corev1.Container {
 		{Name: "socket-dir", MountPath: "/run/topolvm"},
 	}
 
-	csiAttacher := &corev1.Container{
+	livenessProbe := &corev1.Container{
 		Name:         cluster.TopolvmCsiLivenessProbeContainerName,
 		Image:        cluster.TopolvmImage,
 		Command:      command,
 		VolumeMounts: volumeMounts,
 	}
-	return csiAttacher
+	return livenessProbe
 }
