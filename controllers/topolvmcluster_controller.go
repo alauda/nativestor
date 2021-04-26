@@ -29,6 +29,7 @@ import (
 	"github.com/alauda/topolvm-operator/pkg/operator/volumegroup"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -119,6 +120,11 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 			return reconcile.Result{}, errors.Wrap(err, "failed to remove finalize")
 		}
 
+		err = RemoveNodeCapacityAnnotations(r.context.Client)
+		if err != nil {
+			clusterLogger.Errorf("failed to remove node capacity annotations err %v", err)
+			return reconcile.Result{}, errors.Wrap(err, "failed to remove node capacity annotations")
+		}
 		// Return and do not requeue. Successful deletion.
 		return reconcile.Result{}, nil
 	}
@@ -369,6 +375,28 @@ func removeFinalizer(client client.Client, name types.NamespacedName) error {
 	}
 
 	return nil
+}
+
+func RemoveNodeCapacityAnnotations(clientctr client.Client) error {
+	ctx := context.TODO()
+	nodeList := corev1.NodeList{}
+	err := clientctr.List(ctx, &nodeList)
+	if err != nil {
+		errors.Wrapf(err, "failed list node")
+	}
+	nodes := nodeList.DeepCopy()
+	for index, node := range nodes.Items {
+		for key, _ := range node.Annotations {
+			if strings.HasPrefix(key, cluster.CapacityKeyPrefix) {
+				delete(nodes.Items[index].Annotations, key)
+				err = clientctr.Patch(ctx, &nodes.Items[index], client.MergeFrom(&nodeList.Items[index]))
+				if err != nil {
+					logger.Errorf("delete node %s capacity annotations failed err: %v", nodeList.Items[index].Name, err)
+				}
+			}
+		}
+	}
+	return err
 }
 
 func checkAndCreatePsp(clientset kubernetes.Interface, ref *metav1.OwnerReference) error {
