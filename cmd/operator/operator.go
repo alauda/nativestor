@@ -96,7 +96,7 @@ func startOperator(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get env:%s failed ", cluster.IsOperatorHubEnv)
 	}
 
-	err = controllers.RemoveNodeCapacityAnnotations(ctx.Client)
+	err = controllers.RemoveNodeCapacityAnnotations(ctx.Clientset)
 	if err != nil {
 		logger.Errorf("RemoveNodeCapacityAnnotations failed err %v", err)
 		return fmt.Errorf("RemoveNodeCapacityAnnotations failed err %v", err)
