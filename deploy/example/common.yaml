@@ -494,11 +494,13 @@ rules:
   - apiGroups: [ "" ]
     resources: [ "nodes" ]
     verbs: [ "get", "list", "watch", "update", "patch" ]
+  - apiGroups: [ "" ]
+    resources: [ "pods" ]
+    verbs: [ "get", "list", "watch", "update", "delete" ]
   - apiGroups:
       - ""
     resources:
       # Pod access is needed for fencing
-      - pods
       - nodes/proxy
       - services
     verbs:
