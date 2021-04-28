@@ -30,6 +30,17 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+func CheckNodeDeploymentIsExisting(clientset kubernetes.Interface, deploymentName string) (bool, error) {
+
+	_, err := clientset.AppsV1().Deployments(cluster.NameSpace).Get(context.TODO(), deploymentName, metav1.GetOptions{})
+	if err != nil && !kerrors.IsNotFound(err) {
+		return false, errors.Wrapf(err, "failed to detect deployment %s", deploymentName)
+	} else if err == nil {
+		return true, nil
+	}
+	return false, nil
+}
+
 func CreateReplaceDeployment(clientset kubernetes.Interface, deploymentName string, lvmdOConfigMapName string, nodeName string, ref *metav1.OwnerReference) error {
 
 	_, err := clientset.AppsV1().Deployments(cluster.NameSpace).Get(context.TODO(), deploymentName, metav1.GetOptions{})

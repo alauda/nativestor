@@ -191,11 +191,22 @@ func getCsiProvisionerContainer() *corev1.Container {
 
 	command := []string{"/csi-provisioner",
 		"--csi-address=/run/topolvm/csi-topolvm.sock",
-		"--feature-gates=Topology=true",
 		"--enable-capacity",
 		"--capacity-ownerref-level=2",
+		"--capacity-poll-interval=30s",
 		"--leader-election",
 		"--leader-election-namespace=" + cluster.NameSpace,
+	}
+
+	resourceRequirements := corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse(cluster.TopolvmControllerCsiProvisionCPULimit),
+			corev1.ResourceMemory: resource.MustParse(cluster.TopolvmControllerCsiProvisionMemLimit),
+		},
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse(cluster.TopolvmControllerCsiProvisionCPURequest),
+			corev1.ResourceMemory: resource.MustParse(cluster.TopolvmControllerCsiProvisionMemRequest),
+		},
 	}
 
 	volumeMounts := []corev1.VolumeMount{
@@ -211,6 +222,7 @@ func getCsiProvisionerContainer() *corev1.Container {
 		Name:         cluster.TopolvmCsiProvisionerContainerName,
 		Image:        cluster.TopolvmImage,
 		Command:      command,
+		Resources:    resourceRequirements,
 		VolumeMounts: volumeMounts,
 		Env:          env,
 	}
@@ -228,11 +240,11 @@ func getLivenessProbeContainer() *corev1.Container {
 		{Name: "socket-dir", MountPath: "/run/topolvm"},
 	}
 
-	csiAttacher := &corev1.Container{
+	livenessProbe := &corev1.Container{
 		Name:         cluster.TopolvmCsiLivenessProbeContainerName,
 		Image:        cluster.TopolvmImage,
 		Command:      command,
 		VolumeMounts: volumeMounts,
 	}
-	return csiAttacher
+	return livenessProbe
 }

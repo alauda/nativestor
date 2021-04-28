@@ -96,6 +96,12 @@ func startOperator(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get env:%s failed ", cluster.IsOperatorHubEnv)
 	}
 
+	err = controllers.RemoveNodeCapacityAnnotations(ctx.Clientset)
+	if err != nil {
+		logger.Errorf("RemoveNodeCapacityAnnotations failed err %v", err)
+		return fmt.Errorf("RemoveNodeCapacityAnnotations failed err %v", err)
+	}
+
 	operatorImage := topolvm.GetOperatorImage(ctx.Clientset, "")
 	c := controllers.NewTopolvmClusterReconciler(mgr.GetScheme(), ctx, operatorImage)
 	if err := c.SetupWithManager(mgr); err != nil {

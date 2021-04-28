@@ -653,13 +653,16 @@ rules:
     verbs:
       - create
       - get
+  - apiGroups: [ "" ]
+    resources: [ "nodes" ]
+    verbs: [ "get", "list", "watch", "update", "patch" ]
+  - apiGroups: [ "" ]
+    resources: [ "pods" ]
+    verbs: [ "get", "list", "watch", "update", "delete" ]
   - apiGroups:
       - ""
     resources:
       # Pod access is needed for fencing
-      - pods
-      # Node access is needed for determining nodes where mons should run
-      - nodes
       - nodes/proxy
       - services
     verbs:

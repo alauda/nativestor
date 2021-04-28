@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
@@ -29,10 +30,12 @@ import (
 	"github.com/alauda/topolvm-operator/pkg/operator/volumegroup"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes"
 	"os"
 	"os/signal"
@@ -119,6 +122,11 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 			return reconcile.Result{}, errors.Wrap(err, "failed to remove finalize")
 		}
 
+		err = RemoveNodeCapacityAnnotations(r.context.Clientset)
+		if err != nil {
+			clusterLogger.Errorf("failed to remove node capacity annotations err %v", err)
+			return reconcile.Result{}, errors.Wrap(err, "failed to remove node capacity annotations")
+		}
 		// Return and do not requeue. Successful deletion.
 		return reconcile.Result{}, nil
 	}
@@ -369,6 +377,41 @@ func removeFinalizer(client client.Client, name types.NamespacedName) error {
 	}
 
 	return nil
+}
+
+func RemoveNodeCapacityAnnotations(clientset kubernetes.Interface) error {
+
+	ctx := context.TODO()
+	nodeList, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+	if err != nil {
+		errors.Wrapf(err, "failed list node")
+	}
+	nodes := nodeList.DeepCopy()
+	for index, node := range nodes.Items {
+		for key := range node.Annotations {
+			if strings.HasPrefix(key, cluster.CapacityKeyPrefix) {
+
+				delete(nodes.Items[index].Annotations, key)
+				oldJSON, err := json.Marshal(nodeList.Items[index])
+				if err != nil {
+					return err
+				}
+				newJSON, err := json.Marshal(nodes.Items[index])
+				if err != nil {
+					return err
+				}
+				patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldJSON, newJSON, corev1.Node{})
+				if err != nil {
+					return err
+				}
+				_, err = clientset.CoreV1().Nodes().Patch(ctx, nodes.Items[index].Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
+				if err != nil {
+					logger.Errorf("patch node %s capacity annotations failed err: %v", nodeList.Items[index].Name, err)
+				}
+			}
+		}
+	}
+	return err
 }
 
 func checkAndCreatePsp(clientset kubernetes.Interface, ref *metav1.OwnerReference) error {
