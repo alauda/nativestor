@@ -28,6 +28,8 @@ import (
 	"k8s.io/api/storage/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"strconv"
+	"strings"
+	"time"
 )
 
 func testCsiStorageCapacity() {
@@ -154,21 +156,69 @@ spec:
 		newTopolvm := fmt.Sprintf(topolvmClusterTemplate, topolvmCluster.Spec.TopolvmVersion, loopMap["topolvm-e2e-worker"], newDisk, loopMap["topolvm-e2e-worker2"], loopMap["topolvm-e2e-worker3"])
 		_, _, err = kubectlWithInput([]byte(newTopolvm), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
+		time.Sleep(time.Second * 30)
+
+		pvc := `kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pvc-test
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  storageClassName: topolvm-provisioner1
+`
+
+		pod := `apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pod
+  labels:
+    app.kubernetes.io/name: test-pod
+spec:
+  containers:
+    - name: ubuntu
+      image: quay.io/cybozu/ubuntu:20.04
+      command: ["/usr/local/bin/pause"]
+      volumeMounts:
+        - mountPath: /test1
+          name: my-volume
+  volumes:
+    - name: my-volume
+      persistentVolumeClaim:
+        claimName: pvc-test
+`
+		_, _, err = kubectlWithInput([]byte(pvc), "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		_, _, err = kubectlWithInput([]byte(pod), "apply", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
 
-			stdout, stderr, err := kubectl("get", "-n", "topolvm-system", "csistoragecapacities", updateTestName, "-o=json")
+			stdout, stderr, err := kubectl("get", "pvc", "pvc-test", "-o=template", "--template={{.status.phase}}")
+			if err != nil {
+				return fmt.Errorf("failed to get pvc. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+			phase := strings.TrimSpace(string(stdout))
+			if phase != "Bound" {
+				return fmt.Errorf("pvc %s is not bind", "pvc-test")
+			}
+			stdout, stderr, err = kubectl("get", "-n", "topolvm-system", "csistoragecapacities", updateTestName, "-o=json")
 			Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 			var csiStorageCapacities v1alpha1.CSIStorageCapacity
 			err = json.Unmarshal(stdout, &csiStorageCapacities)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			capacity := csiStorageCapacities.Capacity
-			if capacity.Equal(*csiStorageCapacitiesMap["topolvm-provisioner1"]) {
-				return errors.New("capacity should change when vg expand")
+			newVar := capacity.Value()
+			oldVal := csiStorageCapacitiesMap["topolvm-provisioner1"].Value()
+			if newVar <= oldVal {
+				return errors.New("capacity should greater then old when vg expand")
 			}
 			return nil
-
 		}).Should(Succeed())
 
 	})

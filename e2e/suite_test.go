@@ -87,7 +87,7 @@ var _ = BeforeSuite(func() {
 	Eventually(waitKindnet).Should(Succeed())
 	time.Sleep(5 * time.Second)
 	Eventually(waitKindnet).Should(Succeed())
-	SetDefaultEventuallyTimeout(10 * time.Minute)
+	SetDefaultEventuallyTimeout(15 * time.Minute)
 
 	podYAML := `apiVersion: v1
 kind: Pod

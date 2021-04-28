@@ -78,6 +78,11 @@ const (
 	TopolvmControllerCPURequest = "250m"
 	TopolvmControllerCPULimit   = "250m"
 
+	TopolvmControllerCsiProvisionMemRequest = "250Mi"
+	TopolvmControllerCsiProvisionMemLimit   = "250Mi"
+	TopolvmControllerCsiProvisionCPURequest = "250m"
+	TopolvmControllerCsiProvisionCPULimit   = "250m"
+
 	PrepareVgServiceAccount = "topolvm-preparevg"
 	PrePareVgAppName        = "prepareVolumeGroup"
 	PrepareVgJobFmt         = "topolvm-prepare-vg-%s"
