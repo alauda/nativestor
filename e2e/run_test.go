@@ -21,6 +21,8 @@ import (
 	"encoding/json"
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/api/storage/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"os/exec"
 	"strings"
 
@@ -32,7 +34,8 @@ import (
 )
 
 type CleanupContext struct {
-	CapacityAnnotations map[string]map[string]string
+	NodeCapacityAnnotations map[string]map[string]string
+	CSICapacity             map[string]*resource.Quantity
 }
 
 func execAtLocal(cmd string, input []byte, args ...string) ([]byte, []byte, error) {
@@ -61,7 +64,9 @@ func commonBeforeEach() CleanupContext {
 	var cc CleanupContext
 	var err error
 
-	cc.CapacityAnnotations, err = getNodeAnnotationMapWithPrefix(topolvm.CapacityKeyPrefix)
+	cc.NodeCapacityAnnotations, err = getNodeAnnotationMapWithPrefix(topolvm.CapacityKeyPrefix)
+	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
+	cc.CSICapacity, err = getCSICapacity()
 	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
 
 	return cc
@@ -79,8 +84,16 @@ func commonAfterEach(cc CleanupContext) {
 			if err != nil {
 				return err
 			}
-			if diff := cmp.Diff(cc.CapacityAnnotations, capacitiesAfter); diff != "" {
+			if diff := cmp.Diff(cc.NodeCapacityAnnotations, capacitiesAfter); diff != "" {
 				return fmt.Errorf("capacities on nodes should be same before and after the test: diff=%q", diff)
+			}
+			csiCapacitiesAfter, err := getCSICapacity()
+			if err != nil {
+				return err
+			}
+
+			if diff := cmp.Diff(cc.CSICapacity, csiCapacitiesAfter); diff != "" {
+				return fmt.Errorf("csi capacity should be same before and after the test: diff=%q", diff)
 			}
 			return nil
 		}).Should(Succeed())
@@ -114,6 +127,24 @@ func getNodeAnnotationMapWithPrefix(prefix string) (map[string]map[string]string
 		}
 	}
 	return capacities, nil
+}
+
+func getCSICapacity() (map[string]*resource.Quantity, error) {
+	stdout, stderr, err := kubectl("get", "-n", "topolvm-system", "csistoragecapacities", "-o=json")
+	if err != nil {
+		return nil, fmt.Errorf("stdout=%sr stderr=%s, err=%v", stdout, stderr, err)
+	}
+	var csiStorageCapacities v1alpha1.CSIStorageCapacityList
+	err = json.Unmarshal(stdout, &csiStorageCapacities)
+	if err != nil {
+		return nil, fmt.Errorf("unmashal CSIStorageCapacityList failed err %v", err)
+	}
+	capacities := make(map[string]*resource.Quantity)
+	for _, val := range csiStorageCapacities.Items {
+		capacities[val.Name] = val.Capacity
+	}
+	return capacities, nil
+
 }
 
 func waitCreatingDefaultSA(ns string) error {
