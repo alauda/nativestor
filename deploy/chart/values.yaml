@@ -5,11 +5,11 @@
 replicaCount: 1
 global:
   registry:
-    address: harbor-b.alauda.cn
+    address: docker.io
   images:
     topolvmOperator:
-      repository: acp/topolvm-operator
-      tag: v3.4-pr-5.20
+      repository: alaudapublic/topolvm-operator
+      tag: 1.0.0
       pullPolicy: IfNotPresent
       support_arm: true
 

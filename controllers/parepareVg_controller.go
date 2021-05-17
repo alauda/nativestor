@@ -136,13 +136,13 @@ func (c *PrePareVg) provision(topolvmCluster *topolvmv1.TopolvmCluster) error {
 		deviceClasses := []topolvmv1.DeviceClass{deviceClass}
 		c.nodeDevices = topolvmv1.NodeDevices{NodeName: c.nodeName, DeviceClasses: deviceClasses}
 
-	} else {
+	} else if topolvmCluster.Spec.Devices != nil {
 
 		deviceClass := topolvmv1.DeviceClass{ClassName: topolvmCluster.Spec.Storage.ClassName, VgName: topolvmCluster.Spec.Storage.VolumeGroupName, Default: true, Device: topolvmCluster.Spec.Storage.Devices}
+		deviceClasses := []topolvmv1.DeviceClass{deviceClass}
+		c.nodeDevices = topolvmv1.NodeDevices{NodeName: c.nodeName, DeviceClasses: deviceClasses}
 
-	}
-
-	if topolvmCluster.Spec.DeviceClasses != nil {
+	} else if topolvmCluster.Spec.DeviceClasses != nil {
 		for _, dev := range topolvmCluster.Spec.DeviceClasses {
 			if dev.NodeName == c.nodeName {
 				c.nodeDevices = dev
@@ -301,6 +301,9 @@ func (c *PrePareVg) checkVgIfExpand(class *topolvmv1.DeviceClass, sucClass map[s
 
 	for _, d := range class.Device {
 
+		if d.Type == Loop {
+			d.Name = c.loopMap[d.Name].DeviceName
+		}
 		if _, ok := pv[d.Name]; !ok {
 
 			if err = sys.CreatePhysicalVolume(c.context.Executor, d.Name); err != nil {
@@ -521,7 +524,7 @@ func checkLoopDevice(deviceClass []topolvmv1.DeviceClass, loops *[]topolvmv1.Loo
 
 			if ele.Type == Loop {
 				created := false
-				faileLoopIndex := 0
+				failedLoopIndex := 0
 				retry := false
 				for index, loop := range *loops {
 					if loop.Name == ele.Name {
@@ -529,7 +532,7 @@ func checkLoopDevice(deviceClass []topolvmv1.DeviceClass, loops *[]topolvmv1.Loo
 							loopMap[loop.Name] = loop
 							created = true
 						} else {
-							faileLoopIndex = index
+							failedLoopIndex = index
 							retry = true
 						}
 						break
@@ -548,7 +551,7 @@ func checkLoopDevice(deviceClass []topolvmv1.DeviceClass, loops *[]topolvmv1.Loo
 					s.Status = LoopCreateSuccessful
 					s.DeviceName = loopName
 					if retry {
-						(*loops)[faileLoopIndex] = s
+						(*loops)[failedLoopIndex] = s
 
 					} else {
 						*loops = append(*loops, s)
