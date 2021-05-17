@@ -196,6 +196,9 @@ func (c *ClusterController) onAdd(topolvmCluster *topolvmv1.TopolvmCluster, ref 
 		}
 	}
 
+	if topolvmCluster.Spec.UseLoop {
+		// start daemonset to handler node restart
+	}
 	// Start the main topolvm cluster orchestration
 
 	if err := c.startPrepareVolumeGroupJob(topolvmCluster, ref); err != nil {
@@ -250,14 +253,12 @@ func (c *ClusterController) startReplaceNodeDeployment(topolvmCluster *topolvmv1
 
 func (c *ClusterController) startPrepareVolumeGroupJob(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference) error {
 
-	list := topolvmCluster.Spec.DeviceClasses
+	storage := topolvmCluster.Spec.Storage
 
 	// if device class not change then check if has fail class that should be recreate
-	if c.lastCluster != nil && reflect.DeepEqual(c.lastCluster.Spec.DeviceClasses, list) {
-
+	if c.lastCluster != nil && reflect.DeepEqual(c.lastCluster.Spec.Storage, storage) {
 		go func() {
 			for _, ele := range topolvmCluster.Status.NodeStorageStatus {
-
 				if len(ele.FailClasses) > 0 || len(ele.SuccessClasses) == 0 {
 					logger.Infof("node%s has fail classes recreate job again", ele.Node)
 					if err := volumegroup.MakeAndRunJob(c.context.Clientset, ele.Node, c.operatorImage, ref); err != nil {
@@ -268,6 +269,20 @@ func (c *ClusterController) startPrepareVolumeGroupJob(topolvmCluster *topolvmv1
 				}
 			}
 		}()
+		return nil
+	}
+
+	if topolvmCluster.Spec.UseAllNodes {
+		nodes, err := c.context.Clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			clusterLogger.Errorf("list node failed err %v", err)
+			return err
+		}
+		for _, ele := range nodes.Items {
+			if err := volumegroup.MakeAndRunJob(c.context.Clientset, ele.Name, c.operatorImage, ref); err != nil {
+				clusterLogger.Errorf("create job for node failed %s", ele.Name)
+			}
+		}
 
 		return nil
 	}
@@ -275,12 +290,13 @@ func (c *ClusterController) startPrepareVolumeGroupJob(topolvmCluster *topolvmv1
 	// first should create job anyway
 	logger.Info("start make prepare volume group job")
 	go func() {
-		for _, ele := range list {
-			if err := volumegroup.MakeAndRunJob(c.context.Clientset, ele.NodeName, c.operatorImage, ref); err != nil {
-				clusterLogger.Errorf("create job for node failed %s", ele.NodeName)
+		if storage.DeviceClasses != nil {
+			for _, ele := range storage.DeviceClasses {
+				if err := volumegroup.MakeAndRunJob(c.context.Clientset, ele.NodeName, c.operatorImage, ref); err != nil {
+					clusterLogger.Errorf("create job for node failed %s", ele.NodeName)
+				}
 			}
 		}
-
 	}()
 
 	return nil

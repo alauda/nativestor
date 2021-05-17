@@ -38,6 +38,7 @@ type Storage struct {
 	Devices         []Disk        `json:"devices,omitempty"`
 	VolumeGroupName string        `json:"volumeGroupName,omitempty"`
 	ClassName       string        `json:"className,omitempty"`
+	UseLoop         bool          `json:"useLoop"`
 }
 
 type NodeDevices struct {
@@ -73,6 +74,15 @@ type NodeStorageState struct {
 	Node           string       `json:"node"`
 	FailClasses    []ClassState `json:"failClasses"`
 	SuccessClasses []ClassState `json:"successClasses"`
+	Loops          []LoopState  `json:"loops"`
+}
+
+type LoopState struct {
+	Name       string `json:"name"`
+	File       string `json:"file"`
+	DeviceName string `json:"deviceName"`
+	Status     string `json:"status"`
+	Message    string `json:"message"`
 }
 
 type ClassState struct {
