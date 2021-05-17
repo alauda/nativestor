@@ -302,7 +302,11 @@ func (c *PrePareVg) checkVgIfExpand(class *topolvmv1.DeviceClass, sucClass map[s
 	for _, d := range class.Device {
 
 		if d.Type == Loop {
-			d.Name = c.loopMap[d.Name].DeviceName
+			name := c.getDeviceName(d.Name)
+			if name == "" {
+				continue
+			}
+			d.Name = name
 		}
 		if _, ok := pv[d.Name]; !ok {
 
@@ -333,7 +337,16 @@ func (c *PrePareVg) createVgRetry(availaDisks map[string]*sys.LocalDisk, class *
 
 	available := true
 
-	for _, disk := range class.Device {
+	for index, disk := range class.Device {
+
+		if disk.Type == Loop {
+			name := c.getDeviceName(disk.Name)
+			if name == "" {
+				continue
+			}
+			class.Device[index].Name = name
+			disk.Name = name
+		}
 		if _, ok := availaDisks[disk.Name]; !ok {
 			message := "disk may has filesystem or is not raw disk please check"
 			devStatus := topolvmv1.DeviceState{Name: disk.Name, Message: message}
@@ -378,7 +391,16 @@ func (c *PrePareVg) createVg(availaDisks map[string]*sys.LocalDisk, class *topol
 
 	available := true
 
-	for _, disk := range class.Device {
+	for index, disk := range class.Device {
+
+		if disk.Type == Loop {
+			name := c.getDeviceName(disk.Name)
+			if name == "" {
+				continue
+			}
+			disk.Name = name
+			class.Device[index].Name = name
+		}
 
 		if _, ok := availaDisks[disk.Name]; !ok {
 			message := "disk may has filesystem or is not raw disk please check"
@@ -445,6 +467,15 @@ func (c *PrePareVg) updateLvmdConf(cm *v1.ConfigMap, newVgs []topolvmv1.DeviceCl
 	cm.Data[cluster.LvmdConfigMapKey] = string(value)
 	return nil
 
+}
+
+func (c *PrePareVg) getDeviceName(name string) string {
+
+	if loop, ok := c.loopMap[name]; ok {
+		return loop.DeviceName
+	} else {
+		return ""
+	}
 }
 
 func updateVgStatus(cm *v1.ConfigMap, state *topolvmv1.NodeStorageState, sucClass map[string]*topolvmv1.ClassState, failClass map[string]*topolvmv1.ClassState) error {

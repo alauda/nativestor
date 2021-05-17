@@ -13,7 +13,6 @@ global:
       pullPolicy: IfNotPresent
       support_arm: true
 
-
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
