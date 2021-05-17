@@ -27,8 +27,17 @@ import (
 type TopolvmClusterSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	TopolvmVersion string        `json:"topolvmVersion"`
-	DeviceClasses  []NodeDevices `json:"deviceClasses"`
+	TopolvmVersion string `json:"topolvmVersion"`
+	Storage        `json:"storage"`
+}
+
+type Storage struct {
+	DeviceClasses   []NodeDevices `json:"deviceClasses,omitempty"`
+	UseAllNodes     bool          `json:"useAllNodes"`
+	UseAllDevices   bool          `json:"useAllDevices"`
+	Devices         []Disk        `json:"devices,omitempty"`
+	VolumeGroupName string        `json:"volumeGroupName,omitempty"`
+	ClassName       string        `json:"className,omitempty"`
 }
 
 type NodeDevices struct {
@@ -48,6 +57,9 @@ type DeviceClass struct {
 
 type Disk struct {
 	Name string `json:"name"`
+	Type string `json:"type"`
+	Path string `json:"path,omitempty"`
+	Size uint64 `json:"size,omitempty"`
 }
 
 // TopolvmClusterStatus defines the observed state of TopolvmCluster
