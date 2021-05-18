@@ -203,7 +203,7 @@ func (c *PrePareVg) provision(topolvmCluster *topolvmv1.TopolvmCluster) error {
 			return errors.Wrap(err, "update lvmd conf failed")
 		}
 
-		err = updateVgStatus(cm, &nodeStatus, sucClassMap, failClassMap)
+		err = updateVgStatus(cm, &nodeStatus, sucClassMap, failClassMap, c.loopsState)
 		if err != nil {
 			return errors.Wrap(err, "update vg status failed")
 		}
@@ -260,7 +260,7 @@ func (c *PrePareVg) provision(topolvmCluster *topolvmv1.TopolvmCluster) error {
 		Data: make(map[string]string),
 	}
 
-	err = updateVgStatus(vgNodeConfigMap, &nodeStatus, sucClassMap, failClassMap)
+	err = updateVgStatus(vgNodeConfigMap, &nodeStatus, sucClassMap, failClassMap, c.loopsState)
 	if err != nil {
 		return errors.Wrap(err, "create vg status failed")
 	}
@@ -478,7 +478,7 @@ func (c *PrePareVg) getDeviceName(name string) string {
 	}
 }
 
-func updateVgStatus(cm *v1.ConfigMap, state *topolvmv1.NodeStorageState, sucClass map[string]*topolvmv1.ClassState, failClass map[string]*topolvmv1.ClassState) error {
+func updateVgStatus(cm *v1.ConfigMap, state *topolvmv1.NodeStorageState, sucClass map[string]*topolvmv1.ClassState, failClass map[string]*topolvmv1.ClassState, loopsState []topolvmv1.LoopState) error {
 
 	sucClassSlice := make([]topolvmv1.ClassState, 0)
 	for _, dev := range sucClass {
@@ -492,6 +492,7 @@ func updateVgStatus(cm *v1.ConfigMap, state *topolvmv1.NodeStorageState, sucClas
 
 	state.FailClasses = failClassSlice
 	state.SuccessClasses = sucClassSlice
+	state.Loops = loopsState
 
 	value, err := json.Marshal(state)
 	if err != nil {
