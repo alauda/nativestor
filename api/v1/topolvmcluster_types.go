@@ -59,6 +59,7 @@ type DeviceClass struct {
 type Disk struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
+	Auto bool   `json:"path,omitempty"`
 	Path string `json:"path,omitempty"`
 	Size uint64 `json:"size,omitempty"`
 }

@@ -131,7 +131,7 @@ func (c *PrePareVg) provision(topolvmCluster *topolvmv1.TopolvmCluster) error {
 	if topolvmCluster.Spec.UseAllDevices {
 		deviceClass := topolvmv1.DeviceClass{ClassName: topolvmCluster.Spec.Storage.ClassName, VgName: topolvmCluster.Spec.Storage.VolumeGroupName, Default: true}
 		for _, dev := range disks {
-			deviceClass.Device = append(deviceClass.Device, topolvmv1.Disk{Name: dev.Name, Type: Disk})
+			deviceClass.Device = append(deviceClass.Device, topolvmv1.Disk{Name: dev.Name, Type: dev.Type})
 		}
 		deviceClasses := []topolvmv1.DeviceClass{deviceClass}
 		c.nodeDevices = topolvmv1.NodeDevices{NodeName: c.nodeName, DeviceClasses: deviceClasses}
@@ -301,7 +301,7 @@ func (c *PrePareVg) checkVgIfExpand(class *topolvmv1.DeviceClass, sucClass map[s
 
 	for _, d := range class.Device {
 
-		if d.Type == Loop {
+		if d.Type == Loop && d.Auto {
 			name := c.getDeviceName(d.Name)
 			if name == "" {
 				continue
@@ -339,7 +339,7 @@ func (c *PrePareVg) createVgRetry(availaDisks map[string]*sys.LocalDisk, class *
 
 	for index, disk := range class.Device {
 
-		if disk.Type == Loop {
+		if disk.Type == Loop && disk.Auto {
 			name := c.getDeviceName(disk.Name)
 			if name == "" {
 				continue
@@ -393,7 +393,7 @@ func (c *PrePareVg) createVg(availaDisks map[string]*sys.LocalDisk, class *topol
 
 	for index, disk := range class.Device {
 
-		if disk.Type == Loop {
+		if disk.Type == Loop && disk.Auto {
 			name := c.getDeviceName(disk.Name)
 			if name == "" {
 				continue
@@ -553,7 +553,7 @@ func checkLoopDevice(deviceClass []topolvmv1.DeviceClass, loops *[]topolvmv1.Loo
 
 		for _, ele := range devices.Device {
 
-			if ele.Type == Loop {
+			if ele.Type == Loop && ele.Auto {
 				created := false
 				failedLoopIndex := 0
 				retry := false
