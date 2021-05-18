@@ -37,14 +37,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"os/signal"
 	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strings"
-	"syscall"
 )
 
 var (
@@ -139,18 +136,8 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 
 	//start configmap controller
 	if r.configMapController == nil {
-
 		r.configMapController = NewConfigMapController(cluster.NewContext(), cluster.NameSpace, ref, r.clusterController)
-		go func() {
-			stopChan := make(chan struct{})
-			sigc := make(chan os.Signal, 1)
-			signal.Notify(sigc, syscall.SIGTERM)
-			r.configMapController.StartWatch(stopChan)
-			<-sigc
-			logger.Infof("shutdown signal received, exiting...")
-			close(stopChan)
-		}()
-
+		r.configMapController.Start()
 	}
 	r.configMapController.UpdateRef(ref)
 
@@ -283,7 +270,6 @@ func (c *ClusterController) startPrepareVolumeGroupJob(topolvmCluster *topolvmv1
 				clusterLogger.Errorf("create job for node failed %s", ele.Name)
 			}
 		}
-
 		return nil
 	}
 

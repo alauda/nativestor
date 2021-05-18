@@ -29,7 +29,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/cache"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -50,6 +53,19 @@ func NewConfigMapController(context *cluster.Context, namespace string, ref *met
 		ref:        ref,
 		clusterCtr: controller,
 	}
+}
+
+func (c *ConfigMapController) Start() {
+	go func() {
+		stopChan := make(chan struct{})
+		sigc := make(chan os.Signal, 1)
+		signal.Notify(sigc, syscall.SIGTERM)
+		c.StartWatch(stopChan)
+		<-sigc
+		logger.Infof("shutdown signal received, exiting...")
+		close(stopChan)
+	}()
+
 }
 
 func (c *ConfigMapController) UpdateRef(ref *metav1.OwnerReference) {
@@ -222,7 +238,7 @@ func createNodeDeployment(context *cluster.Context, configmap, nodeName string, 
 
 func getNodeName(cm *v1.ConfigMap) string {
 
-	nodeName, ok := cm.Annotations[cluster.LvmdAnnotationsNodeKey]
+	nodeName, ok := cm.Labels[cluster.NodeAttr]
 	if !ok {
 		logger.Error("can not get node name")
 		return ""

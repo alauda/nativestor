@@ -45,7 +45,6 @@ const (
 	LoopCreateFailed      = "failed"
 	LoopCreateSuccessful  = "successful"
 	Loop                  = "loop"
-	Disk                  = "disk"
 )
 
 var vgLogger = capnslog.NewPackageLogger("topolvm/operator", "prepare-vg-controller")
@@ -262,6 +261,7 @@ func (c *PrePareVg) provision(topolvmCluster *topolvmv1.TopolvmCluster) error {
 			Namespace: c.namespace,
 			Labels: map[string]string{
 				cluster.LvmdConfigMapLabelKey: cluster.LvmdConfigMapLabelValue,
+				cluster.NodeAttr:              c.nodeName,
 			},
 			Annotations: annotations,
 		},

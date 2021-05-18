@@ -45,6 +45,7 @@ const (
 	LvmdConfigMapLabelKey   = "topolvm/lvmdconfig"
 	LvmdConfigMapLabelValue = "lvmdconfig"
 	LvmdConfigMapKey        = "lvmd.yaml"
+	LocalDiskCMData         = "devices"
 	VgStatusConfigMapKey    = "status.json"
 	LvmdAnnotationsNodeKey  = "node-name"
 	LvmdSocketPath          = "/run/topolvm/lvmd.sock"
@@ -95,4 +96,5 @@ const (
 	TopolvmCSIDriverName = "topolvm.cybozu.com"
 	IsOperator           = "1"
 	CapacityKeyPrefix    = "capacity.topolvm.cybozu.com/"
+	NodeAttr             = "topolvm/node"
 )
