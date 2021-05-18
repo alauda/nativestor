@@ -21,10 +21,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
+	"github.com/alauda/topolvm-operator/controllers"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/alauda/topolvm-operator/pkg/util/sys"
 	"github.com/coreos/pkg/capnslog"
+	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -41,6 +44,7 @@ import (
 
 const (
 	discoverDaemonUdev = "DISCOVER_DAEMON_UDEV_BLACKLIST"
+	resetupLoopPeriod  = time.Second * 5
 )
 
 var (
@@ -51,6 +55,7 @@ var (
 	LocalDiskCMName = "local-device-%s"
 	udevEventPeriod = time.Duration(5) * time.Second
 	cm              *v1.ConfigMap
+	useLoop         bool
 	lastDevice      string
 )
 
@@ -117,6 +122,13 @@ func Run(context *cluster.Context, probeInterval time.Duration) error {
 		return err
 	}
 
+	if useLoop {
+		err := checkLoopDevice(context)
+		if err != nil {
+			go retryLoopDevice(context)
+		}
+	}
+
 	udevEvents := make(chan string)
 	go udevBlockMonitor(udevEvents, udevEventPeriod)
 	for {
@@ -139,6 +151,58 @@ func Run(context *cluster.Context, probeInterval time.Duration) error {
 				udevEvents = nil
 			}
 		}
+	}
+
+	return nil
+}
+
+func retryLoopDevice(clusterdContext *cluster.Context) {
+	for {
+		err := checkLoopDevice(clusterdContext)
+		if err == nil {
+			return
+		}
+		logger.Errorf("check loop device failed %v retry", err)
+		time.Sleep(resetupLoopPeriod)
+	}
+}
+
+func checkLoopDevice(clusterdContext *cluster.Context) error {
+	ctx := context.TODO()
+	cmTemp, err := clusterdContext.Clientset.CoreV1().ConfigMaps(namespace).Get(ctx, cmName, metav1.GetOptions{})
+	if err == nil {
+		loopDevices := cmTemp.Data[cluster.VgStatusConfigMapKey]
+		nodeStatus := topolvmv1.NodeStorageState{}
+		err := json.Unmarshal([]byte(loopDevices), &nodeStatus)
+		if err != nil {
+			logger.Errorf("unmarshal confimap status data failed %+v ", err)
+			return err
+		}
+
+		failed := false
+		for _, ele := range nodeStatus.Loops {
+			if ele.Status == controllers.LoopCreateSuccessful {
+
+				err := sys.ReSetupLoop(clusterdContext.Executor, ele.File, ele.DeviceName)
+				if err != nil {
+					failed = true
+					logger.Errorf("losetup device %s file %s failed %v", ele.DeviceName, ele.File, err)
+				}
+			}
+		}
+
+		if failed {
+			return errors.New("some loop device resetup failed")
+		}
+
+	} else {
+
+		if !kerrors.IsNotFound(err) {
+			logger.Infof("failed to get configmap: %v", err)
+			return err
+		}
+
+		return nil
 	}
 
 	return nil

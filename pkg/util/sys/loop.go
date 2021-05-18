@@ -35,3 +35,19 @@ func CreateLoop(executor exec.Executor, filename string, size uint64) (string, e
 	}
 	return res[0]["name"], nil
 }
+
+func ReSetupLoop(executor exec.Executor, filename string, loop string) error {
+
+	devices, err := DiscoverDevices(executor)
+	if err != nil {
+		return err
+	}
+
+	for _, ele := range devices {
+		if "/dev/"+ele.Name == loop {
+			return nil
+		}
+	}
+
+	return wrapExecCommand(executor, losetup, loop, filename)
+}
