@@ -23,6 +23,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 )
 
+const (
+	PodNameEnvVar = "POD_NAME"
+	// PodNamespaceEnvVar is the env variable for getting the pod namespace via downward api
+	PodNamespaceEnvVar = "POD_NAMESPACE"
+	// NodeNameEnvVar is the env variable for getting the node via downward api
+	NodeNameEnvVar = "NODE_NAME"
+)
+
 func TruncateNodeName(format, nodeName string) string {
 	if len(nodeName)+len(fmt.Sprintf(format, "")) > validation.DNS1035LabelMaxLength {
 		hashed := Hash(nodeName)

@@ -37,7 +37,7 @@ func GetAvailableDevices(dcontext *cluster.Context) (map[string]*LocalDisk, erro
 
 	var err error
 
-	if disks, err = discoverDevices(dcontext.Executor); err != nil {
+	if disks, err = DiscoverDevices(dcontext.Executor); err != nil {
 		return nil, err
 	}
 
@@ -58,7 +58,7 @@ func GetAvailableDevices(dcontext *cluster.Context) (map[string]*LocalDisk, erro
 }
 
 // DiscoverDevices returns all the details of devices available on the local node
-func discoverDevices(executor exec.Executor) ([]*LocalDisk, error) {
+func DiscoverDevices(executor exec.Executor) ([]*LocalDisk, error) {
 	var disks []*LocalDisk
 	devices, err := ListDevices(executor)
 	if err != nil {

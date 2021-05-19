@@ -48,9 +48,7 @@ func init() {
 }
 
 func addScheme() {
-
 	_ = clientgoscheme.AddToScheme(scheme)
-
 	_ = topolvmv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }

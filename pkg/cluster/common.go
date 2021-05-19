@@ -35,6 +35,7 @@ const (
 	IsOperatorHubEnv = "IS_OPERATOR_HUB"
 	PodNameEnv       = "POD_NAME"
 	LogLevelEnv      = "TOPOLVM_LOG_LEVEL"
+	UseLoopEnv       = "USE_LOOP"
 
 	TopolvmNodeDeploymentNamePrefix = "topolvm-node-"
 	NodeServiceAccount              = "topolvm-node"
@@ -45,6 +46,7 @@ const (
 	LvmdConfigMapLabelKey   = "topolvm/lvmdconfig"
 	LvmdConfigMapLabelValue = "lvmdconfig"
 	LvmdConfigMapKey        = "lvmd.yaml"
+	LocalDiskCMData         = "devices"
 	VgStatusConfigMapKey    = "status.json"
 	LvmdAnnotationsNodeKey  = "node-name"
 	LvmdSocketPath          = "/run/topolvm/lvmd.sock"
@@ -95,4 +97,11 @@ const (
 	TopolvmCSIDriverName = "topolvm.cybozu.com"
 	IsOperator           = "1"
 	CapacityKeyPrefix    = "capacity.topolvm.cybozu.com/"
+	NodeAttr             = "topolvm/node"
+
+	DiscoverDevicesAccount = "topolvm-discover"
+	DiscoverAppName        = "discoverDevices"
+	DiscoverContainerName  = "discover"
+	UseLoop                = "1"
+	LoopCreateSuccessful   = "successful"
 )

@@ -27,8 +27,18 @@ import (
 type TopolvmClusterSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-	TopolvmVersion string        `json:"topolvmVersion"`
-	DeviceClasses  []NodeDevices `json:"deviceClasses"`
+	TopolvmVersion string `json:"topolvmVersion"`
+	Storage        `json:"storage"`
+}
+
+type Storage struct {
+	DeviceClasses   []NodeDevices `json:"deviceClasses,omitempty"`
+	UseAllNodes     bool          `json:"useAllNodes"`
+	UseAllDevices   bool          `json:"useAllDevices"`
+	Devices         []Disk        `json:"devices,omitempty"`
+	VolumeGroupName string        `json:"volumeGroupName,omitempty"`
+	ClassName       string        `json:"className,omitempty"`
+	UseLoop         bool          `json:"useLoop"`
 }
 
 type NodeDevices struct {
@@ -48,6 +58,10 @@ type DeviceClass struct {
 
 type Disk struct {
 	Name string `json:"name"`
+	Type string `json:"type"`
+	Auto bool   `json:"auto,omitempty"`
+	Path string `json:"path,omitempty"`
+	Size uint64 `json:"size,omitempty"`
 }
 
 // TopolvmClusterStatus defines the observed state of TopolvmCluster
@@ -61,6 +75,15 @@ type NodeStorageState struct {
 	Node           string       `json:"node"`
 	FailClasses    []ClassState `json:"failClasses"`
 	SuccessClasses []ClassState `json:"successClasses"`
+	Loops          []LoopState  `json:"loops"`
+}
+
+type LoopState struct {
+	Name       string `json:"name"`
+	File       string `json:"file"`
+	DeviceName string `json:"deviceName"`
+	Status     string `json:"status"`
+	Message    string `json:"message"`
 }
 
 type ClassState struct {

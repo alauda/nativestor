@@ -29,7 +29,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/cache"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -50,6 +53,19 @@ func NewConfigMapController(context *cluster.Context, namespace string, ref *met
 		ref:        ref,
 		clusterCtr: controller,
 	}
+}
+
+func (c *ConfigMapController) Start() {
+	go func() {
+		stopChan := make(chan struct{})
+		sigc := make(chan os.Signal, 1)
+		signal.Notify(sigc, syscall.SIGTERM)
+		c.StartWatch(stopChan)
+		<-sigc
+		logger.Infof("shutdown signal received, exiting...")
+		close(stopChan)
+	}()
+
 }
 
 func (c *ConfigMapController) UpdateRef(ref *metav1.OwnerReference) {
@@ -140,6 +156,18 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 		logger.Errorf("update cluster failed err %v", err)
 	}
 
+	nodeName := getNodeName(newCm)
+	if nodeName == "" {
+		logger.Error("can not get node name")
+		return
+	}
+
+	if _, ok := newCm.Data[cluster.LocalDiskCMData]; ok {
+		if oldCm.Data[cluster.LocalDiskCMData] != newCm.Data[cluster.LocalDiskCMData] && c.clusterCtr.UseAllNodeAndDevices() {
+			c.clusterCtr.RestartJob(nodeName, c.ref)
+		}
+	}
+
 	if _, ok := newCm.Data[cluster.LvmdConfigMapKey]; !ok {
 
 		nodeName := getNodeName(newCm)
@@ -152,11 +180,6 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 
 	if oldCm.Data[cluster.LvmdConfigMapKey] == newCm.Data[cluster.LvmdConfigMapKey] {
 		logger.Infof("cm%s  update but data not change no need to update node deployment", oldCm.ObjectMeta.Name)
-		return
-	}
-	nodeName := getNodeName(newCm)
-	if nodeName == "" {
-		logger.Error("can not get node name")
 		return
 	}
 
@@ -222,7 +245,7 @@ func createNodeDeployment(context *cluster.Context, configmap, nodeName string, 
 
 func getNodeName(cm *v1.ConfigMap) string {
 
-	nodeName, ok := cm.Annotations[cluster.LvmdAnnotationsNodeKey]
+	nodeName, ok := cm.Labels[cluster.NodeAttr]
 	if !ok {
 		logger.Error("can not get node name")
 		return ""

@@ -66,7 +66,6 @@ func commonBeforeEach() CleanupContext {
 
 	cc.NodeCapacityAnnotations, err = getNodeAnnotationMapWithPrefix(topolvm.CapacityKeyPrefix)
 	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
-
 	cc.CSICapacity, err = getCSICapacity()
 	ExpectWithOffset(1, err).ShouldNot(HaveOccurred())
 
@@ -88,7 +87,6 @@ func commonAfterEach(cc CleanupContext) {
 			if diff := cmp.Diff(cc.NodeCapacityAnnotations, capacitiesAfter); diff != "" {
 				return fmt.Errorf("capacities on nodes should be same before and after the test: diff=%q", diff)
 			}
-
 			csiCapacitiesAfter, err := getCSICapacity()
 			if err != nil {
 				return err
@@ -97,7 +95,6 @@ func commonAfterEach(cc CleanupContext) {
 			if diff := cmp.Diff(cc.CSICapacity, csiCapacitiesAfter); diff != "" {
 				return fmt.Errorf("csi capacity should be same before and after the test: diff=%q", diff)
 			}
-
 			return nil
 		}).Should(Succeed())
 	}

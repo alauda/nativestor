@@ -24,6 +24,7 @@ import (
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/controller"
 	"github.com/alauda/topolvm-operator/pkg/operator/csidriver"
+	"github.com/alauda/topolvm-operator/pkg/operator/discover"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/alauda/topolvm-operator/pkg/operator/psp"
 	"github.com/alauda/topolvm-operator/pkg/operator/volumectr"
@@ -37,14 +38,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"os/signal"
 	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strings"
-	"syscall"
 )
 
 var (
@@ -139,18 +137,8 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 
 	//start configmap controller
 	if r.configMapController == nil {
-
 		r.configMapController = NewConfigMapController(cluster.NewContext(), cluster.NameSpace, ref, r.clusterController)
-		go func() {
-			stopChan := make(chan struct{})
-			sigc := make(chan os.Signal, 1)
-			signal.Notify(sigc, syscall.SIGTERM)
-			r.configMapController.StartWatch(stopChan)
-			<-sigc
-			logger.Infof("shutdown signal received, exiting...")
-			close(stopChan)
-		}()
-
+		r.configMapController.Start()
 	}
 	r.configMapController.UpdateRef(ref)
 
@@ -180,6 +168,10 @@ func NewClusterContoller(ctx *cluster.Context, operatorImage string) *ClusterCon
 
 }
 
+func (c *ClusterController) UseAllNodeAndDevices() bool {
+	return c.lastCluster.Spec.UseAllNodes
+}
+
 func (c *ClusterController) onAdd(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference) error {
 
 	if cluster.IsOperatorHub == cluster.IsOperator {
@@ -196,8 +188,11 @@ func (c *ClusterController) onAdd(topolvmCluster *topolvmv1.TopolvmCluster, ref 
 		}
 	}
 
-	// Start the main topolvm cluster orchestration
+	if err := c.startDiscoverDaemonset(topolvmCluster, ref, topolvmCluster.Spec.UseLoop); err != nil {
+		return errors.Wrap(err, "start discover daemonset failed")
+	}
 
+	// Start the main topolvm cluster orchestration
 	if err := c.startPrepareVolumeGroupJob(topolvmCluster, ref); err != nil {
 		return errors.Wrap(err, "start prepare volume group failed")
 	}
@@ -250,14 +245,12 @@ func (c *ClusterController) startReplaceNodeDeployment(topolvmCluster *topolvmv1
 
 func (c *ClusterController) startPrepareVolumeGroupJob(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference) error {
 
-	list := topolvmCluster.Spec.DeviceClasses
+	storage := topolvmCluster.Spec.Storage
 
 	// if device class not change then check if has fail class that should be recreate
-	if c.lastCluster != nil && reflect.DeepEqual(c.lastCluster.Spec.DeviceClasses, list) {
-
+	if c.lastCluster != nil && reflect.DeepEqual(c.lastCluster.Spec.Storage, storage) {
 		go func() {
 			for _, ele := range topolvmCluster.Status.NodeStorageStatus {
-
 				if len(ele.FailClasses) > 0 || len(ele.SuccessClasses) == 0 {
 					logger.Infof("node%s has fail classes recreate job again", ele.Node)
 					if err := volumegroup.MakeAndRunJob(c.context.Clientset, ele.Node, c.operatorImage, ref); err != nil {
@@ -268,22 +261,71 @@ func (c *ClusterController) startPrepareVolumeGroupJob(topolvmCluster *topolvmv1
 				}
 			}
 		}()
+		return nil
+	}
 
+	if topolvmCluster.Spec.UseAllNodes {
+		nodes, err := c.context.Clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+		if err != nil {
+			clusterLogger.Errorf("list node failed err %v", err)
+			return err
+		}
+		for _, ele := range nodes.Items {
+			if err := volumegroup.MakeAndRunJob(c.context.Clientset, ele.Name, c.operatorImage, ref); err != nil {
+				clusterLogger.Errorf("create job for node failed %s", ele.Name)
+			}
+		}
 		return nil
 	}
 
 	// first should create job anyway
 	logger.Info("start make prepare volume group job")
 	go func() {
-		for _, ele := range list {
-			if err := volumegroup.MakeAndRunJob(c.context.Clientset, ele.NodeName, c.operatorImage, ref); err != nil {
-				clusterLogger.Errorf("create job for node failed %s", ele.NodeName)
+		if storage.DeviceClasses != nil {
+			for _, ele := range storage.DeviceClasses {
+				if err := volumegroup.MakeAndRunJob(c.context.Clientset, ele.NodeName, c.operatorImage, ref); err != nil {
+					clusterLogger.Errorf("create job for node failed %s", ele.NodeName)
+				}
 			}
 		}
-
 	}()
 
 	return nil
+}
+
+func (c *ClusterController) RestartJob(node string, ref *metav1.OwnerReference) error {
+
+	return volumegroup.MakeAndRunJob(c.context.Clientset, node, c.operatorImage, ref)
+}
+
+func (c *ClusterController) startDiscoverDaemonset(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference, useLoop bool) error {
+
+	ctx := context.TODO()
+	daemonset, err := c.context.Clientset.AppsV1().DaemonSets(cluster.NameSpace).Get(ctx, cluster.DiscoverAppName, metav1.GetOptions{})
+	if err != nil && !kerrors.IsNotFound(err) {
+		logger.Errorf("failed to detect daemonset:%s. err:%v", cluster.DiscoverAppName, err)
+		return errors.Wrap(err, "failed to detect daemonset")
+	} else if err == nil {
+		if daemonset.Spec.Template.Spec.Containers[0].Image == topolvmCluster.Spec.TopolvmVersion {
+			clusterLogger.Info("discover daemonset no change need not reconcile")
+			return nil
+
+		}
+		length := len(daemonset.Spec.Template.Spec.Containers)
+		for i := 0; i < length; i++ {
+			daemonset.Spec.Template.Spec.Containers[i].Image = topolvmCluster.Spec.TopolvmVersion
+		}
+		_, err := c.context.Clientset.AppsV1().DaemonSets(daemonset.Namespace).Update(ctx, daemonset, metav1.UpdateOptions{})
+		if err != nil {
+			logger.Errorf("update discover daemonset image failed err %v", err)
+			return errors.Wrap(err, "update discover daemonset image failed")
+		} else {
+			logger.Infof("update discover daemonset image to %s", topolvmCluster.Spec.TopolvmVersion)
+			return nil
+		}
+	}
+
+	return discover.MakeDiscoverDevicesDaemonset(c.context.Clientset, cluster.DiscoverAppName, cluster.TopolvmImage, useLoop, ref)
 }
 
 func (c *ClusterController) startTopolvmControllerDeployment(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference) error {

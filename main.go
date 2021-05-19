@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/alauda/topolvm-operator/cmd/discover"
 	"github.com/alauda/topolvm-operator/cmd/operator"
 	"github.com/alauda/topolvm-operator/cmd/preparevg"
 	"github.com/alauda/topolvm-operator/cmd/topolvm"
@@ -32,5 +33,5 @@ func main() {
 }
 
 func addCommands() {
-	topolvm.RootCmd.AddCommand(operator.OperatorCmd, preparevg.PrepareVgCmd)
+	topolvm.RootCmd.AddCommand(operator.OperatorCmd, preparevg.PrepareVgCmd, discovercmd.DiscoverCmd)
 }

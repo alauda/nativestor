@@ -22,8 +22,10 @@ import (
 	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
+	"github.com/alauda/topolvm-operator/pkg/util/exec"
 	"github.com/alauda/topolvm-operator/pkg/util/sys"
 	"github.com/coreos/pkg/capnslog"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 	"k8s.io/api/core/v1"
@@ -40,6 +42,8 @@ const (
 	ClassCreateSuccessful = "create successful"
 	ClassCreateFail       = "create failed"
 	DeviceStateError      = "error"
+	LoopCreateFailed      = "failed"
+	Loop                  = "loop"
 )
 
 var vgLogger = capnslog.NewPackageLogger("topolvm/operator", "prepare-vg-controller")
@@ -49,6 +53,8 @@ type PrePareVg struct {
 	namespace   string
 	context     *cluster.Context
 	nodeDevices topolvmv1.NodeDevices
+	loopsState  []topolvmv1.LoopState
+	loopMap     map[string]topolvmv1.LoopState
 }
 
 func NewPrepareVgController(nodeName string, nameSpace string, context *cluster.Context) *PrePareVg {
@@ -56,6 +62,7 @@ func NewPrepareVgController(nodeName string, nameSpace string, context *cluster.
 		nodeName:  nodeName,
 		namespace: nameSpace,
 		context:   context,
+		loopMap:   make(map[string]topolvmv1.LoopState),
 	}
 }
 
@@ -76,15 +83,8 @@ func (c *PrePareVg) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resul
 		return reconcile.Result{}, errors.Wrap(err, "failed to get topolvm cluster")
 	}
 
-	// get node class info
-	for _, dev := range topolvmCluster.Spec.DeviceClasses {
-		if dev.NodeName == c.nodeName {
-			c.nodeDevices = dev
-		}
-	}
-
 	logger.Info("start provision vg")
-	err = c.provision()
+	err = c.provision(topolvmCluster)
 	if err != nil {
 		logger.Errorf("provision vg has some err %v", err)
 	}
@@ -99,23 +99,62 @@ func (c *PrePareVg) SetupWithManager(mgr ctrl.Manager) error {
 
 }
 
-func (c *PrePareVg) provision() error {
+func (c *PrePareVg) provision(topolvmCluster *topolvmv1.TopolvmCluster) error {
 
 	// check existing vg and check if need expand
 
-	nodeStatus := topolvmv1.NodeStorageState{}
+	// get node class info
+
+	for _, dev := range topolvmCluster.Status.NodeStorageStatus {
+		if dev.Node == c.nodeName {
+			c.loopsState = dev.Loops
+		}
+	}
+
+	if topolvmCluster.Spec.Storage.UseLoop && topolvmCluster.Spec.Storage.DeviceClasses != nil {
+
+		for _, ele := range c.nodeDevices.DeviceClasses {
+			checkLoopDevice(c.context.Executor, ele.Device, &c.loopsState, c.loopMap)
+		}
+
+	}
 
 	disks, err := sys.GetAvailableDevices(c.context)
 	if err != nil {
 		vgLogger.Errorf("can not list disk err:%s", err)
 		return err
 	}
-
+	nodeStatus := topolvmv1.NodeStorageState{}
 	sucVgs := make([]topolvmv1.DeviceClass, 0)
-
 	// record the status of each class
 	sucClassMap := make(map[string]*topolvmv1.ClassState)
 	failClassMap := make(map[string]*topolvmv1.ClassState)
+
+	if topolvmCluster.Spec.UseAllDevices {
+		deviceClass := topolvmv1.DeviceClass{ClassName: topolvmCluster.Spec.Storage.ClassName, VgName: topolvmCluster.Spec.Storage.VolumeGroupName, Default: true}
+		for _, dev := range disks {
+			deviceClass.Device = append(deviceClass.Device, topolvmv1.Disk{Name: dev.Name, Type: dev.Type})
+		}
+		deviceClasses := []topolvmv1.DeviceClass{deviceClass}
+		c.nodeDevices = topolvmv1.NodeDevices{NodeName: c.nodeName, DeviceClasses: deviceClasses}
+
+	} else if topolvmCluster.Spec.Devices != nil {
+
+		if topolvmCluster.Spec.Storage.UseLoop {
+			checkLoopDevice(c.context.Executor, topolvmCluster.Spec.Devices, &c.loopsState, c.loopMap)
+		}
+
+		deviceClass := topolvmv1.DeviceClass{ClassName: topolvmCluster.Spec.Storage.ClassName, VgName: topolvmCluster.Spec.Storage.VolumeGroupName, Default: true, Device: topolvmCluster.Spec.Storage.Devices}
+		deviceClasses := []topolvmv1.DeviceClass{deviceClass}
+		c.nodeDevices = topolvmv1.NodeDevices{NodeName: c.nodeName, DeviceClasses: deviceClasses}
+
+	} else if topolvmCluster.Spec.DeviceClasses != nil {
+		for _, dev := range topolvmCluster.Spec.DeviceClasses {
+			if dev.NodeName == c.nodeName {
+				c.nodeDevices = dev
+			}
+		}
+	}
 
 	// get current class status
 	ctx := context.TODO()
@@ -170,7 +209,7 @@ func (c *PrePareVg) provision() error {
 			return errors.Wrap(err, "update lvmd conf failed")
 		}
 
-		err = updateVgStatus(cm, &nodeStatus, sucClassMap, failClassMap)
+		err = updateVgStatus(cm, &nodeStatus, sucClassMap, failClassMap, c.loopsState)
 		if err != nil {
 			return errors.Wrap(err, "update vg status failed")
 		}
@@ -221,13 +260,14 @@ func (c *PrePareVg) provision() error {
 			Namespace: c.namespace,
 			Labels: map[string]string{
 				cluster.LvmdConfigMapLabelKey: cluster.LvmdConfigMapLabelValue,
+				cluster.NodeAttr:              c.nodeName,
 			},
 			Annotations: annotations,
 		},
 		Data: make(map[string]string),
 	}
 
-	err = updateVgStatus(vgNodeConfigMap, &nodeStatus, sucClassMap, failClassMap)
+	err = updateVgStatus(vgNodeConfigMap, &nodeStatus, sucClassMap, failClassMap, c.loopsState)
 	if err != nil {
 		return errors.Wrap(err, "create vg status failed")
 	}
@@ -268,6 +308,13 @@ func (c *PrePareVg) checkVgIfExpand(class *topolvmv1.DeviceClass, sucClass map[s
 
 	for _, d := range class.Device {
 
+		if d.Type == Loop && d.Auto {
+			name := c.getDeviceName(d.Name)
+			if name == "" {
+				continue
+			}
+			d.Name = name
+		}
 		if _, ok := pv[d.Name]; !ok {
 
 			if err = sys.CreatePhysicalVolume(c.context.Executor, d.Name); err != nil {
@@ -297,7 +344,16 @@ func (c *PrePareVg) createVgRetry(availaDisks map[string]*sys.LocalDisk, class *
 
 	available := true
 
-	for _, disk := range class.Device {
+	for index, disk := range class.Device {
+
+		if disk.Type == Loop && disk.Auto {
+			name := c.getDeviceName(disk.Name)
+			if name == "" {
+				continue
+			}
+			class.Device[index].Name = name
+			disk.Name = name
+		}
 		if _, ok := availaDisks[disk.Name]; !ok {
 			message := "disk may has filesystem or is not raw disk please check"
 			devStatus := topolvmv1.DeviceState{Name: disk.Name, Message: message}
@@ -342,7 +398,16 @@ func (c *PrePareVg) createVg(availaDisks map[string]*sys.LocalDisk, class *topol
 
 	available := true
 
-	for _, disk := range class.Device {
+	for index, disk := range class.Device {
+
+		if disk.Type == Loop && disk.Auto {
+			name := c.getDeviceName(disk.Name)
+			if name == "" {
+				continue
+			}
+			disk.Name = name
+			class.Device[index].Name = name
+		}
 
 		if _, ok := availaDisks[disk.Name]; !ok {
 			message := "disk may has filesystem or is not raw disk please check"
@@ -411,7 +476,16 @@ func (c *PrePareVg) updateLvmdConf(cm *v1.ConfigMap, newVgs []topolvmv1.DeviceCl
 
 }
 
-func updateVgStatus(cm *v1.ConfigMap, state *topolvmv1.NodeStorageState, sucClass map[string]*topolvmv1.ClassState, failClass map[string]*topolvmv1.ClassState) error {
+func (c *PrePareVg) getDeviceName(name string) string {
+
+	if loop, ok := c.loopMap[name]; ok {
+		return loop.DeviceName
+	} else {
+		return ""
+	}
+}
+
+func updateVgStatus(cm *v1.ConfigMap, state *topolvmv1.NodeStorageState, sucClass map[string]*topolvmv1.ClassState, failClass map[string]*topolvmv1.ClassState, loopsState []topolvmv1.LoopState) error {
 
 	sucClassSlice := make([]topolvmv1.ClassState, 0)
 	for _, dev := range sucClass {
@@ -425,6 +499,7 @@ func updateVgStatus(cm *v1.ConfigMap, state *topolvmv1.NodeStorageState, sucClas
 
 	state.FailClasses = failClassSlice
 	state.SuccessClasses = sucClassSlice
+	state.Loops = loopsState
 
 	value, err := json.Marshal(state)
 	if err != nil {
@@ -477,5 +552,50 @@ func convertConfig(dev *topolvmv1.DeviceClass) (*cluster.DeviceClass, error) {
 	}
 
 	return devClass, nil
+
+}
+
+func checkLoopDevice(executor exec.Executor, disks []topolvmv1.Disk, loops *[]topolvmv1.LoopState, loopMap map[string]topolvmv1.LoopState) {
+
+	for _, ele := range disks {
+
+		if ele.Type == Loop && ele.Auto {
+			created := false
+			failedLoopIndex := 0
+			retry := false
+			for index, loop := range *loops {
+				if loop.Name == ele.Name {
+					if loop.Status == cluster.LoopCreateSuccessful {
+						loopMap[loop.Name] = loop
+						created = true
+					} else {
+						failedLoopIndex = index
+						retry = true
+					}
+					break
+				}
+			}
+			//no created before
+			if !created {
+				file := uuid.New().String()
+				loopName, err := sys.CreateLoop(executor, ele.Path+"/"+file, ele.Size)
+				s := topolvmv1.LoopState{Name: ele.Name, File: ele.Path + file}
+				if err != nil {
+					vgLogger.Errorf("create loop %s failed %v", ele.Name, err)
+					s.Status = LoopCreateFailed
+					s.Message = err.Error()
+				}
+				s.Status = cluster.LoopCreateSuccessful
+				s.DeviceName = loopName
+				if retry {
+					(*loops)[failedLoopIndex] = s
+
+				} else {
+					*loops = append(*loops, s)
+				}
+				loopMap[ele.Name] = s
+			}
+		}
+	}
 
 }
