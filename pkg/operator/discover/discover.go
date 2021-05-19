@@ -173,28 +173,30 @@ func checkLoopDevice(clusterdContext *cluster.Context) error {
 	ctx := context.TODO()
 	cmTemp, err := clusterdContext.Clientset.CoreV1().ConfigMaps(namespace).Get(ctx, cmName, metav1.GetOptions{})
 	if err == nil {
-		loopDevices := cmTemp.Data[cluster.VgStatusConfigMapKey]
-		nodeStatus := topolvmv1.NodeStorageState{}
-		err := json.Unmarshal([]byte(loopDevices), &nodeStatus)
-		if err != nil {
-			logger.Errorf("unmarshal confimap status data failed %+v ", err)
-			return err
-		}
+		if loopDevices, ok := cmTemp.Data[cluster.VgStatusConfigMapKey]; ok {
 
-		failed := false
-		for _, ele := range nodeStatus.Loops {
-			if ele.Status == cluster.LoopCreateSuccessful {
+			nodeStatus := topolvmv1.NodeStorageState{}
+			err := json.Unmarshal([]byte(loopDevices), &nodeStatus)
+			if err != nil {
+				logger.Errorf("unmarshal confimap status data failed %+v ", err)
+				return err
+			}
 
-				err := sys.ReSetupLoop(clusterdContext.Executor, ele.File, ele.DeviceName)
-				if err != nil {
-					failed = true
-					logger.Errorf("losetup device %s file %s failed %v", ele.DeviceName, ele.File, err)
+			failed := false
+			for _, ele := range nodeStatus.Loops {
+				if ele.Status == cluster.LoopCreateSuccessful {
+
+					err := sys.ReSetupLoop(clusterdContext.Executor, ele.File, ele.DeviceName)
+					if err != nil {
+						failed = true
+						logger.Errorf("losetup device %s file %s failed %v", ele.DeviceName, ele.File, err)
+					}
 				}
 			}
-		}
 
-		if failed {
-			return errors.New("some loop device resetup failed")
+			if failed {
+				return errors.New("some loop device resetup failed")
+			}
 		}
 
 	} else {
