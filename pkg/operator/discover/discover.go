@@ -218,12 +218,12 @@ func updateDeviceCM(clusterdContext *cluster.Context) error {
 		logger.Errorf("can not list disk err:%s", err)
 		return err
 	}
-	disks := make([]sys.LocalDisk, 1)
+	disks := make([]sys.LocalDisk, 0)
 	for _, value := range devices {
 		disks = append(disks, *value)
 	}
 
-	deviceJSON, err := json.Marshal(devices)
+	deviceJSON, err := json.Marshal(disks)
 	if err != nil {
 		logger.Infof("failed to marshal: %v", err)
 		return err

@@ -169,10 +169,7 @@ func NewClusterContoller(ctx *cluster.Context, operatorImage string) *ClusterCon
 }
 
 func (c *ClusterController) UseAllNodeAndDevices() bool {
-	if c.lastCluster.Spec.UseAllNodes {
-		return true
-	}
-	return false
+	return c.lastCluster.Spec.UseAllNodes
 }
 
 func (c *ClusterController) onAdd(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference) error {
