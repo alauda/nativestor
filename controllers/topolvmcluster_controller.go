@@ -306,21 +306,20 @@ func (c *ClusterController) startDiscoverDaemonset(topolvmCluster *topolvmv1.Top
 		logger.Errorf("failed to detect daemonset:%s. err:%v", cluster.DiscoverAppName, err)
 		return errors.Wrap(err, "failed to detect daemonset")
 	} else if err == nil {
-		if daemonset.Spec.Template.Spec.Containers[0].Image == topolvmCluster.Spec.TopolvmVersion {
+		if daemonset.Spec.Template.Spec.Containers[0].Image == c.operatorImage {
 			clusterLogger.Info("discover daemonset no change need not reconcile")
 			return nil
-
 		}
 		length := len(daemonset.Spec.Template.Spec.Containers)
 		for i := 0; i < length; i++ {
-			daemonset.Spec.Template.Spec.Containers[i].Image = topolvmCluster.Spec.TopolvmVersion
+			daemonset.Spec.Template.Spec.Containers[i].Image = c.operatorImage
 		}
 		_, err := c.context.Clientset.AppsV1().DaemonSets(daemonset.Namespace).Update(ctx, daemonset, metav1.UpdateOptions{})
 		if err != nil {
 			logger.Errorf("update discover daemonset image failed err %v", err)
 			return errors.Wrap(err, "update discover daemonset image failed")
 		} else {
-			logger.Infof("update discover daemonset image to %s", topolvmCluster.Spec.TopolvmVersion)
+			logger.Infof("update discover daemonset image to %s", c.operatorImage)
 			return nil
 		}
 	}
