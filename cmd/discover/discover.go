@@ -1,4 +1,4 @@
-package discover
+package discovercmd
 
 import (
 	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
@@ -30,7 +30,6 @@ func init() {
 }
 
 func discover(cmd *cobra.Command, args []string) error {
-
 	context := cluster.NewContext()
 	err := opediscover.Run(context, discoverDevicesInterval)
 	if err != nil {

@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
-	"github.com/alauda/topolvm-operator/controllers"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/alauda/topolvm-operator/pkg/util/sys"
@@ -52,7 +51,6 @@ var (
 	nodeName        string
 	namespace       string
 	cmName          string
-	LocalDiskCMName = "local-device-%s"
 	udevEventPeriod = time.Duration(5) * time.Second
 	cm              *v1.ConfigMap
 	useLoop         bool
@@ -118,7 +116,7 @@ func Run(context *cluster.Context, probeInterval time.Duration) error {
 		useLoop = false
 	}
 
-	cmName = k8sutil.TruncateNodeName(LocalDiskCMName, nodeName)
+	cmName = k8sutil.TruncateNodeName(cluster.LvmdConfigMapFmt, nodeName)
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGTERM)
 
@@ -158,8 +156,6 @@ func Run(context *cluster.Context, probeInterval time.Duration) error {
 			}
 		}
 	}
-
-	return nil
 }
 
 func retryLoopDevice(clusterdContext *cluster.Context) {
@@ -187,7 +183,7 @@ func checkLoopDevice(clusterdContext *cluster.Context) error {
 
 		failed := false
 		for _, ele := range nodeStatus.Loops {
-			if ele.Status == controllers.LoopCreateSuccessful {
+			if ele.Status == cluster.LoopCreateSuccessful {
 
 				err := sys.ReSetupLoop(clusterdContext.Executor, ele.File, ele.DeviceName)
 				if err != nil {

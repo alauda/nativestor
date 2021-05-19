@@ -103,4 +103,5 @@ const (
 	DiscoverAppName        = "discoverDevices"
 	DiscoverContainerName  = "discover"
 	UseLoop                = "1"
+	LoopCreateSuccessful   = "successful"
 )

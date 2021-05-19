@@ -168,6 +168,13 @@ func NewClusterContoller(ctx *cluster.Context, operatorImage string) *ClusterCon
 
 }
 
+func (c *ClusterController) UseAllNodeAndDevices() bool {
+	if c.lastCluster.Spec.UseAllNodes {
+		return true
+	}
+	return false
+}
+
 func (c *ClusterController) onAdd(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference) error {
 
 	if cluster.IsOperatorHub == cluster.IsOperator {
@@ -290,6 +297,7 @@ func (c *ClusterController) startPrepareVolumeGroupJob(topolvmCluster *topolvmv1
 }
 
 func (c *ClusterController) RestartJob(node string, ref *metav1.OwnerReference) error {
+
 	return volumegroup.MakeAndRunJob(c.context.Clientset, node, c.operatorImage, ref)
 }
 
@@ -318,7 +326,6 @@ func (c *ClusterController) startDiscoverDaemonset(topolvmCluster *topolvmv1.Top
 			logger.Infof("update discover daemonset image to %s", topolvmCluster.Spec.TopolvmVersion)
 			return nil
 		}
-
 	}
 
 	return discover.MakeDiscoverDevicesDaemonset(c.context.Clientset, cluster.DiscoverAppName, cluster.TopolvmImage, useLoop, ref)

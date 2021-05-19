@@ -43,7 +43,6 @@ const (
 	ClassCreateFail       = "create failed"
 	DeviceStateError      = "error"
 	LoopCreateFailed      = "failed"
-	LoopCreateSuccessful  = "successful"
 	Loop                  = "loop"
 )
 
@@ -566,7 +565,7 @@ func checkLoopDevice(executor exec.Executor, disks []topolvmv1.Disk, loops *[]to
 			retry := false
 			for index, loop := range *loops {
 				if loop.Name == ele.Name {
-					if loop.Status == LoopCreateSuccessful {
+					if loop.Status == cluster.LoopCreateSuccessful {
 						loopMap[loop.Name] = loop
 						created = true
 					} else {
@@ -586,7 +585,7 @@ func checkLoopDevice(executor exec.Executor, disks []topolvmv1.Disk, loops *[]to
 					s.Status = LoopCreateFailed
 					s.Message = err.Error()
 				}
-				s.Status = LoopCreateSuccessful
+				s.Status = cluster.LoopCreateSuccessful
 				s.DeviceName = loopName
 				if retry {
 					(*loops)[failedLoopIndex] = s

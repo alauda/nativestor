@@ -163,7 +163,7 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 	}
 
 	if _, ok := newCm.Data[cluster.LocalDiskCMData]; ok {
-		if oldCm.Data[cluster.LocalDiskCMData] != newCm.Data[cluster.LocalDiskCMData] {
+		if oldCm.Data[cluster.LocalDiskCMData] != newCm.Data[cluster.LocalDiskCMData] && c.clusterCtr.UseAllNodeAndDevices() {
 			c.clusterCtr.RestartJob(nodeName, c.ref)
 		}
 	}
