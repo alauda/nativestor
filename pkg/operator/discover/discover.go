@@ -112,6 +112,12 @@ func Run(context *cluster.Context, probeInterval time.Duration) error {
 	logger.Debugf("device discovery interval is %q", probeInterval.String())
 	nodeName = os.Getenv(cluster.NodeNameEnv)
 	namespace = os.Getenv(cluster.PodNameSpaceEnv)
+	if os.Getenv(cluster.UseLoopEnv) == cluster.UseLoop {
+		useLoop = true
+	} else {
+		useLoop = false
+	}
+
 	cmName = k8sutil.TruncateNodeName(LocalDiskCMName, nodeName)
 	sigc := make(chan os.Signal, 1)
 	signal.Notify(sigc, syscall.SIGTERM)

@@ -35,6 +35,7 @@ const (
 	IsOperatorHubEnv = "IS_OPERATOR_HUB"
 	PodNameEnv       = "POD_NAME"
 	LogLevelEnv      = "TOPOLVM_LOG_LEVEL"
+	UseLoopEnv       = "USE_LOOP"
 
 	TopolvmNodeDeploymentNamePrefix = "topolvm-node-"
 	NodeServiceAccount              = "topolvm-node"
@@ -97,4 +98,9 @@ const (
 	IsOperator           = "1"
 	CapacityKeyPrefix    = "capacity.topolvm.cybozu.com/"
 	NodeAttr             = "topolvm/node"
+
+	DiscoverDevicesAccount = "topolvm-discover"
+	DiscoverAppName        = "discoverDevices"
+	DiscoverContainerName  = "discover"
+	UseLoop                = "1"
 )

@@ -156,6 +156,18 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 		logger.Errorf("update cluster failed err %v", err)
 	}
 
+	nodeName := getNodeName(newCm)
+	if nodeName == "" {
+		logger.Error("can not get node name")
+		return
+	}
+
+	if _, ok := newCm.Data[cluster.LocalDiskCMData]; ok {
+		if oldCm.Data[cluster.LocalDiskCMData] != newCm.Data[cluster.LocalDiskCMData] {
+			c.clusterCtr.RestartJob(nodeName, c.ref)
+		}
+	}
+
 	if _, ok := newCm.Data[cluster.LvmdConfigMapKey]; !ok {
 
 		nodeName := getNodeName(newCm)
@@ -168,11 +180,6 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 
 	if oldCm.Data[cluster.LvmdConfigMapKey] == newCm.Data[cluster.LvmdConfigMapKey] {
 		logger.Infof("cm%s  update but data not change no need to update node deployment", oldCm.ObjectMeta.Name)
-		return
-	}
-	nodeName := getNodeName(newCm)
-	if nodeName == "" {
-		logger.Error("can not get node name")
 		return
 	}
 

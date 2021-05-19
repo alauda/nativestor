@@ -24,6 +24,7 @@ import (
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/controller"
 	"github.com/alauda/topolvm-operator/pkg/operator/csidriver"
+	"github.com/alauda/topolvm-operator/pkg/operator/discover"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/alauda/topolvm-operator/pkg/operator/psp"
 	"github.com/alauda/topolvm-operator/pkg/operator/volumectr"
@@ -183,11 +184,11 @@ func (c *ClusterController) onAdd(topolvmCluster *topolvmv1.TopolvmCluster, ref 
 		}
 	}
 
-	if topolvmCluster.Spec.UseLoop {
-		// start daemonset to handler node restart
+	if err := c.startDiscoverDaemonset(topolvmCluster, ref, topolvmCluster.Spec.UseLoop); err != nil {
+		return errors.Wrap(err, "start discover daemonset failed")
 	}
-	// Start the main topolvm cluster orchestration
 
+	// Start the main topolvm cluster orchestration
 	if err := c.startPrepareVolumeGroupJob(topolvmCluster, ref); err != nil {
 		return errors.Wrap(err, "start prepare volume group failed")
 	}
@@ -286,6 +287,41 @@ func (c *ClusterController) startPrepareVolumeGroupJob(topolvmCluster *topolvmv1
 	}()
 
 	return nil
+}
+
+func (c *ClusterController) RestartJob(node string, ref *metav1.OwnerReference) error {
+	return volumegroup.MakeAndRunJob(c.context.Clientset, node, c.operatorImage, ref)
+}
+
+func (c *ClusterController) startDiscoverDaemonset(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference, useLoop bool) error {
+
+	ctx := context.TODO()
+	daemonset, err := c.context.Clientset.AppsV1().DaemonSets(cluster.NameSpace).Get(ctx, cluster.DiscoverAppName, metav1.GetOptions{})
+	if err != nil && !kerrors.IsNotFound(err) {
+		logger.Errorf("failed to detect daemonset:%s. err:%v", cluster.DiscoverAppName, err)
+		return errors.Wrap(err, "failed to detect daemonset")
+	} else if err == nil {
+		if daemonset.Spec.Template.Spec.Containers[0].Image == topolvmCluster.Spec.TopolvmVersion {
+			clusterLogger.Info("discover daemonset no change need not reconcile")
+			return nil
+
+		}
+		length := len(daemonset.Spec.Template.Spec.Containers)
+		for i := 0; i < length; i++ {
+			daemonset.Spec.Template.Spec.Containers[i].Image = topolvmCluster.Spec.TopolvmVersion
+		}
+		_, err := c.context.Clientset.AppsV1().DaemonSets(daemonset.Namespace).Update(ctx, daemonset, metav1.UpdateOptions{})
+		if err != nil {
+			logger.Errorf("update discover daemonset image failed err %v", err)
+			return errors.Wrap(err, "update discover daemonset image failed")
+		} else {
+			logger.Infof("update discover daemonset image to %s", topolvmCluster.Spec.TopolvmVersion)
+			return nil
+		}
+
+	}
+
+	return discover.MakeDiscoverDevicesDaemonset(c.context.Clientset, cluster.DiscoverAppName, cluster.TopolvmImage, useLoop, ref)
 }
 
 func (c *ClusterController) startTopolvmControllerDeployment(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference) error {
