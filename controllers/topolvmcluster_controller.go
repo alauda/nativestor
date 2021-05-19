@@ -325,7 +325,7 @@ func (c *ClusterController) startDiscoverDaemonset(topolvmCluster *topolvmv1.Top
 		}
 	}
 
-	return discover.MakeDiscoverDevicesDaemonset(c.context.Clientset, cluster.DiscoverAppName, cluster.TopolvmImage, useLoop, ref)
+	return discover.MakeDiscoverDevicesDaemonset(c.context.Clientset, cluster.DiscoverAppName, c.operatorImage, useLoop, ref)
 }
 
 func (c *ClusterController) startTopolvmControllerDeployment(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference) error {

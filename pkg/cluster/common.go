@@ -100,7 +100,7 @@ const (
 	NodeAttr             = "topolvm/node"
 
 	DiscoverDevicesAccount = "topolvm-discover"
-	DiscoverAppName        = "discoverDevices"
+	DiscoverAppName        = "topolvm-discover"
 	DiscoverContainerName  = "discover"
 	UseLoop                = "1"
 	LoopCreateSuccessful   = "successful"
