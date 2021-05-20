@@ -178,13 +178,16 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 		return
 	}
 
-	if oldCm.Data[cluster.LvmdConfigMapKey] == newCm.Data[cluster.LvmdConfigMapKey] {
-		logger.Infof("cm%s  update but data not change no need to update node deployment", oldCm.ObjectMeta.Name)
-		return
+	if checkingDeploymentExisting(c.context, nodeName) {
+		if oldCm.Data[cluster.LvmdConfigMapKey] == newCm.Data[cluster.LvmdConfigMapKey] {
+			logger.Infof("cm%s  update but data not change no need to update node deployment", oldCm.ObjectMeta.Name)
+			return
+		}
+		replaceNodePod(c.context, nodeName)
+	} else {
+		createNodeDeployment(c.context, newCm.ObjectMeta.Name, nodeName, c.ref)
 	}
-
-	replaceNodePod(c.context, nodeName)
-
+	return
 }
 
 func (c *ConfigMapController) checkUpdateClusterStatus(old, new *v1.ConfigMap) error {
