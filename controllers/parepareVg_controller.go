@@ -161,16 +161,21 @@ func (c *PrePareVg) provision(topolvmCluster *topolvmv1.TopolvmCluster) error {
 		return err
 	} else if err == nil {
 
+		logger.Info("cm is existing check if need update")
 		if vgStatus, ok := cm.Data[cluster.VgStatusConfigMapKey]; ok {
 			if err := c.provisionWithNodeStatus(cm, vgStatus, disks); err != nil {
 				vgLogger.Errorf("provisionWithNodeStatus failed err %v", err)
 				return err
 			}
 		} else {
+			if err := c.provisionFirst(disks, cm); err != nil {
+				vgLogger.Errorf("provisionFirst failed with cm err %v", err)
+				return err
+			}
 
 		}
 
-		logger.Info("cm is existing check if need update")
+		return nil
 
 	}
 
