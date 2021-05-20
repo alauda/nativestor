@@ -31,6 +31,8 @@ import (
 	"k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -124,12 +126,6 @@ func (c *PrePareVg) provision(topolvmCluster *topolvmv1.TopolvmCluster) error {
 		vgLogger.Errorf("can not list disk err:%s", err)
 		return err
 	}
-	nodeStatus := topolvmv1.NodeStorageState{}
-	sucVgs := make([]topolvmv1.DeviceClass, 0)
-	// record the status of each class
-	sucClassMap := make(map[string]*topolvmv1.ClassState)
-	failClassMap := make(map[string]*topolvmv1.ClassState)
-
 	if topolvmCluster.Spec.UseAllDevices {
 		deviceClass := topolvmv1.DeviceClass{ClassName: topolvmCluster.Spec.Storage.ClassName, VgName: topolvmCluster.Spec.Storage.VolumeGroupName, Default: true}
 		for _, dev := range disks {
@@ -165,66 +161,41 @@ func (c *PrePareVg) provision(topolvmCluster *topolvmv1.TopolvmCluster) error {
 		return err
 	} else if err == nil {
 
+		if vgStatus, ok := cm.Data[cluster.VgStatusConfigMapKey]; ok {
+			if err := c.provisionWithNodeStatus(cm, vgStatus, disks); err != nil {
+				vgLogger.Errorf("provisionWithNodeStatus failed err %v", err)
+				return err
+			}
+		} else {
+
+		}
+
 		logger.Info("cm is existing check if need update")
-
-		err := json.Unmarshal([]byte(cm.Data[cluster.VgStatusConfigMapKey]), &nodeStatus)
-		if err != nil {
-			vgLogger.Errorf("unmarshal confimap status data failed %+v ", err)
-			return err
-		}
-
-		sucClassMap = getVgNameMap(nodeStatus.SuccessClasses)
-		failClassMap = getVgNameMap(nodeStatus.FailClasses)
-
-		for _, dev := range c.nodeDevices.DeviceClasses {
-
-			if _, ok := sucClassMap[dev.VgName]; ok {
-				// check if need expand
-				err := c.checkVgIfExpand(&dev, sucClassMap)
-				if err != nil {
-					logger.Errorf("checkVgIfExpand vg:%s failed err %v", dev.VgName, err)
-				}
-				continue
-			}
-
-			if _, ok := failClassMap[dev.VgName]; ok {
-				// check need recreate
-				suc := c.createVgRetry(disks, &dev, sucClassMap, failClassMap)
-				if suc {
-					sucVgs = append(sucVgs, dev)
-				}
-				continue
-			}
-
-			// create new vg
-			suc := c.createVg(disks, &dev, sucClassMap, failClassMap)
-			if suc {
-				sucVgs = append(sucVgs, dev)
-			}
-
-		}
-
-		err = c.updateLvmdConf(cm, sucVgs)
-		if err != nil {
-			return errors.Wrap(err, "update lvmd conf failed")
-		}
-
-		err = updateVgStatus(cm, &nodeStatus, sucClassMap, failClassMap, c.loopsState)
-		if err != nil {
-			return errors.Wrap(err, "update vg status failed")
-		}
-
-		_, err = c.context.Clientset.CoreV1().ConfigMaps(c.namespace).Update(ctx, cm, metav1.UpdateOptions{})
-		if err != nil {
-			vgLogger.Errorf("update lvmd configmap failed err:%+v", err)
-			return errors.Wrap(err, "update lvmd configmap failed")
-		}
-
-		return nil
 
 	}
 
 	//todo should distinguish the created vg between cluster and other user
+
+	return c.provisionFirst(disks, nil)
+}
+
+func getVgNameMap(classes []topolvmv1.ClassState) map[string]*topolvmv1.ClassState {
+
+	vgMap := make(map[string]*topolvmv1.ClassState)
+	for index, dev := range classes {
+		vgMap[dev.VgName] = &classes[index]
+	}
+	return vgMap
+
+}
+
+func (c *PrePareVg) provisionFirst(disks map[string]*sys.LocalDisk, cm *v1.ConfigMap) error {
+
+	nodeStatus := topolvmv1.NodeStorageState{}
+	sucVgs := make([]topolvmv1.DeviceClass, 0)
+	// record the status of each class
+	sucClassMap := make(map[string]*topolvmv1.ClassState)
+	failClassMap := make(map[string]*topolvmv1.ClassState)
 
 	logger.Info("start create lvmd configmap")
 	// list existing volume group
@@ -249,50 +220,127 @@ func (c *PrePareVg) provision(topolvmCluster *topolvmv1.TopolvmCluster) error {
 
 	}
 
-	// create cm for node to notify operator to create or update node deployment and update TopolvmCluster status
+	cmNew := &v1.ConfigMap{}
+	if cm == nil {
 
-	annotations := make(map[string]string)
-	annotations[cluster.LvmdAnnotationsNodeKey] = c.nodeName
-	nodeStatus.Node = c.nodeName
-	vgNodeConfigMap := &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      k8sutil.TruncateNodeName(cluster.LvmdConfigMapFmt, c.nodeDevices.NodeName),
-			Namespace: c.namespace,
-			Labels: map[string]string{
-				cluster.LvmdConfigMapLabelKey: cluster.LvmdConfigMapLabelValue,
-				cluster.NodeAttr:              c.nodeName,
+		annotations := make(map[string]string)
+		annotations[cluster.LvmdAnnotationsNodeKey] = c.nodeName
+		nodeStatus.Node = c.nodeName
+		cmNew = &v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      k8sutil.TruncateNodeName(cluster.LvmdConfigMapFmt, c.nodeDevices.NodeName),
+				Namespace: c.namespace,
+				Labels: map[string]string{
+					cluster.LvmdConfigMapLabelKey: cluster.LvmdConfigMapLabelValue,
+					cluster.NodeAttr:              c.nodeName,
+				},
+				Annotations: annotations,
 			},
-			Annotations: annotations,
-		},
-		Data: make(map[string]string),
+			Data: make(map[string]string),
+		}
+	} else {
+
+		cmNew = cm.DeepCopy()
 	}
 
-	err = updateVgStatus(vgNodeConfigMap, &nodeStatus, sucClassMap, failClassMap, c.loopsState)
+	// create cm for node to notify operator to create or update node deployment and update TopolvmCluster status
+
+	err = updateVgStatus(cmNew, &nodeStatus, sucClassMap, failClassMap, c.loopsState)
 	if err != nil {
 		return errors.Wrap(err, "create vg status failed")
 	}
 
-	err = createLvmdConf(vgNodeConfigMap, sucVgs)
+	err = createLvmdConf(cmNew, sucVgs)
 	if err != nil {
 		return errors.Wrap(err, "create lvmd conf failed")
 	}
 
-	if err := k8sutil.CreateReplaceableConfigmap(c.context.Clientset, vgNodeConfigMap); err != nil {
-		vgLogger.Errorf("create configmap failed err:+%v", err)
-		return err
+	if cm == nil {
+		if err := k8sutil.CreateReplaceableConfigmap(c.context.Clientset, cmNew); err != nil {
+			vgLogger.Errorf("create configmap failed err:+%v", err)
+			return err
+		}
+	} else {
+		newJSON, err := json.Marshal(*cmNew)
+		if err != nil {
+			return err
+		}
+		oldJSON, err := json.Marshal(*cm)
+		if err != nil {
+			return err
+		}
+		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldJSON, newJSON, v1.ConfigMap{})
+		if err != nil {
+			return err
+		}
+		_, err = c.context.Clientset.CoreV1().ConfigMaps(c.namespace).Patch(context.TODO(), cm.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
+		if err != nil {
+			logger.Infof("failed to patch configmap %s: %v", cmNew.Name, err)
+			return err
+		}
 	}
 
 	return nil
-
 }
 
-func getVgNameMap(classes []topolvmv1.ClassState) map[string]*topolvmv1.ClassState {
+func (c *PrePareVg) provisionWithNodeStatus(cm *v1.ConfigMap, vgStatus string, disks map[string]*sys.LocalDisk) error {
 
-	vgMap := make(map[string]*topolvmv1.ClassState)
-	for index, dev := range classes {
-		vgMap[dev.VgName] = &classes[index]
+	nodeStatus := topolvmv1.NodeStorageState{}
+	sucVgs := make([]topolvmv1.DeviceClass, 0)
+	err := json.Unmarshal([]byte(vgStatus), &nodeStatus)
+	if err != nil {
+		vgLogger.Errorf("unmarshal confimap status data failed %+v ", err)
+		return err
 	}
-	return vgMap
+
+	sucClassMap := getVgNameMap(nodeStatus.SuccessClasses)
+	failClassMap := getVgNameMap(nodeStatus.FailClasses)
+
+	for _, dev := range c.nodeDevices.DeviceClasses {
+
+		if _, ok := sucClassMap[dev.VgName]; ok {
+			// check if need expand
+			err := c.checkVgIfExpand(&dev, sucClassMap)
+			if err != nil {
+				logger.Errorf("checkVgIfExpand vg:%s failed err %v", dev.VgName, err)
+			}
+			continue
+		}
+
+		if _, ok := failClassMap[dev.VgName]; ok {
+			// check need recreate
+			suc := c.createVgRetry(disks, &dev, sucClassMap, failClassMap)
+			if suc {
+				sucVgs = append(sucVgs, dev)
+			}
+			continue
+		}
+
+		// create new vg
+		suc := c.createVg(disks, &dev, sucClassMap, failClassMap)
+		if suc {
+			sucVgs = append(sucVgs, dev)
+		}
+
+	}
+
+	err = c.updateLvmdConf(cm, sucVgs)
+	if err != nil {
+		return errors.Wrap(err, "update lvmd conf failed")
+	}
+
+	err = updateVgStatus(cm, &nodeStatus, sucClassMap, failClassMap, c.loopsState)
+	if err != nil {
+		return errors.Wrap(err, "update vg status failed")
+	}
+
+	_, err = c.context.Clientset.CoreV1().ConfigMaps(c.namespace).Update(context.TODO(), cm, metav1.UpdateOptions{})
+	if err != nil {
+		vgLogger.Errorf("update lvmd configmap failed err:%+v", err)
+		return errors.Wrap(err, "update lvmd configmap failed")
+	}
+
+	return nil
 
 }
 
