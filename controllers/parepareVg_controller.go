@@ -128,8 +128,8 @@ func (c *PrePareVg) provision(topolvmCluster *topolvmv1.TopolvmCluster) error {
 	}
 	if topolvmCluster.Spec.UseAllDevices {
 		deviceClass := topolvmv1.DeviceClass{ClassName: topolvmCluster.Spec.Storage.ClassName, VgName: topolvmCluster.Spec.Storage.VolumeGroupName, Default: true}
-		for _, dev := range disks {
-			deviceClass.Device = append(deviceClass.Device, topolvmv1.Disk{Name: dev.Name, Type: dev.Type})
+		for key, dev := range disks {
+			deviceClass.Device = append(deviceClass.Device, topolvmv1.Disk{Name: key, Type: dev.Type})
 		}
 		deviceClasses := []topolvmv1.DeviceClass{deviceClass}
 		c.nodeDevices = topolvmv1.NodeDevices{NodeName: c.nodeName, DeviceClasses: deviceClasses}
