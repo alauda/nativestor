@@ -194,6 +194,7 @@ func getCsiProvisionerContainer() *corev1.Container {
 		"--enable-capacity",
 		"--capacity-ownerref-level=2",
 		"--capacity-poll-interval=30s",
+		"--feature-gates=Topology=true",
 		"--leader-election",
 		"--leader-election-namespace=" + cluster.NameSpace,
 	}
