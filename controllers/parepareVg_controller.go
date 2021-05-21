@@ -442,7 +442,6 @@ func (c *PrePareVg) createVgRetry(availaDisks map[string]*sys.LocalDisk, class *
 		if err := sys.CreateVolumeGroup(c.context.Executor, class.Device, class.VgName); err != nil {
 			vgLogger.Errorf("create vg %s retry failed err:%v", class.VgName, err)
 			return false
-
 		}
 		logger.Infof("create vg %s retry successful", class.VgName)
 		sucClass[class.VgName] = &topolvmv1.ClassState{Name: class.ClassName, VgName: class.VgName, State: ClassCreateSuccessful}
@@ -627,7 +626,7 @@ func convertConfig(dev *topolvmv1.DeviceClass) (*cluster.DeviceClass, error) {
 }
 
 func checkLoopDevice(executor exec.Executor, disks []topolvmv1.Disk, loops *[]topolvmv1.LoopState, loopMap map[string]topolvmv1.LoopState) {
-	logger.Debug("check loop device")
+	vgLogger.Debug("check loop device")
 	for _, ele := range disks {
 		if ele.Type == Loop {
 			created := false
@@ -670,15 +669,17 @@ func checkLoopDevice(executor exec.Executor, disks []topolvmv1.Disk, loops *[]to
 
 			} else {
 				if !created {
-					logger.Debugf("get loop %s back file", ele.Name)
+					vgLogger.Debugf("get loop %s back file", ele.Name)
 					s := topolvmv1.LoopState{Name: ele.Name, Status: cluster.LoopCreateSuccessful}
 					file, err := sys.GetLoopBackFile(executor, ele.Name)
 					if err != nil {
 						vgLogger.Errorf("get loop %s back file failed %v", ele.Name, err)
 						s.Message = err.Error()
 					}
+					vgLogger.Debugf("loop %s backfile %s", ele.Name, file)
 					s.File = file
 					*loops = append(*loops, s)
+					vgLogger.Debug("get loop back file done")
 				}
 			}
 		}
