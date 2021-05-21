@@ -135,6 +135,9 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, errors.Wrapf(err, "failed to get controller %q owner reference", topolvmCluster.Name)
 	}
 
+	if err := r.checkStorageConfig(topolvmCluster); err != nil {
+		return reconcile.Result{}, errors.Wrap(err, "check storage config failed")
+	}
 	//start configmap controller
 	if r.configMapController == nil {
 		r.configMapController = NewConfigMapController(cluster.NewContext(), cluster.NameSpace, ref, r.clusterController)
@@ -149,6 +152,23 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 
 	// Return and do not requeue
 	return reconcile.Result{}, nil
+}
+
+func (r *TopolvmClusterReconciler) checkStorageConfig(topolvmCluster *topolvmv1.TopolvmCluster) error {
+
+	if topolvmCluster.Spec.Storage.UseAllNodes && topolvmCluster.Spec.Storage.DeviceClasses != nil {
+		return errors.New("should not both config use all node and deviceclasses ")
+	}
+
+	if !topolvmCluster.Spec.Storage.UseAllNodes && topolvmCluster.Spec.UseAllDevices {
+		return errors.New("should not config useAllNodes false but useAllDevice true")
+	}
+
+	if topolvmCluster.Spec.UseAllDevices && topolvmCluster.Spec.Storage.Devices != nil {
+		return errors.New("should not config useAllNodes true but config storage.devices")
+	}
+
+	return nil
 }
 
 // ClusterController controls an instance of a topolvm cluster
