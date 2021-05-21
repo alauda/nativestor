@@ -37,6 +37,7 @@ func CreateLoop(executor exec.Executor, filename string, size uint64) (string, e
 }
 
 func GetLoopBackFile(executor exec.Executor, loop string) (string, error) {
+	logger.Debugf("get loop %s back file", loop)
 	out, err := wrapExecCommandWithOutput(executor, losetup, loop, "-O", "back-file")
 	if err != nil {
 		return "", err
@@ -46,8 +47,8 @@ func GetLoopBackFile(executor exec.Executor, loop string) (string, error) {
 	if len(res) != 1 {
 		return "", errors.New("get loop %s back file name failed " + loop)
 	}
+	logger.Debug("get loop%s back file %s done", loop, res[0]["back-file"])
 	return res[0]["back-file"], nil
-
 }
 
 func ReSetupLoop(executor exec.Executor, filename string, loop string) error {
