@@ -265,6 +265,7 @@ func updateDeviceCM(clusterdContext *cluster.Context) error {
 			return fmt.Errorf("failed to create local device map %s: %+v", cmName, err)
 		}
 		lastDevice = deviceStr
+		return nil
 	}
 
 	if lastDevice != deviceStr {

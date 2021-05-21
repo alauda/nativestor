@@ -167,21 +167,22 @@ func (c *PrePareVg) provision(topolvmCluster *topolvmv1.TopolvmCluster) error {
 
 		logger.Info("cm is existing check if need update")
 		if vgStatus, ok := cm.Data[cluster.VgStatusConfigMapKey]; ok {
+			logger.Debug("start provision with node status")
 			if err := c.provisionWithNodeStatus(cm, vgStatus, disks); err != nil {
 				vgLogger.Errorf("provisionWithNodeStatus failed err %v", err)
 				return err
 			}
 		} else {
+			logger.Debug("start provision with cm")
 			if err := c.provisionFirst(disks, cm); err != nil {
 				vgLogger.Errorf("provisionFirst failed with cm err %v", err)
 				return err
 			}
-
 		}
-
 		return nil
-
 	}
+
+	logger.Info("provision vg and create configmap")
 
 	//todo should distinguish the created vg between cluster and other user
 
