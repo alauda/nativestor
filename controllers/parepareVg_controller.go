@@ -143,7 +143,6 @@ func (c *PrePareVg) provision(topolvmCluster *topolvmv1.TopolvmCluster) error {
 		if topolvmCluster.Spec.Storage.UseLoop {
 			checkLoopDevice(c.context.Executor, topolvmCluster.Spec.Devices, &c.loopsState, c.loopMap)
 		}
-
 		deviceClass := topolvmv1.DeviceClass{ClassName: topolvmCluster.Spec.Storage.ClassName, VgName: topolvmCluster.Spec.Storage.VolumeGroupName, Default: true, Device: topolvmCluster.Spec.Storage.Devices}
 		deviceClasses := []topolvmv1.DeviceClass{deviceClass}
 		c.nodeDevices = topolvmv1.NodeDevices{NodeName: c.nodeName, DeviceClasses: deviceClasses}
@@ -202,6 +201,7 @@ func getVgNameMap(classes []topolvmv1.ClassState) map[string]*topolvmv1.ClassSta
 func (c *PrePareVg) provisionFirst(disks map[string]*sys.LocalDisk, cm *v1.ConfigMap) error {
 
 	nodeStatus := topolvmv1.NodeStorageState{}
+	nodeStatus.Node = c.nodeName
 	sucVgs := make([]topolvmv1.DeviceClass, 0)
 	// record the status of each class
 	sucClassMap := make(map[string]*topolvmv1.ClassState)
@@ -235,7 +235,6 @@ func (c *PrePareVg) provisionFirst(disks map[string]*sys.LocalDisk, cm *v1.Confi
 
 		annotations := make(map[string]string)
 		annotations[cluster.LvmdAnnotationsNodeKey] = c.nodeName
-		nodeStatus.Node = c.nodeName
 		cmNew = &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      k8sutil.TruncateNodeName(cluster.LvmdConfigMapFmt, c.nodeDevices.NodeName),
@@ -628,10 +627,9 @@ func convertConfig(dev *topolvmv1.DeviceClass) (*cluster.DeviceClass, error) {
 }
 
 func checkLoopDevice(executor exec.Executor, disks []topolvmv1.Disk, loops *[]topolvmv1.LoopState, loopMap map[string]topolvmv1.LoopState) {
-
+	logger.Debug("check loop device")
 	for _, ele := range disks {
 		if ele.Type == Loop {
-
 			created := false
 			failedLoopIndex := 0
 			retry := false
@@ -671,9 +669,8 @@ func checkLoopDevice(executor exec.Executor, disks []topolvmv1.Disk, loops *[]to
 				}
 
 			} else {
-
 				if !created {
-
+					logger.Debugf("get loop %s back file", ele.Name)
 					s := topolvmv1.LoopState{Name: ele.Name, Status: cluster.LoopCreateSuccessful}
 					file, err := sys.GetLoopBackFile(executor, ele.Name)
 					if err != nil {
@@ -682,10 +679,8 @@ func checkLoopDevice(executor exec.Executor, disks []topolvmv1.Disk, loops *[]to
 					}
 					s.File = file
 					*loops = append(*loops, s)
-
 				}
 			}
-
 		}
 	}
 }
