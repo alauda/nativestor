@@ -134,6 +134,10 @@ func (c *PrePareVg) provision(topolvmCluster *topolvmv1.TopolvmCluster) error {
 		deviceClasses := []topolvmv1.DeviceClass{deviceClass}
 		c.nodeDevices = topolvmv1.NodeDevices{NodeName: c.nodeName, DeviceClasses: deviceClasses}
 
+		if topolvmCluster.Spec.Storage.UseLoop {
+			checkLoopDevice(c.context.Executor, c.nodeDevices.DeviceClasses[0].Device, &c.loopsState, c.loopMap)
+		}
+
 	} else if topolvmCluster.Spec.Devices != nil {
 
 		if topolvmCluster.Spec.Storage.UseLoop {

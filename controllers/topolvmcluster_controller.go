@@ -338,7 +338,6 @@ func (c *ClusterController) startTopolvmControllerDeployment(topolvmCluster *top
 		if deployment.Spec.Template.Spec.Containers[0].Image == topolvmCluster.Spec.TopolvmVersion {
 			clusterLogger.Info("controller deployment no change need not reconcile")
 			return nil
-
 		}
 		length := len(deployment.Spec.Template.Spec.Containers)
 		for i := 0; i < length; i++ {
