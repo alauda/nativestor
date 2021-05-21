@@ -36,6 +36,20 @@ func CreateLoop(executor exec.Executor, filename string, size uint64) (string, e
 	return res[0]["name"], nil
 }
 
+func GetLoopBackFile(executor exec.Executor, loop string) (string, error) {
+	out, err := wrapExecCommandWithOutput(executor, losetup, loop, "-O", "back-file")
+	if err != nil {
+		return "", err
+	}
+
+	res := parseLines(out)
+	if len(res) != 1 {
+		return "", errors.New("get loop %s back file name failed " + loop)
+	}
+	return res[0]["back-file"], nil
+
+}
+
 func ReSetupLoop(executor exec.Executor, filename string, loop string) error {
 
 	devices, err := DiscoverDevices(executor)

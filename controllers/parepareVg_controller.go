@@ -298,6 +298,8 @@ func (c *PrePareVg) provisionWithNodeStatus(cm *v1.ConfigMap, vgStatus string, d
 		return err
 	}
 
+	newCm := cm.DeepCopy()
+
 	sucClassMap := getVgNameMap(nodeStatus.SuccessClasses)
 	failClassMap := getVgNameMap(nodeStatus.FailClasses)
 
@@ -329,20 +331,32 @@ func (c *PrePareVg) provisionWithNodeStatus(cm *v1.ConfigMap, vgStatus string, d
 
 	}
 
-	err = c.updateLvmdConf(cm, sucVgs)
+	err = c.updateLvmdConf(newCm, sucVgs)
 	if err != nil {
 		return errors.Wrap(err, "update lvmd conf failed")
 	}
 
-	err = updateVgStatus(cm, &nodeStatus, sucClassMap, failClassMap, c.loopsState)
+	err = updateVgStatus(newCm, &nodeStatus, sucClassMap, failClassMap, c.loopsState)
 	if err != nil {
 		return errors.Wrap(err, "update vg status failed")
 	}
 
-	_, err = c.context.Clientset.CoreV1().ConfigMaps(c.namespace).Update(context.TODO(), cm, metav1.UpdateOptions{})
+	newJSON, err := json.Marshal(*newCm)
 	if err != nil {
-		vgLogger.Errorf("update lvmd configmap failed err:%+v", err)
-		return errors.Wrap(err, "update lvmd configmap failed")
+		return err
+	}
+	oldJSON, err := json.Marshal(*cm)
+	if err != nil {
+		return err
+	}
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldJSON, newJSON, v1.ConfigMap{})
+	if err != nil {
+		return err
+	}
+	_, err = c.context.Clientset.CoreV1().ConfigMaps(c.namespace).Patch(context.TODO(), cm.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
+	if err != nil {
+		logger.Infof("failed to patch configmap %s: %v", newCm.Name, err)
+		return err
 	}
 
 	return nil
@@ -611,8 +625,8 @@ func convertConfig(dev *topolvmv1.DeviceClass) (*cluster.DeviceClass, error) {
 func checkLoopDevice(executor exec.Executor, disks []topolvmv1.Disk, loops *[]topolvmv1.LoopState, loopMap map[string]topolvmv1.LoopState) {
 
 	for _, ele := range disks {
+		if ele.Type == Loop {
 
-		if ele.Type == Loop && ele.Auto {
 			created := false
 			failedLoopIndex := 0
 			retry := false
@@ -628,27 +642,45 @@ func checkLoopDevice(executor exec.Executor, disks []topolvmv1.Disk, loops *[]to
 					break
 				}
 			}
-			//no created before
-			if !created {
-				file := uuid.New().String()
-				loopName, err := sys.CreateLoop(executor, ele.Path+"/"+file, ele.Size)
-				s := topolvmv1.LoopState{Name: ele.Name, File: ele.Path + file}
-				if err != nil {
-					vgLogger.Errorf("create loop %s failed %v", ele.Name, err)
-					s.Status = LoopCreateFailed
-					s.Message = err.Error()
-				}
-				s.Status = cluster.LoopCreateSuccessful
-				s.DeviceName = loopName
-				if retry {
-					(*loops)[failedLoopIndex] = s
 
-				} else {
-					*loops = append(*loops, s)
+			if ele.Auto {
+				//no created before
+				if !created {
+					file := uuid.New().String()
+					loopName, err := sys.CreateLoop(executor, ele.Path+"/"+file, ele.Size)
+					s := topolvmv1.LoopState{Name: ele.Name, File: ele.Path + file}
+					if err != nil {
+						vgLogger.Errorf("create loop %s failed %v", ele.Name, err)
+						s.Status = LoopCreateFailed
+						s.Message = err.Error()
+					}
+					s.Status = cluster.LoopCreateSuccessful
+					s.DeviceName = loopName
+					if retry {
+						(*loops)[failedLoopIndex] = s
+
+					} else {
+						*loops = append(*loops, s)
+					}
+					loopMap[ele.Name] = s
 				}
-				loopMap[ele.Name] = s
+
+			} else {
+
+				if !created {
+
+					s := topolvmv1.LoopState{Name: ele.Name, Status: cluster.LoopCreateSuccessful}
+					file, err := sys.GetLoopBackFile(executor, ele.Name)
+					if err != nil {
+						vgLogger.Errorf("get loop %s back file failed %v", ele.Name, err)
+						s.Message = err.Error()
+					}
+					s.File = file
+					*loops = append(*loops, s)
+
+				}
 			}
+
 		}
 	}
-
 }
