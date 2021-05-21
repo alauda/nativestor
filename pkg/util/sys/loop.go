@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/alauda/topolvm-operator/pkg/util/exec"
 	"strconv"
+	"strings"
 )
 
 const (
@@ -29,11 +30,12 @@ func CreateLoop(executor exec.Executor, filename string, size uint64) (string, e
 		return "", err
 	}
 
-	res := parseLines(out)
-	if len(res) != 1 {
+	lines := strings.Split(out, "\n")
+	if len(lines) != 2 {
 		return "", errors.New("get loop name failed for file" + filename)
 	}
-	return res[0]["name"], nil
+	device := strings.TrimSpace(lines[1])
+	return device, nil
 }
 
 func GetLoopBackFile(executor exec.Executor, loop string) (string, error) {
@@ -42,13 +44,12 @@ func GetLoopBackFile(executor exec.Executor, loop string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	res := parseLines(out)
-	if len(res) != 1 {
+	lines := strings.Split(out, "\n")
+	if len(lines) != 2 {
 		return "", errors.New("get loop %s back file name failed " + loop)
 	}
-	logger.Debug("get loop%s back file %s done", loop, res[0]["back-file"])
-	return res[0]["back-file"], nil
+	file := strings.TrimSpace(lines[1])
+	return file, nil
 }
 
 func ReSetupLoop(executor exec.Executor, filename string, loop string) error {
@@ -63,6 +64,5 @@ func ReSetupLoop(executor exec.Executor, filename string, loop string) error {
 			return nil
 		}
 	}
-
 	return wrapExecCommand(executor, losetup, loop, filename)
 }
