@@ -187,7 +187,6 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 	} else {
 		createNodeDeployment(c.context, newCm.ObjectMeta.Name, nodeName, c.ref)
 	}
-	return
 }
 
 func (c *ConfigMapController) checkUpdateClusterStatus(old, new *v1.ConfigMap) error {

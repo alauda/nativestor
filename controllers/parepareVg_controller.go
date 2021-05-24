@@ -31,8 +31,6 @@ import (
 	"k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -281,22 +279,10 @@ func (c *PrePareVg) provisionFirst(disks map[string]*sys.LocalDisk, cm *v1.Confi
 			return err
 		}
 	} else {
-		newJSON, err := json.Marshal(*cmNew)
+
+		err = k8sutil.PatchConfigMap(c.context.Clientset, c.namespace, cm, cmNew)
 		if err != nil {
-			return err
-		}
-		oldJSON, err := json.Marshal(*cm)
-		if err != nil {
-			return err
-		}
-		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldJSON, newJSON, v1.ConfigMap{})
-		if err != nil {
-			return err
-		}
-		_, err = c.context.Clientset.CoreV1().ConfigMaps(c.namespace).Patch(context.TODO(), cm.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
-		if err != nil {
-			logger.Infof("failed to patch configmap %s: %v", cmNew.Name, err)
-			return err
+			return errors.Wrap(err, "patch configmap failed")
 		}
 	}
 
@@ -356,24 +342,10 @@ func (c *PrePareVg) provisionWithNodeStatus(cm *v1.ConfigMap, vgStatus string, d
 		return errors.Wrap(err, "update vg status failed")
 	}
 
-	newJSON, err := json.Marshal(*newCm)
+	err = k8sutil.PatchConfigMap(c.context.Clientset, c.namespace, cm, newCm)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "patch configmap failed")
 	}
-	oldJSON, err := json.Marshal(*cm)
-	if err != nil {
-		return err
-	}
-	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldJSON, newJSON, v1.ConfigMap{})
-	if err != nil {
-		return err
-	}
-	_, err = c.context.Clientset.CoreV1().ConfigMaps(c.namespace).Patch(context.TODO(), cm.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
-	if err != nil {
-		logger.Infof("failed to patch configmap %s: %v", newCm.Name, err)
-		return err
-	}
-
 	return nil
 
 }

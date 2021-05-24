@@ -18,10 +18,13 @@ package k8sutil
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes"
 	"time"
 )
@@ -58,4 +61,25 @@ func DeleteConfigMap(clientset kubernetes.Interface, cmName, namespace string, o
 	resource := fmt.Sprintf("ConfigMap %s", cmName)
 	defaultWaitOptions := &WaitOptions{RetryCount: 20, RetryInterval: 2 * time.Second}
 	return DeleteResource(d, verify, resource, opts, defaultWaitOptions)
+}
+
+func PatchConfigMap(clientset kubernetes.Interface, namespace string, oldConfigMap, newConfigMap *corev1.ConfigMap) error {
+	newJSON, err := json.Marshal(*newConfigMap)
+	if err != nil {
+		return err
+	}
+	oldJSON, err := json.Marshal(*oldConfigMap)
+	if err != nil {
+		return err
+	}
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldJSON, newJSON, corev1.ConfigMap{})
+	if err != nil {
+		return err
+	}
+	_, err = clientset.CoreV1().ConfigMaps(namespace).Patch(context.TODO(), oldConfigMap.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
+	if err != nil {
+		logger.Infof("failed to patch configmap %s: %v", oldConfigMap.Name, err)
+		return err
+	}
+	return nil
 }

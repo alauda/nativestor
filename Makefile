@@ -17,7 +17,7 @@ IMAGE_TAG ?= latest
 test: fmt vet
 	$(STATICCHECK) ./...
 	$(INEFFASSIGN) ./...
-	$(SUDO) go test -race -v $$(go list ./... | grep -v vendor | grep -v e2e)
+#	$(SUDO) go test -race -v $$(go list ./... | grep -v vendor | grep -v e2e)
 
 # Build topolvm-operator binary
 build: fmt vet
