@@ -274,18 +274,16 @@ func (c *PrePareVg) provisionFirst(disks map[string]*sys.LocalDisk, cm *v1.Confi
 	}
 
 	if cm == nil {
-		if err := k8sutil.CreateReplaceableConfigmap(c.context.Clientset, cmNew); err != nil {
+		if err := k8sutil.CreateOrPatchConfigmap(c.context.Clientset, cmNew); err != nil {
 			vgLogger.Errorf("create configmap failed err:+%v", err)
 			return err
 		}
 	} else {
-
 		err = k8sutil.PatchConfigMap(c.context.Clientset, c.namespace, cm, cmNew)
 		if err != nil {
 			return errors.Wrap(err, "patch configmap failed")
 		}
 	}
-
 	return nil
 }
 

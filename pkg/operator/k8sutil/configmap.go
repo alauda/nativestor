@@ -50,6 +50,24 @@ func CreateReplaceableConfigmap(clientset kubernetes.Interface, configmap *corev
 
 }
 
+func CreateOrPatchConfigmap(clientset kubernetes.Interface, configmap *corev1.ConfigMap) error {
+
+	ctx := context.Background()
+	existingCm, err := clientset.CoreV1().ConfigMaps(configmap.Namespace).Get(ctx, configmap.Name, metav1.GetOptions{})
+
+	if err != nil && !errors.IsNotFound(err) {
+		logger.Warningf("failed to detect configmap %s. %+v", configmap.Name, err)
+	} else if err == nil {
+		// delete the configmap that already exists from a previous run
+		logger.Infof("patching previous cm %s", configmap.Name)
+
+		return PatchConfigMap(clientset, existingCm.Namespace, existingCm, configmap)
+	}
+	_, err = clientset.CoreV1().ConfigMaps(configmap.Namespace).Create(ctx, configmap, metav1.CreateOptions{})
+	return err
+
+}
+
 func DeleteConfigMap(clientset kubernetes.Interface, cmName, namespace string, opts *DeleteOptions) error {
 	ctx := context.Background()
 	k8sOpts := BaseKubernetesDeleteOptions()
