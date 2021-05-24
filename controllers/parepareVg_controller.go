@@ -36,6 +36,7 @@ import (
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
 )
 
 const (
@@ -660,7 +661,7 @@ func checkLoopDevice(executor exec.Executor, disks []topolvmv1.Disk, loops *[]to
 				if !created {
 					file := uuid.New().String()
 					loopName, err := sys.CreateLoop(executor, ele.Path+"/"+file, ele.Size)
-					s := topolvmv1.LoopState{Name: ele.Name, File: ele.Path + file}
+					s := topolvmv1.LoopState{Name: ele.Name, File: getAbsoluteFileName(ele.Path, file)}
 					if err != nil {
 						vgLogger.Errorf("create loop %s failed %v", ele.Name, err)
 						s.Status = LoopCreateFailed
@@ -694,4 +695,12 @@ func checkLoopDevice(executor exec.Executor, disks []topolvmv1.Disk, loops *[]to
 			}
 		}
 	}
+}
+
+func getAbsoluteFileName(path, file string) string {
+	if strings.HasSuffix(path, "/") {
+		return path + file
+	}
+	return path + "/" + file
+
 }
