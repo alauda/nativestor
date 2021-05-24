@@ -66,10 +66,9 @@ type Disk struct {
 
 // TopolvmClusterStatus defines the observed state of TopolvmCluster
 type TopolvmClusterStatus struct {
-	Phase ConditionType `json:"phase,omitempty"`
-
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	Phase             ConditionType      `json:"phase"`
 	NodeStorageStatus []NodeStorageState `json:"nodeStorageState"`
 }
 
