@@ -85,6 +85,16 @@ const (
 	TopolvmControllerCsiProvisionCPURequest = "250m"
 	TopolvmControllerCsiProvisionCPULimit   = "250m"
 
+	TopolvmDiscoverDeviceMemRequest = "50Mi"
+	TopolvmDiscoverDeviceMemLimit   = "50Mi"
+	TopolvmDiscoverDeviceCPURequest = "50m"
+	TopolvmDiscoverDeviceCPULimit   = "50m"
+
+	TopolvmPrepareVgMemRequest = "50Mi"
+	TopolvmPrepareVgMemLimit   = "100Mi"
+	TopolvmPrepareVgCPURequest = "50m"
+	TopolvmPrepareVgCPULimit   = "100m"
+
 	PrepareVgServiceAccount = "topolvm-preparevg"
 	PrePareVgAppName        = "prepareVolumeGroup"
 	PrepareVgJobFmt         = "topolvm-prepare-vg-%s"

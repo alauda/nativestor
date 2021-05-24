@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -46,6 +47,17 @@ func getDaemonset(appName string, image string, useLoop bool, ref *metav1.OwnerR
 		loop = corev1.EnvVar{Name: cluster.UseLoopEnv, Value: "0"}
 	}
 
+	resourceRequirements := corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse(cluster.TopolvmDiscoverDeviceCPULimit),
+			corev1.ResourceMemory: resource.MustParse(cluster.TopolvmDiscoverDeviceMemLimit),
+		},
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse(cluster.TopolvmDiscoverDeviceCPURequest),
+			corev1.ResourceMemory: resource.MustParse(cluster.TopolvmDiscoverDeviceMemRequest),
+		},
+	}
+
 	daemonset := &v1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            appName,
@@ -72,9 +84,10 @@ func getDaemonset(appName string, image string, useLoop bool, ref *metav1.OwnerR
 					ServiceAccountName: cluster.DiscoverDevicesAccount,
 					Containers: []corev1.Container{
 						{
-							Name:    cluster.DiscoverContainerName,
-							Image:   image,
-							Command: command,
+							Name:      cluster.DiscoverContainerName,
+							Image:     image,
+							Command:   command,
+							Resources: resourceRequirements,
 							SecurityContext: &corev1.SecurityContext{
 								Privileged: &privileged,
 								RunAsUser:  &runAsUser,
