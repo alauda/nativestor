@@ -16,6 +16,8 @@ limitations under the License.
 
 package cluster
 
+import "time"
+
 var (
 	TopolvmImage  string
 	NameSpace     string
@@ -32,14 +34,15 @@ const (
 	// ClusterAttr cluster label
 	ClusterAttr = "topolvm_cluster"
 
-	NodeNameEnv      = "NODE_NAME"
-	ClusterNameEnv   = "CLUSTER_NAME"
-	PodNameSpaceEnv  = "POD_NAMESPACE"
-	IsOperatorHubEnv = "IS_OPERATOR_HUB"
-	PodNameEnv       = "POD_NAME"
-	LogLevelEnv      = "TOPOLVM_LOG_LEVEL"
-	UseLoopEnv       = "USE_LOOP"
-
+	NodeNameEnv                     = "NODE_NAME"
+	ClusterNameEnv                  = "CLUSTER_NAME"
+	PodNameSpaceEnv                 = "POD_NAMESPACE"
+	IsOperatorHubEnv                = "IS_OPERATOR_HUB"
+	PodNameEnv                      = "POD_NAME"
+	LogLevelEnv                     = "TOPOLVM_LOG_LEVEL"
+	UseLoopEnv                      = "USE_LOOP"
+	CheckStatusIntervalEnv          = "CHECK_STATUS_INTERVAL"
+	DefaultCheckStatusInterval      = 5 * time.Second
 	TopolvmNodeDeploymentNamePrefix = "topolvm-node-"
 	NodeServiceAccount              = "topolvm-node"
 	TopolvmNodeDeploymentLabelName  = "topolvm-node"

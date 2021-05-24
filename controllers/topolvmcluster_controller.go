@@ -62,11 +62,12 @@ type TopolvmClusterReconciler struct {
 	checkStatusStopch   chan struct{}
 }
 
-func NewTopolvmClusterReconciler(scheme *runtime.Scheme, context *cluster.Context, operatorImage string) *TopolvmClusterReconciler {
+func NewTopolvmClusterReconciler(scheme *runtime.Scheme, context *cluster.Context, operatorImage string, checkInterval time.Duration) *TopolvmClusterReconciler {
 	return &TopolvmClusterReconciler{
 		scheme:            scheme,
 		context:           context,
 		clusterController: NewClusterContoller(context, operatorImage),
+		interval:          checkInterval,
 	}
 }
 
@@ -223,10 +224,18 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 		logger.Errorf("list topolvm node pod  failed %v", err)
 	}
 
+	ready := false
+
 	for _, item := range pods.Items {
 		if item.Status.Phase == corev1.PodRunning {
-			newStatus.Phase = topolvmv1.ConditionReady
+			ready = true
 		}
+	}
+
+	if ready {
+		newStatus.Phase = topolvmv1.ConditionReady
+	} else {
+		newStatus.Phase = topolvmv1.ConditionFailure
 	}
 
 	if err := k8sutil.UpdateStatus(r.context.Client, topolvmCluster); err != nil {
