@@ -136,12 +136,22 @@ func (c *PrePareVg) provision(topolvmCluster *topolvmv1.TopolvmCluster) error {
 
 		if topolvmCluster.Spec.Storage.UseLoop {
 			checkLoopDevice(c.context.Executor, c.nodeDevices.DeviceClasses[0].Device, &c.loopsState, c.loopMap)
+			disks, err = sys.GetAvailableDevices(c.context)
+			if err != nil {
+				vgLogger.Errorf("can not list disk err:%s", err)
+				return err
+			}
 		}
 
 	} else if topolvmCluster.Spec.Devices != nil {
 
 		if topolvmCluster.Spec.Storage.UseLoop {
 			checkLoopDevice(c.context.Executor, topolvmCluster.Spec.Devices, &c.loopsState, c.loopMap)
+			disks, err = sys.GetAvailableDevices(c.context)
+			if err != nil {
+				vgLogger.Errorf("can not list disk err:%s", err)
+				return err
+			}
 		}
 		deviceClass := topolvmv1.DeviceClass{ClassName: topolvmCluster.Spec.Storage.ClassName, VgName: topolvmCluster.Spec.Storage.VolumeGroupName, Default: true, Device: topolvmCluster.Spec.Storage.Devices}
 		deviceClasses := []topolvmv1.DeviceClass{deviceClass}
