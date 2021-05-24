@@ -215,12 +215,6 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 		clusterLogger.Errorf("failed to get topolvm cluster %v", err)
 		return
 	}
-
-	var status topolvmv1.TopolvmClusterStatus
-	status = topolvmCluster.Status
-
-	newStatus := status.DeepCopy()
-
 	pods, err := r.context.Clientset.CoreV1().Pods(cluster.NameSpace).List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", cluster.TopolvmComposeAttr, cluster.TopolvmComposeNode)})
 	if err != nil {
 		clusterLogger.Errorf("list topolvm node pod  failed %v", err)
@@ -234,12 +228,12 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 	}
 
 	if ready {
-		newStatus.Phase = topolvmv1.ConditionReady
+		topolvmCluster.Status.Phase = topolvmv1.ConditionReady
 	} else {
-		newStatus.Phase = topolvmv1.ConditionFailure
+		topolvmCluster.Status.Phase = topolvmv1.ConditionFailure
 	}
 
-	clusterLogger.Debugf("update status phase %s", newStatus.Phase)
+	clusterLogger.Debugf("update status phase %s", topolvmCluster.Status.Phase)
 	if err := k8sutil.UpdateStatus(r.context.Client, topolvmCluster); err != nil {
 		clusterLogger.Errorf("failed to update cluster %q status. %v", r.namespacedName.Name, err)
 	}
