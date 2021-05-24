@@ -223,11 +223,10 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 
 	pods, err := r.context.Clientset.CoreV1().Pods(cluster.NameSpace).List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", cluster.TopolvmComposeAttr, cluster.TopolvmComposeNode)})
 	if err != nil {
-		logger.Errorf("list topolvm node pod  failed %v", err)
+		clusterLogger.Errorf("list topolvm node pod  failed %v", err)
 	}
 
 	ready := false
-
 	for _, item := range pods.Items {
 		if item.Status.Phase == corev1.PodRunning {
 			ready = true
@@ -240,6 +239,7 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 		newStatus.Phase = topolvmv1.ConditionFailure
 	}
 
+	clusterLogger.Debugf("update status phase %s", newStatus.Phase)
 	if err := k8sutil.UpdateStatus(r.context.Client, topolvmCluster); err != nil {
 		clusterLogger.Errorf("failed to update cluster %q status. %v", r.namespacedName.Name, err)
 	}
