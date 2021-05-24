@@ -55,9 +55,10 @@ var (
 type TopolvmClusterReconciler struct {
 	scheme              *runtime.Scheme
 	context             *cluster.Context
+	namespacedName      *types.NamespacedName
 	clusterController   *ClusterController
 	configMapController *ConfigMapController
-	lock                sync.Mutex
+	statusLock          sync.Mutex
 	interval            time.Duration
 	checkStatusStopch   chan struct{}
 }
@@ -94,7 +95,9 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, fmt.Errorf("namespace %s of topovlm cluster:%s is not equal to operator namespace:%s", request.Namespace, request.NamespacedName.Name, cluster.NameSpace)
 	}
 
-	r.clusterController.namespacedName = request.NamespacedName
+	if r.namespacedName == nil {
+		r.namespacedName = &request.NamespacedName
+	}
 	cluster.ClusterName = request.NamespacedName.Name
 	// Fetch the topolvmCluster instance
 	topolvmCluster := &topolvmv1.TopolvmCluster{}
@@ -199,12 +202,11 @@ func (r *TopolvmClusterReconciler) checkClusterStatus() {
 }
 
 func (r *TopolvmClusterReconciler) checkStatus() {
-	r.lock.Lock()
-	defer r.lock.Unlock()
+	r.statusLock.Lock()
+	defer r.statusLock.Unlock()
 	topolvmCluster := &topolvmv1.TopolvmCluster{}
 	ctx := context.TODO()
-	obj := client.ObjectKey{Namespace: cluster.NameSpace, Name: "topolvmclusters"}
-	err := r.context.Client.Get(ctx, obj, topolvmCluster)
+	err := r.context.Client.Get(ctx, *r.namespacedName, topolvmCluster)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			clusterLogger.Debug("topolvm cluster resource not found. Ignoring since object must be deleted.")
@@ -239,26 +241,24 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 	}
 
 	if err := k8sutil.UpdateStatus(r.context.Client, topolvmCluster); err != nil {
-		clusterLogger.Errorf("failed to update cluster %q status. %v", obj.Name, err)
+		clusterLogger.Errorf("failed to update cluster %q status. %v", r.namespacedName.Name, err)
 	}
 
 }
 
 func (r *TopolvmClusterReconciler) UpdateStatus(state *topolvmv1.NodeStorageState) error {
-	r.lock.Lock()
-	defer r.lock.Unlock()
+	r.statusLock.Lock()
+	defer r.statusLock.Unlock()
 	topolvmCluster := &topolvmv1.TopolvmCluster{}
 
-	obj := client.ObjectKey{Namespace: cluster.NameSpace, Name: "topolvmclusters"}
-
-	err := r.context.Client.Get(context.TODO(), obj, topolvmCluster)
+	err := r.context.Client.Get(context.TODO(), *r.namespacedName, topolvmCluster)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			clusterLogger.Debug("TopolvmCluster resource not found. Ignoring since object must be deleted.")
 			return nil
 		}
-		clusterLogger.Errorf("failed to retrieve topolvm cluster %q to update topolvm cluster status. %v", obj.Name, err)
-		return errors.Wrapf(err, "failed to retrieve topolvm cluster %q to update topolvm cluster status ", obj.Name)
+		clusterLogger.Errorf("failed to retrieve topolvm cluster %q to update topolvm cluster status. %v", r.namespacedName.Name, err)
+		return errors.Wrapf(err, "failed to retrieve topolvm cluster %q to update topolvm cluster status ", r.namespacedName.Name)
 	}
 
 	length := len(topolvmCluster.Status.NodeStorageStatus)
@@ -277,8 +277,8 @@ func (r *TopolvmClusterReconciler) UpdateStatus(state *topolvmv1.NodeStorageStat
 	}
 
 	if err := k8sutil.UpdateStatus(r.context.Client, topolvmCluster); err != nil {
-		clusterLogger.Errorf("failed to update cluster %q status. %v", obj.Name, err)
-		return errors.Wrapf(err, "failed to update cluster %q status", obj.Name)
+		clusterLogger.Errorf("failed to update cluster %q status. %v", r.namespacedName.Name, err)
+		return errors.Wrapf(err, "failed to update cluster %q status", r.namespacedName.Name)
 	}
 	return nil
 
@@ -286,10 +286,9 @@ func (r *TopolvmClusterReconciler) UpdateStatus(state *topolvmv1.NodeStorageStat
 
 // ClusterController controls an instance of a topolvm cluster
 type ClusterController struct {
-	context        *cluster.Context
-	namespacedName types.NamespacedName
-	lastCluster    *topolvmv1.TopolvmCluster
-	operatorImage  string
+	context       *cluster.Context
+	lastCluster   *topolvmv1.TopolvmCluster
+	operatorImage string
 }
 
 func NewClusterContoller(ctx *cluster.Context, operatorImage string) *ClusterController {

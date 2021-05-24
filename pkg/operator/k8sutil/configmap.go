@@ -38,7 +38,7 @@ func CreateReplaceableConfigmap(clientset kubernetes.Interface, configmap *corev
 		logger.Warningf("failed to detect configmap %s. %+v", configmap.Name, err)
 	} else if err == nil {
 		// delete the configmap that already exists from a previous run
-		logger.Infof("Removing previous job %s to start a new one", configmap.Name)
+		logger.Infof("Removing previous cm %s to start a new one", configmap.Name)
 
 		err := DeleteConfigMap(clientset, existingCm.Name, existingCm.Namespace, &DeleteOptions{MustDelete: true})
 		if err != nil {
