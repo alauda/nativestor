@@ -25,7 +25,10 @@ var (
 
 const (
 	// AppAttr app label
-	AppAttr = "app.kubernetes.io/name"
+	AppAttr            = "app.kubernetes.io/name"
+	TopolvmComposeAttr = "app.kubernetes.io/compose"
+	TopolvmComposeNode = "node"
+
 	// ClusterAttr cluster label
 	ClusterAttr = "topolvm_cluster"
 

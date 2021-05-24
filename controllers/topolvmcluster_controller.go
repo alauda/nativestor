@@ -43,6 +43,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strings"
+	"sync"
+	"time"
 )
 
 var (
@@ -55,6 +57,9 @@ type TopolvmClusterReconciler struct {
 	context             *cluster.Context
 	clusterController   *ClusterController
 	configMapController *ConfigMapController
+	lock                sync.Mutex
+	interval            time.Duration
+	checkStatusStopch   chan struct{}
 }
 
 func NewTopolvmClusterReconciler(scheme *runtime.Scheme, context *cluster.Context, operatorImage string) *TopolvmClusterReconciler {
@@ -125,6 +130,8 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 			clusterLogger.Errorf("failed to remove node capacity annotations err %v", err)
 			return reconcile.Result{}, errors.Wrap(err, "failed to remove node capacity annotations")
 		}
+
+		close(r.checkStatusStopch)
 		// Return and do not requeue. Successful deletion.
 		return reconcile.Result{}, nil
 	}
@@ -140,16 +147,20 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 	}
 	//start configmap controller
 	if r.configMapController == nil {
-		r.configMapController = NewConfigMapController(cluster.NewContext(), cluster.NameSpace, ref, r.clusterController)
+		r.configMapController = NewConfigMapController(cluster.NewContext(), cluster.NameSpace, ref, r)
 		r.configMapController.Start()
 	}
 	r.configMapController.UpdateRef(ref)
+
+	if r.checkStatusStopch == nil {
+		r.checkStatusStopch = make(chan struct{})
+		r.checkClusterStatus()
+	}
 
 	// Do reconcile here!
 	if err := r.clusterController.onAdd(topolvmCluster, ref); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile cluster %q", topolvmCluster.Name)
 	}
-
 	// Return and do not requeue
 	return reconcile.Result{}, nil
 }
@@ -169,6 +180,99 @@ func (r *TopolvmClusterReconciler) checkStorageConfig(topolvmCluster *topolvmv1.
 	}
 
 	return nil
+}
+
+func (r *TopolvmClusterReconciler) checkClusterStatus() {
+
+	r.checkStatus()
+	for {
+		select {
+		case <-r.checkStatusStopch:
+			logger.Infof("stopping monitoring of ceph status")
+			return
+
+		case <-time.After(r.interval):
+			r.checkStatus()
+		}
+	}
+}
+
+func (r *TopolvmClusterReconciler) checkStatus() {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	topolvmCluster := &topolvmv1.TopolvmCluster{}
+	ctx := context.TODO()
+	obj := client.ObjectKey{Namespace: cluster.NameSpace, Name: "topolvmclusters"}
+	err := r.context.Client.Get(ctx, obj, topolvmCluster)
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			clusterLogger.Debug("topolvm cluster resource not found. Ignoring since object must be deleted.")
+			return
+		}
+		clusterLogger.Errorf("failed to get topolvm cluster %v", err)
+		return
+	}
+
+	var status topolvmv1.TopolvmClusterStatus
+	status = topolvmCluster.Status
+
+	newStatus := status.DeepCopy()
+
+	pods, err := r.context.Clientset.CoreV1().Pods(cluster.NameSpace).List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", cluster.TopolvmComposeAttr, cluster.TopolvmComposeNode)})
+	if err != nil {
+		logger.Errorf("list topolvm node pod  failed %v", err)
+	}
+
+	for _, item := range pods.Items {
+		if item.Status.Phase == corev1.PodRunning {
+			newStatus.Phase = topolvmv1.ConditionReady
+		}
+	}
+
+	if err := k8sutil.UpdateStatus(r.context.Client, topolvmCluster); err != nil {
+		clusterLogger.Errorf("failed to update cluster %q status. %v", obj.Name, err)
+	}
+
+}
+
+func (r *TopolvmClusterReconciler) UpdateStatus(state *topolvmv1.NodeStorageState) error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	topolvmCluster := &topolvmv1.TopolvmCluster{}
+
+	obj := client.ObjectKey{Namespace: cluster.NameSpace, Name: "topolvmclusters"}
+
+	err := r.context.Client.Get(context.TODO(), obj, topolvmCluster)
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			clusterLogger.Debug("TopolvmCluster resource not found. Ignoring since object must be deleted.")
+			return nil
+		}
+		clusterLogger.Errorf("failed to retrieve topolvm cluster %q to update topolvm cluster status. %v", obj.Name, err)
+		return errors.Wrapf(err, "failed to retrieve topolvm cluster %q to update topolvm cluster status ", obj.Name)
+	}
+
+	length := len(topolvmCluster.Status.NodeStorageStatus)
+	nodeFound := false
+	for i := 0; i < length; i++ {
+		if topolvmCluster.Status.NodeStorageStatus[i].Node == state.Node {
+			nodeFound = true
+			topolvmCluster.Status.NodeStorageStatus[i].FailClasses = state.FailClasses
+			topolvmCluster.Status.NodeStorageStatus[i].SuccessClasses = state.SuccessClasses
+			break
+		}
+	}
+
+	if !nodeFound {
+		topolvmCluster.Status.NodeStorageStatus = append(topolvmCluster.Status.NodeStorageStatus, *state)
+	}
+
+	if err := k8sutil.UpdateStatus(r.context.Client, topolvmCluster); err != nil {
+		clusterLogger.Errorf("failed to update cluster %q status. %v", obj.Name, err)
+		return errors.Wrapf(err, "failed to update cluster %q status", obj.Name)
+	}
+	return nil
+
 }
 
 // ClusterController controls an instance of a topolvm cluster
@@ -381,43 +485,6 @@ func (c *ClusterController) startTopolvmControllerDeployment(topolvmCluster *top
 	}
 
 	return nil
-}
-
-func (c *ClusterController) UpdateStatus(state *topolvmv1.NodeStorageState) error {
-
-	topolvmCluster := &topolvmv1.TopolvmCluster{}
-
-	err := c.context.Client.Get(context.TODO(), c.namespacedName, topolvmCluster)
-	if err != nil {
-		if kerrors.IsNotFound(err) {
-			clusterLogger.Debug("TopolvmCluster resource not found. Ignoring since object must be deleted.")
-			return nil
-		}
-		clusterLogger.Errorf("failed to retrieve topolvm cluster %q to update topolvm cluster status. %v", c.namespacedName.Name, err)
-		return errors.Wrapf(err, "failed to retrieve topolvm cluster %q to update topolvm cluster status ", c.namespacedName.Name)
-	}
-
-	length := len(topolvmCluster.Status.NodeStorageStatus)
-	nodeFound := false
-	for i := 0; i < length; i++ {
-		if topolvmCluster.Status.NodeStorageStatus[i].Node == state.Node {
-			nodeFound = true
-			topolvmCluster.Status.NodeStorageStatus[i].FailClasses = state.FailClasses
-			topolvmCluster.Status.NodeStorageStatus[i].SuccessClasses = state.SuccessClasses
-			break
-		}
-	}
-
-	if !nodeFound {
-		topolvmCluster.Status.NodeStorageStatus = append(topolvmCluster.Status.NodeStorageStatus, *state)
-	}
-
-	if err := k8sutil.UpdateStatus(c.context.Client, topolvmCluster); err != nil {
-		clusterLogger.Errorf("failed to update cluster %q status. %v", c.namespacedName.Name, err)
-		return errors.Wrapf(err, "failed to update cluster %q status", c.namespacedName.Name)
-	}
-	return nil
-
 }
 
 // removeFinalizer removes a finalizer

@@ -42,11 +42,11 @@ type ConfigMapController struct {
 	context    *cluster.Context
 	namespace  string
 	ref        *metav1.OwnerReference
-	clusterCtr *ClusterController
+	clusterCtr *TopolvmClusterReconciler
 }
 
 // NewClientController create controller for watching client custom resources created
-func NewConfigMapController(context *cluster.Context, namespace string, ref *metav1.OwnerReference, controller *ClusterController) *ConfigMapController {
+func NewConfigMapController(context *cluster.Context, namespace string, ref *metav1.OwnerReference, controller *TopolvmClusterReconciler) *ConfigMapController {
 	return &ConfigMapController{
 		context:    context,
 		namespace:  namespace,
@@ -163,8 +163,8 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 	}
 
 	if _, ok := oldCm.Data[cluster.LocalDiskCMData]; ok {
-		if oldCm.Data[cluster.LocalDiskCMData] != newCm.Data[cluster.LocalDiskCMData] && c.clusterCtr.UseAllNodeAndDevices() {
-			c.clusterCtr.RestartJob(nodeName, c.ref)
+		if oldCm.Data[cluster.LocalDiskCMData] != newCm.Data[cluster.LocalDiskCMData] && c.clusterCtr.clusterController.UseAllNodeAndDevices() {
+			c.clusterCtr.clusterController.RestartJob(nodeName, c.ref)
 		}
 	}
 

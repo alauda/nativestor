@@ -674,5 +674,4 @@ func getAbsoluteFileName(path, file string) string {
 		return path + file
 	}
 	return path + "/" + file
-
 }
