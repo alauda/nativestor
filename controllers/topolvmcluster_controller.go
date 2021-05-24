@@ -155,7 +155,7 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 
 	if r.checkStatusStopch == nil {
 		r.checkStatusStopch = make(chan struct{})
-		r.checkClusterStatus()
+		go r.checkClusterStatus()
 	}
 
 	// Do reconcile here!
