@@ -228,8 +228,14 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 	}
 
 	if ready {
+		if topolvmCluster.Status.Phase == topolvmv1.ConditionReady {
+			return
+		}
 		topolvmCluster.Status.Phase = topolvmv1.ConditionReady
 	} else {
+		if topolvmCluster.Status.Phase == topolvmv1.ConditionFailure {
+			return
+		}
 		topolvmCluster.Status.Phase = topolvmv1.ConditionFailure
 	}
 
