@@ -270,6 +270,7 @@ func (r *TopolvmClusterReconciler) UpdateStatus(state *topolvmv1.NodeStorageStat
 		topolvmCluster.Status.NodeStorageStatus = append(topolvmCluster.Status.NodeStorageStatus, *state)
 	}
 
+	clusterLogger.Debugf("UpdateStatus phase:%s", topolvmCluster.Status.Phase)
 	if err := k8sutil.UpdateStatus(r.context.Client, topolvmCluster); err != nil {
 		clusterLogger.Errorf("failed to update cluster %q status. %v", r.namespacedName.Name, err)
 		return errors.Wrapf(err, "failed to update cluster %q status", r.namespacedName.Name)
