@@ -101,7 +101,8 @@ func getDeployment(appName string, nodeName string, congfigmap string, ref *meta
 				ObjectMeta: metav1.ObjectMeta{
 					Name: appName,
 					Labels: map[string]string{
-						cluster.AppAttr: appName,
+						cluster.AppAttr:            appName,
+						cluster.TopolvmComposeAttr: cluster.TopolvmComposeNode,
 					},
 				},
 				Spec: corev1.PodSpec{

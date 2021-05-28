@@ -23,7 +23,7 @@ import (
 	"strings"
 )
 
-func testSchduler() {
+func testScheduler() {
 
 	testNamespacePrefix := "e2etest-"
 	var ns string

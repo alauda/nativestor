@@ -16,6 +16,8 @@ limitations under the License.
 
 package cluster
 
+import "time"
+
 var (
 	TopolvmImage  string
 	NameSpace     string
@@ -25,17 +27,22 @@ var (
 
 const (
 	// AppAttr app label
-	AppAttr = "app.kubernetes.io/name"
+	AppAttr            = "app.kubernetes.io/name"
+	TopolvmComposeAttr = "app.kubernetes.io/compose"
+	TopolvmComposeNode = "node"
+
 	// ClusterAttr cluster label
 	ClusterAttr = "topolvm_cluster"
 
-	NodeNameEnv      = "NODE_NAME"
-	ClusterNameEnv   = "CLUSTER_NAME"
-	PodNameSpaceEnv  = "POD_NAMESPACE"
-	IsOperatorHubEnv = "IS_OPERATOR_HUB"
-	PodNameEnv       = "POD_NAME"
-	LogLevelEnv      = "TOPOLVM_LOG_LEVEL"
-
+	NodeNameEnv                     = "NODE_NAME"
+	ClusterNameEnv                  = "CLUSTER_NAME"
+	PodNameSpaceEnv                 = "POD_NAMESPACE"
+	IsOperatorHubEnv                = "IS_OPERATOR_HUB"
+	PodNameEnv                      = "POD_NAME"
+	LogLevelEnv                     = "TOPOLVM_LOG_LEVEL"
+	UseLoopEnv                      = "USE_LOOP"
+	CheckStatusIntervalEnv          = "CHECK_STATUS_INTERVAL"
+	DefaultCheckStatusInterval      = 5 * time.Second
 	TopolvmNodeDeploymentNamePrefix = "topolvm-node-"
 	NodeServiceAccount              = "topolvm-node"
 	TopolvmNodeDeploymentLabelName  = "topolvm-node"
@@ -45,6 +52,7 @@ const (
 	LvmdConfigMapLabelKey   = "topolvm/lvmdconfig"
 	LvmdConfigMapLabelValue = "lvmdconfig"
 	LvmdConfigMapKey        = "lvmd.yaml"
+	LocalDiskCMData         = "devices"
 	VgStatusConfigMapKey    = "status.json"
 	LvmdAnnotationsNodeKey  = "node-name"
 	LvmdSocketPath          = "/run/topolvm/lvmd.sock"
@@ -83,6 +91,16 @@ const (
 	TopolvmControllerCsiProvisionCPURequest = "250m"
 	TopolvmControllerCsiProvisionCPULimit   = "250m"
 
+	TopolvmDiscoverDeviceMemRequest = "50Mi"
+	TopolvmDiscoverDeviceMemLimit   = "50Mi"
+	TopolvmDiscoverDeviceCPURequest = "50m"
+	TopolvmDiscoverDeviceCPULimit   = "50m"
+
+	TopolvmPrepareVgMemRequest = "50Mi"
+	TopolvmPrepareVgMemLimit   = "100Mi"
+	TopolvmPrepareVgCPURequest = "50m"
+	TopolvmPrepareVgCPULimit   = "100m"
+
 	PrepareVgServiceAccount = "topolvm-preparevg"
 	PrePareVgAppName        = "prepareVolumeGroup"
 	PrepareVgJobFmt         = "topolvm-prepare-vg-%s"
@@ -95,4 +113,11 @@ const (
 	TopolvmCSIDriverName = "topolvm.cybozu.com"
 	IsOperator           = "1"
 	CapacityKeyPrefix    = "capacity.topolvm.cybozu.com/"
+	NodeAttr             = "topolvm/node"
+
+	DiscoverDevicesAccount = "topolvm-discover"
+	DiscoverAppName        = "topolvm-discover"
+	DiscoverContainerName  = "discover"
+	UseLoop                = "1"
+	LoopCreateSuccessful   = "successful"
 )

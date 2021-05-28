@@ -29,7 +29,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/cache"
+	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -39,17 +42,30 @@ type ConfigMapController struct {
 	context    *cluster.Context
 	namespace  string
 	ref        *metav1.OwnerReference
-	clusterCtr *ClusterController
+	clusterCtr *TopolvmClusterReconciler
 }
 
 // NewClientController create controller for watching client custom resources created
-func NewConfigMapController(context *cluster.Context, namespace string, ref *metav1.OwnerReference, controller *ClusterController) *ConfigMapController {
+func NewConfigMapController(context *cluster.Context, namespace string, ref *metav1.OwnerReference, controller *TopolvmClusterReconciler) *ConfigMapController {
 	return &ConfigMapController{
 		context:    context,
 		namespace:  namespace,
 		ref:        ref,
 		clusterCtr: controller,
 	}
+}
+
+func (c *ConfigMapController) Start() {
+	go func() {
+		stopChan := make(chan struct{})
+		sigc := make(chan os.Signal, 1)
+		signal.Notify(sigc, syscall.SIGTERM)
+		c.StartWatch(stopChan)
+		<-sigc
+		logger.Infof("shutdown signal received, exiting...")
+		close(stopChan)
+	}()
+
 }
 
 func (c *ConfigMapController) UpdateRef(ref *metav1.OwnerReference) {
@@ -135,9 +151,29 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 		return
 	}
 
+	if newCm.OwnerReferences == nil {
+		newCm.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*c.ref}
+		_, err = c.context.Clientset.CoreV1().ConfigMaps(c.namespace).Update(context.TODO(), newCm, metav1.UpdateOptions{})
+		if err != nil {
+			logger.Errorf("failed update cm:%s  own ref", newCm.Name)
+		}
+	}
+
 	err = c.checkUpdateClusterStatus(oldCm, newCm)
 	if err != nil {
 		logger.Errorf("update cluster failed err %v", err)
+	}
+
+	nodeName := getNodeName(newCm)
+	if nodeName == "" {
+		logger.Error("can not get node name")
+		return
+	}
+
+	if _, ok := oldCm.Data[cluster.LocalDiskCMData]; ok {
+		if oldCm.Data[cluster.LocalDiskCMData] != newCm.Data[cluster.LocalDiskCMData] && c.clusterCtr.clusterController.UseAllNodeAndDevices() {
+			c.clusterCtr.clusterController.RestartJob(nodeName, c.ref)
+		}
 	}
 
 	if _, ok := newCm.Data[cluster.LvmdConfigMapKey]; !ok {
@@ -150,18 +186,15 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 		return
 	}
 
-	if oldCm.Data[cluster.LvmdConfigMapKey] == newCm.Data[cluster.LvmdConfigMapKey] {
-		logger.Infof("cm%s  update but data not change no need to update node deployment", oldCm.ObjectMeta.Name)
-		return
+	if checkingDeploymentExisting(c.context, nodeName) {
+		if oldCm.Data[cluster.LvmdConfigMapKey] == newCm.Data[cluster.LvmdConfigMapKey] {
+			logger.Infof("cm%s  update but data not change no need to update node deployment", oldCm.ObjectMeta.Name)
+			return
+		}
+		replaceNodePod(c.context, nodeName)
+	} else {
+		createNodeDeployment(c.context, newCm.ObjectMeta.Name, nodeName, c.ref)
 	}
-	nodeName := getNodeName(newCm)
-	if nodeName == "" {
-		logger.Error("can not get node name")
-		return
-	}
-
-	replaceNodePod(c.context, nodeName)
-
 }
 
 func (c *ConfigMapController) checkUpdateClusterStatus(old, new *v1.ConfigMap) error {
@@ -222,7 +255,7 @@ func createNodeDeployment(context *cluster.Context, configmap, nodeName string, 
 
 func getNodeName(cm *v1.ConfigMap) string {
 
-	nodeName, ok := cm.Annotations[cluster.LvmdAnnotationsNodeKey]
+	nodeName, ok := cm.Labels[cluster.NodeAttr]
 	if !ok {
 		logger.Error("can not get node name")
 		return ""

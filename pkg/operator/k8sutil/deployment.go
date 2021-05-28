@@ -27,7 +27,6 @@ import (
 )
 
 func CreateDeployment(clientset kubernetes.Interface, name, namespace string, dep *apps.Deployment) error {
-
 	ctx := context.Background()
 	_, err := clientset.AppsV1().Deployments(namespace).Create(ctx, dep, metav1.CreateOptions{})
 	if err != nil {

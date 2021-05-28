@@ -30,6 +30,7 @@ import (
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"time"
 )
 
 var OperatorCmd = &cobra.Command{
@@ -48,9 +49,7 @@ func init() {
 }
 
 func addScheme() {
-
 	_ = clientgoscheme.AddToScheme(scheme)
-
 	_ = topolvmv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
@@ -96,6 +95,18 @@ func startOperator(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get env:%s failed ", cluster.IsOperatorHubEnv)
 	}
 
+	var checkStatusInterval time.Duration
+	inter := os.Getenv(cluster.CheckStatusIntervalEnv)
+	if inter == "" {
+		checkStatusInterval = cluster.DefaultCheckStatusInterval
+	} else {
+		checkStatusInterval, err = time.ParseDuration(inter)
+		if err != nil {
+			logger.Errorf("parse check status interval failed %v", err)
+			return err
+		}
+	}
+
 	err = controllers.RemoveNodeCapacityAnnotations(ctx.Clientset)
 	if err != nil {
 		logger.Errorf("RemoveNodeCapacityAnnotations failed err %v", err)
@@ -103,7 +114,7 @@ func startOperator(cmd *cobra.Command, args []string) error {
 	}
 
 	operatorImage := topolvm.GetOperatorImage(ctx.Clientset, "")
-	c := controllers.NewTopolvmClusterReconciler(mgr.GetScheme(), ctx, operatorImage)
+	c := controllers.NewTopolvmClusterReconciler(mgr.GetScheme(), ctx, operatorImage, checkStatusInterval)
 	if err := c.SetupWithManager(mgr); err != nil {
 		logger.Error(err, "unable to create controller", "controller", "TopolvmCluster")
 		os.Exit(1)

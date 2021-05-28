@@ -29,3 +29,6 @@ subjects:
   - kind: ServiceAccount
     name: topolvm-preparevg
     namespace: {{ .Release.Namespace }}
+  - kind: ServiceAccount
+    name: topolvm-discover
+    namespace: {{ .Release.Namespace }}
