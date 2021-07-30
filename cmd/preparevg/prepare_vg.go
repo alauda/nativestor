@@ -18,7 +18,7 @@ package preparevg
 
 import (
 	"fmt"
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
+	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/controllers"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/coreos/pkg/capnslog"

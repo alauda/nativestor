@@ -658,9 +658,9 @@ subjects:
   - kind: ServiceAccount
     name: topolvm-preparevg
     namespace: topolvm-system
-
-
-
+  - kind: ServiceAccount
+    name: topolvm-discover
+    namespace: topolvm-system
 
 
 ---
@@ -678,6 +678,9 @@ subjects:
   - kind: ServiceAccount
     name: topolvm-preparevg
     namespace: topolvm-system
+  - kind: ServiceAccount
+    name: topolvm-discover
+    namespace: topolvm-system
 
 ---
 
@@ -686,7 +689,13 @@ kind: ServiceAccount
 metadata:
   name: topolvm-preparevg
   namespace: topolvm-system
+---
 
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: topolvm-discover
+  namespace: topolvm-system
 
 ---
 
@@ -706,6 +715,8 @@ spec:
     - pathPrefix: "/dev/"
       readOnly: false
     - pathPrefix: "/run/udev"
+      readOnly: false
+    - pathPrefix: "/sys"
       readOnly: false
   hostNetwork: true
   hostPID: true

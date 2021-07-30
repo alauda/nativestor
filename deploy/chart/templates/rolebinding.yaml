@@ -2,6 +2,7 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: topolvm-operator
+  namespace: topolvm-system
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 roleRef:
@@ -11,7 +12,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: topolvm-operator
-    namespace: {{ .Release.Namespace }}
+    namespace: topolvm-system
 
 ---
 
@@ -19,6 +20,7 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: topolvm-preparevg
+  namespace: topolvm-system
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 roleRef:
@@ -28,4 +30,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: topolvm-preparevg
-    namespace: {{ .Release.Namespace }}
+    namespace: topolvm-system
+  - kind: ServiceAccount
+    name: topolvm-discover
+    namespace: topolvm-system

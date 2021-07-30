@@ -19,7 +19,7 @@ package operator
 import (
 	"flag"
 	"fmt"
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
+	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/cmd/topolvm"
 	"github.com/alauda/topolvm-operator/controllers"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
@@ -30,6 +30,7 @@ import (
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"time"
 )
 
 var OperatorCmd = &cobra.Command{
@@ -48,9 +49,7 @@ func init() {
 }
 
 func addScheme() {
-
 	_ = clientgoscheme.AddToScheme(scheme)
-
 	_ = topolvmv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
@@ -65,6 +64,12 @@ func startOperator(cmd *cobra.Command, args []string) error {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.Parse()
+
+	cluster.IsOperatorHub = os.Getenv(cluster.IsOperatorHubEnv)
+	if cluster.IsOperatorHub == "" {
+		logger.Errorf("unable get env %s ", cluster.IsOperatorHubEnv)
+		return fmt.Errorf("get env:%s failed ", cluster.IsOperatorHubEnv)
+	}
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
@@ -90,10 +95,16 @@ func startOperator(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get env:%s failed ", cluster.PodNameSpaceEnv)
 	}
 
-	cluster.IsOperatorHub = os.Getenv(cluster.IsOperatorHubEnv)
-	if cluster.NameSpace == "" {
-		logger.Errorf("unable get env %s ", cluster.IsOperatorHubEnv)
-		return fmt.Errorf("get env:%s failed ", cluster.IsOperatorHubEnv)
+	var checkStatusInterval time.Duration
+	inter := os.Getenv(cluster.CheckStatusIntervalEnv)
+	if inter == "" {
+		checkStatusInterval = cluster.DefaultCheckStatusInterval
+	} else {
+		checkStatusInterval, err = time.ParseDuration(inter)
+		if err != nil {
+			logger.Errorf("parse check status interval failed %v", err)
+			return err
+		}
 	}
 
 	err = controllers.RemoveNodeCapacityAnnotations(ctx.Clientset)
@@ -103,7 +114,7 @@ func startOperator(cmd *cobra.Command, args []string) error {
 	}
 
 	operatorImage := topolvm.GetOperatorImage(ctx.Clientset, "")
-	c := controllers.NewTopolvmClusterReconciler(mgr.GetScheme(), ctx, operatorImage)
+	c := controllers.NewTopolvmClusterReconciler(mgr.GetScheme(), ctx, operatorImage, checkStatusInterval)
 	if err := c.SetupWithManager(mgr); err != nil {
 		logger.Error(err, "unable to create controller", "controller", "TopolvmCluster")
 		os.Exit(1)

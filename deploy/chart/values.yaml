@@ -5,14 +5,18 @@
 replicaCount: 1
 global:
   registry:
-    address: harbor-b.alauda.cn
+    address: build-harbor.alauda.cn
   images:
     topolvmOperator:
       repository: acp/topolvm-operator
-      tag: v3.4-pr-5.20
+      tag: feat-discover-loop.2106171453
       pullPolicy: IfNotPresent
       support_arm: true
-
+    certInit:
+      repository: acp/cert-init
+      tag: v2.1
+      pullPolicy: IfNotPresent
+      support_arm: true
 
 imagePullSecrets: []
 nameOverride: ""
@@ -24,7 +28,7 @@ isOperatorHub: "0"
 podAnnotations: {}
 
 podSecurityContext: {}
-  # fsGroup: 2000
+# fsGroup: 2000
 
 securityContext: {}
   # capabilities:
@@ -32,7 +36,7 @@ securityContext: {}
   #   - ALL
   # readOnlyRootFilesystem: true
   # runAsNonRoot: true
-  # runAsUser: 1000
+# runAsUser: 1000
 
 
 resources: {}
@@ -45,18 +49,65 @@ resources: {}
   #   memory: 128Mi
   # requests:
   #   cpu: 100m
-  #   memory: 128Mi
+#   memory: 128Mi
 
 nodeSelector: {}
 
-tolerations: []
+tolerations:
+  - operator: Exists
 
 affinity: {}
 
 podSecurityPolicy:
   create: true
 
-crd:
-  # Weather to create CRD
+cluster:
   create: true
-
+  name: topolvmcluster-sample
+  topolvmVersion: build-harbor.alauda.cn/acp/topolvm:fb8bb31
+  storage:
+    useAllNodes: true
+    useAllDevices: false
+    useLoop: true
+    volumeGroupName: "hdd-test"
+    className: "hdd-test"
+    devices: []
+#    deviceClasses:
+#      # kubernetes node name
+#      - nodeName: "192.168.16.98"
+#        # node classes
+#        classes:
+#          # node class name
+#          - className: "hdd"
+#            # user should specific volume group name , operator will create it
+#            volumeGroup: "test"
+#            # a node must a class should set default, when StorageClass not specific device class name , the default class will be used
+#            default: true
+#            # available devices used for creating volume group
+#            devices:
+#              - name: "/dev/sdb"
+#                type: "disk"
+#              - name: "/dev/loop2"
+#                type: "loop"
+#                auto: false
+#              - name: "loop1"
+#                type: "loop"
+#                auto: true
+#                path: "/data"
+#                size: 100  #unit G
+storageClasses:
+  - name: topolvm-provisioner # Defines name of storage classe.
+    storageClass:
+      # Supported filesystems are: ext4, xfs, and btrfs.
+      fsType: xfs
+      # Additional annotations
+      annotations: {}
+      # Default storage class for dynamic volume provisioning
+      # ref: https://kubernetes.io/docs/concepts/storage/dynamic-provisioning
+      isDefaultClass: false
+      # volumeBindingMode can be either WaitForFirstConsumer or Immediate. WaitForFirstConsumer is recommended because TopoLVM cannot schedule pods wisely if volumeBindingMode is Immediate.
+      volumeBindingMode: WaitForFirstConsumer
+      # enables CSI drivers to expand volumes. This feature is available for Kubernetes 1.16 and later releases.
+      allowVolumeExpansion: true
+      additionalParameters: {}
+      #    "topolvm.cybozu.com/device-class": "ssd"

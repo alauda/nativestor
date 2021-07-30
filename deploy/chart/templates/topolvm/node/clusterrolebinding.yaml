@@ -1,13 +1,13 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ .Release.Namespace }}-node
+  name: topolvm-system-node
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 subjects:
   - kind: ServiceAccount
     name: topolvm-node
-    namespace: {{ .Release.Namespace }}
+    namespace: topolvm-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole

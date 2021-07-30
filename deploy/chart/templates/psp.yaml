@@ -17,6 +17,8 @@ spec:
       readOnly: false
     - pathPrefix: "/run/udev"
       readOnly: false
+    - pathPrefix: "/sys"
+      readOnly: false
   hostNetwork: true
   hostPID: true
   hostIPC: true

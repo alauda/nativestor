@@ -2,6 +2,7 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: external-resizer-cfg
+  namespace: topolvm-system
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 rules:
@@ -14,6 +15,7 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: external-attacher-cfg
+  namespace: topolvm-system
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 rules:
@@ -27,6 +29,7 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: external-provisioner-cfg
+  namespace: topolvm-system
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 rules:
@@ -39,7 +42,22 @@ rules:
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
+  name: external-snapshotter-cfg
+  namespace: topolvm-system
+  labels:
+  {{- include "topolvm-operator.labels" . | nindent 4 }}
+rules:
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "watch", "list", "delete", "update", "create"]
+
+---
+
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
   name: leader-election
+  namespace: topolvm-system
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 rules:

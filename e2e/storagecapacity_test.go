@@ -19,7 +19,7 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/alauda/topolvm-operator/api/v1"
+	v2 "github.com/alauda/topolvm-operator/api/v2"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
@@ -27,7 +27,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/storage/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -97,11 +96,9 @@ func testCsiStorageCapacity() {
 
 		stdout, stderr, err = kubectl("get", "-n", "topolvm-system", "topolvmcluster", "topolvmcluster-sample", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		var topolvmCluster v1.TopolvmCluster
+		var topolvmCluster v2.TopolvmCluster
 		err = json.Unmarshal(stdout, &topolvmCluster)
 		Expect(err).ShouldNot(HaveOccurred())
-
-		var newDisk string
 
 		loopMap := map[string]string{
 			"topolvm-e2e-worker":  "",
@@ -110,14 +107,6 @@ func testCsiStorageCapacity() {
 		}
 
 		for i := 0; i < len(topolvmCluster.Spec.DeviceClasses); i++ {
-			if topolvmCluster.Spec.DeviceClasses[i].NodeName == "topolvm-e2e-worker" {
-				disk := topolvmCluster.Spec.DeviceClasses[i].DeviceClasses[0].Device[0].Name
-				length := len(disk)
-				number, _ := strconv.Atoi(string(disk[length-1]))
-				newDisk = "/dev/loop" + strconv.Itoa(number+3)
-				Expect(newDisk).ShouldNot(BeEmpty())
-
-			}
 			loopMap[topolvmCluster.Spec.DeviceClasses[i].NodeName] = topolvmCluster.Spec.DeviceClasses[i].DeviceClasses[0].Device[0].Name
 		}
 
@@ -128,32 +117,43 @@ metadata:
   namespace: topolvm-system
 spec:
   topolvmVersion: %s
-  deviceClasses:
-    - nodeName: "topolvm-e2e-worker"
-      classes:
-        - className: "hdd1"
-          volumeGroup: "node1-myvg1"
-          default: true
-          devices:
-            - name: %s
-            - name: %s
-    - nodeName: "topolvm-e2e-worker2"
-      classes:
-        - className: "hdd2"
-          volumeGroup: "node2-myvg1"
-          default: true
-          devices:
-            - name: %s
-    - nodeName: "topolvm-e2e-worker3"
-      classes:
-        - className: "hdd3"
-          volumeGroup: "node3-myvg1"
-          default: true
-          devices:
-            - name: %s
+  storage:
+    useAllNodes: false
+    useAllDevices: false
+    useLoop: true
+    deviceClasses:
+      - nodeName: "topolvm-e2e-worker"
+        classes:
+          - className: "hdd1"
+            volumeGroup: "node1-myvg1"
+            default: true
+            devices:
+              - name: %s
+                type: "loop"
+              - name: "loop0"
+                type: "loop"
+                auto: true
+                path: /var/lib
+                size: 5
+      - nodeName: "topolvm-e2e-worker2"
+        classes:
+          - className: "hdd2"
+            volumeGroup: "node2-myvg1"
+            default: true
+            devices:
+              - name: %s
+                type: "loop"
+      - nodeName: "topolvm-e2e-worker3"
+        classes:
+          - className: "hdd3"
+            volumeGroup: "node3-myvg1"
+            default: true
+            devices:
+              - name: %s
+                type: "loop"
 `
 
-		newTopolvm := fmt.Sprintf(topolvmClusterTemplate, topolvmCluster.Spec.TopolvmVersion, loopMap["topolvm-e2e-worker"], newDisk, loopMap["topolvm-e2e-worker2"], loopMap["topolvm-e2e-worker3"])
+		newTopolvm := fmt.Sprintf(topolvmClusterTemplate, topolvmCluster.Spec.TopolvmVersion, loopMap["topolvm-e2e-worker"], loopMap["topolvm-e2e-worker2"], loopMap["topolvm-e2e-worker3"])
 		_, _, err = kubectlWithInput([]byte(newTopolvm), "apply", "-f", "-")
 		Expect(err).ShouldNot(HaveOccurred())
 		time.Sleep(time.Second * 30)

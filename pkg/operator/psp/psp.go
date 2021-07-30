@@ -85,6 +85,7 @@ func CreateTopolvmPrepareVgPsp(clientset kubernetes.Interface, ref *metav1.Owner
 			AllowedHostPaths: []v1beta1.AllowedHostPath{
 				{PathPrefix: "/dev", ReadOnly: false},
 				{PathPrefix: "/run/udev", ReadOnly: false},
+				{PathPrefix: "/sys", ReadOnly: false},
 			},
 			HostNetwork:            true,
 			HostPID:                true,

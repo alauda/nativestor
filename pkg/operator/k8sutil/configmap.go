@@ -18,10 +18,13 @@ package k8sutil
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes"
 	"time"
 )
@@ -35,12 +38,30 @@ func CreateReplaceableConfigmap(clientset kubernetes.Interface, configmap *corev
 		logger.Warningf("failed to detect configmap %s. %+v", configmap.Name, err)
 	} else if err == nil {
 		// delete the configmap that already exists from a previous run
-		logger.Infof("Removing previous job %s to start a new one", configmap.Name)
+		logger.Infof("Removing previous cm %s to start a new one", configmap.Name)
 
 		err := DeleteConfigMap(clientset, existingCm.Name, existingCm.Namespace, &DeleteOptions{MustDelete: true})
 		if err != nil {
 			logger.Warningf("failed to remove configmap %s. %+v", configmap.Name, err)
 		}
+	}
+	_, err = clientset.CoreV1().ConfigMaps(configmap.Namespace).Create(ctx, configmap, metav1.CreateOptions{})
+	return err
+
+}
+
+func CreateOrPatchConfigmap(clientset kubernetes.Interface, configmap *corev1.ConfigMap) error {
+
+	ctx := context.Background()
+	existingCm, err := clientset.CoreV1().ConfigMaps(configmap.Namespace).Get(ctx, configmap.Name, metav1.GetOptions{})
+
+	if err != nil && !errors.IsNotFound(err) {
+		logger.Warningf("failed to detect configmap %s. %+v", configmap.Name, err)
+	} else if err == nil {
+		// delete the configmap that already exists from a previous run
+		logger.Infof("patching previous cm %s", configmap.Name)
+
+		return PatchConfigMap(clientset, existingCm.Namespace, existingCm, configmap)
 	}
 	_, err = clientset.CoreV1().ConfigMaps(configmap.Namespace).Create(ctx, configmap, metav1.CreateOptions{})
 	return err
@@ -58,4 +79,25 @@ func DeleteConfigMap(clientset kubernetes.Interface, cmName, namespace string, o
 	resource := fmt.Sprintf("ConfigMap %s", cmName)
 	defaultWaitOptions := &WaitOptions{RetryCount: 20, RetryInterval: 2 * time.Second}
 	return DeleteResource(d, verify, resource, opts, defaultWaitOptions)
+}
+
+func PatchConfigMap(clientset kubernetes.Interface, namespace string, oldConfigMap, newConfigMap *corev1.ConfigMap) error {
+	newJSON, err := json.Marshal(*newConfigMap)
+	if err != nil {
+		return err
+	}
+	oldJSON, err := json.Marshal(*oldConfigMap)
+	if err != nil {
+		return err
+	}
+	patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldJSON, newJSON, corev1.ConfigMap{})
+	if err != nil {
+		return err
+	}
+	_, err = clientset.CoreV1().ConfigMaps(namespace).Patch(context.TODO(), oldConfigMap.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
+	if err != nil {
+		logger.Infof("failed to patch configmap %s: %v", oldConfigMap.Name, err)
+		return err
+	}
+	return nil
 }

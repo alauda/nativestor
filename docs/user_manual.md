@@ -13,56 +13,111 @@ User manual
 TopolvmCluster
 ------------
 
+A kubernetes cluster map to a `TopolvmCluster` instance. No support a kubernetes cluster has multi `TopolvmCluster` instances  
+
+
+####Use all node and devices
 An example of TopolvmCluster look like this:
 ```yaml
 apiVersion: topolvm.cybozu.com/v1
 kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample
+  # namespace must be the same with topolvm-operator
   namespace: topolvm-system
 spec:
-  # specific topolvm version
-  topolvmVersion: harbor-b.alauda.cn/acp/topolvm:v3.3-4-g36b8bce
-  deviceClasses:
-    - nodeName: "192.168.16.98"
-      classes:
-        - className: "hdd"
-          volumeGroup: "test"
-          default: true
-          devices:
-            - name: "/dev/sdb"
-            - name: "/dev/sdc"
-        - className: "ssd"
-          volumeGroup: "test1"
-          default: false
-          devices:
-            - name: "/dev/sdd"
-            - name: "/dev/sde"
-    - nodeName: "192.168.16.99"
-      classes:
-        - className: "ssd"
-          volumeGroup: "test"
-          default: true
-          devices:
-            - name: "/dev/sdb"
+  # Add fields here
+  topolvmVersion: alaudapublic/topolvm:1.0.0
+  storage:
+    useAllNodes: true
+    useAllDevices: true
+    useLoop: false
+    volumeGroupName: "hdd"
+    className: "hdd"
 ```
-`namespace` must be the same with the namespace of operator. one and only one class in a node must set `default` to true. 
-a kubernetes cluster only existing a TopolvmCluster , not support multi TopolvmClusters.
+`namespace` must be the same with the namespace of operator. one and only one class in a node must set `default` to true.   
+a kubernetes cluster only existing a TopolvmCluster , not support multi TopolvmClusters.  
 `topolvmVersion` topolvm image version, the image include csi sidecar.  
+`useAllNodes` use all nodes of kubernetes cluster, default false.  
+`useAllDevices` use all available devices of each node, default false.  
+`volumeGroupName` each node will create volume group
+`className` used for classifying devices. such as hdd and ssd.  
 `nodeName` kubernetes cluster node name, the node has some available devices.  
-`classes` you can define multi classes up to your need, for example the node has ssd and hdd disk
+`classes` you can define multi classes up to your need, for example the node has ssd and hdd disk.  
+
+###Use all node and specific device
+
+```yaml
+apiVersion: topolvm.cybozu.com/v1
+kind: TopolvmCluster
+metadata:
+  name: topolvmcluster-sample
+  # namespace must be the same with topolvm-operator
+  namespace: topolvm-system
+spec:
+  # Add fields here
+  topolvmVersion: alaudapublic/topolvm:1.0.0
+  storage:
+    useAllNodes: true
+    # if you not want to use all devices of node, you should make it false, and define devices
+    useAllDevices: false
+    useLoop: false
+    volumeGroupName: "hdd"
+    className: "hdd"
+    devices:
+      - name: "/dev/sdb"
+        type: "disk"
+```
+`devices` you can assign some devices to topolvm instead of using all available devices.  
+note: if you want to use this case, you must set `useAllDevices` false
+
+
+###Specific nodes and devices
+
+```yaml
+apiVersion: topolvm.cybozu.com/v1
+kind: TopolvmCluster
+metadata:
+  name: topolvmcluster-sample
+  # namespace must be the same with topolvm-operator
+  namespace: topolvm-system
+spec:
+  # Add fields here
+  topolvmVersion: alaudapublic/topolvm:1.0.0
+  storage:
+    useAllNodes: false
+    useAllDevices: false
+    useLoop: false
+    deviceClasses:
+      # kubernetes node name
+      - nodeName: "192.168.16.98"
+        # node classes
+        classes:
+          # node class name
+          - className: "hdd"
+            # user should specific volume group name , operator will create it
+            volumeGroup: "test"
+            # a node must a class should set default, when StorageClass not specific device class name , the default class will be used
+            default: true
+            # available devices used for creating volume group
+            devices:
+              - name: "/dev/sdb"
+                type: "disk"
+```
+`deviceClasses' you can assign some nodes and devices to topolvm instead of using all nodes.
+
+note: if you want to use this case, you must set `useAllNodes` false 
 
 The class settings can be specified in the following fields:
 
 | Name           | Type        | Default | Description                                                                        |
 | -------------- | ------      | ------- | ---------------------------------------------------------------------------------- |
 | `name`         | string      | -       | The name of a class.                                                               |
-| `volumeGroup`  | string      | -       | The group where this class creates the logical volumes.                            |
-| `spare-gb`     | uint64      | `1`    | Storage capacity in GiB to be spared.                                              |
+| `volumeGroup`  | string      | -       | The group where this class creates the logical volumes.                            | 
 | `default`      | bool        | `false` | A flag to indicate that this device-class is used by default.                      |
 | `devices`      | array/name  | -       | The available devices used for creating volume group                               |
-| `stripe`       | uint        | -       | The number of stripes in the logical volume.                                       |
-| `stripe-size`  | string      | -       | The amount of data that is written to one device before moving to the next device. |
+| `devices.type` | string      | -       | the type of devices now can be support disk and loop                               |
+
 
 
 

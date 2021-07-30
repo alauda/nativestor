@@ -1,0 +1,14 @@
+{{ if .Values.cluster.create }}
+apiVersion: topolvm.cybozu.com/v2
+kind: TopolvmCluster
+metadata:
+  name: topolvmcluster-sample
+  labels:
+  {{- include "topolvm-operator.labels" . | nindent 4 }}
+  namespace: topolvm-system
+spec:
+  # Add fields here
+  topolvmVersion: {{.Values.cluster.topolvmVersion}}
+  storage:
+    {{toYaml .Values.cluster.storage | nindent 6}}
+{{ end }}

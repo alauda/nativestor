@@ -18,7 +18,7 @@ package sys
 
 import (
 	"errors"
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
+	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/pkg/util/exec"
 	perrors "github.com/pkg/errors"
 	"strconv"
