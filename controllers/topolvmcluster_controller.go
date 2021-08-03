@@ -92,7 +92,7 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 	// Pass object name and namespace
 	if request.Namespace != cluster.NameSpace {
 		clusterLogger.Errorf("namespace %s of topovlm cluster:%s is not equal to operator namespace:%s", request.Namespace, request.NamespacedName.Name, cluster.NameSpace)
-		return reconcile.Result{}, fmt.Errorf("namespace %s of topovlm cluster:%s is not equal to operator namespace:%s", request.Namespace, request.NamespacedName.Name, cluster.NameSpace)
+		return reconcile.Result{}, nil
 	}
 
 	if r.namespacedName == nil {
