@@ -95,13 +95,36 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, nil
 	}
 
-	if r.namespacedName == nil {
-		r.namespacedName = &request.NamespacedName
+	topolvmClusters := &topolvmv1.TopolvmClusterList{}
+	err := r.context.Client.List(context.TODO(), topolvmClusters, &client.ListOptions{})
+	if err != nil {
+		return reconcile.Result{}, errors.Wrap(err, "failed to list topolvm cluster")
 	}
-	cluster.ClusterName = request.NamespacedName.Name
+
+	if topolvmClusters == nil || topolvmClusters.Items == nil {
+		return reconcile.Result{}, errors.New("no topolvm cluster instance existing")
+	}
+
+	oldest := topolvmv1.TopolvmCluster{}
+	if len(topolvmClusters.Items) > 1 {
+		for index, c := range topolvmClusters.Items {
+			if index == 0 {
+				oldest = c
+			}
+			if c.CreationTimestamp.Before(&oldest.CreationTimestamp) {
+				oldest = c
+			}
+		}
+
+		if request.NamespacedName.Name != oldest.Name {
+			clusterLogger.Error("only support one cluster instance")
+			return reconcile.Result{}, nil
+		}
+	}
+
 	// Fetch the topolvmCluster instance
 	topolvmCluster := &topolvmv1.TopolvmCluster{}
-	err := r.context.Client.Get(context.TODO(), request.NamespacedName, topolvmCluster)
+	err = r.context.Client.Get(context.TODO(), request.NamespacedName, topolvmCluster)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			clusterLogger.Debug("topolvm cluster resource not found. Ignoring since object must be deleted.")
@@ -111,6 +134,10 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, errors.Wrap(err, "failed to get topolvm cluster")
 	}
 
+	if r.namespacedName == nil {
+		r.namespacedName = &request.NamespacedName
+	}
+	cluster.ClusterName = request.NamespacedName.Name
 	cluster.TopolvmImage = topolvmCluster.Spec.TopolvmVersion
 
 	// Set a finalizer so we can do cleanup before the object goes away
