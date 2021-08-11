@@ -40,14 +40,6 @@ metadata:
                 ]
               }
             }
-          },
-          {
-            "apiVersion": "topolvm.cybozu.com/v1",
-            "kind": "LogicalVolume",
-            "metadata": {
-               "name": "example-logicalvolume"
-             },
-            "spec": {}
           }
       ]
     capabilities: Basic Install
@@ -252,6 +244,20 @@ spec:
                 - update
                 - delete
           serviceAccountName: topolvm-preparevg
+        - rules:
+            - apiGroups:
+                - ""
+              resources:
+                - configmaps
+              verbs:
+                - get
+                - list
+                - watch
+                - patch
+                - create
+                - update
+                - delete
+          serviceAccountName: topolvm-discover
       clusterPermissions:
         - rules:
             - apiGroups: [ "" ]
@@ -502,6 +508,18 @@ spec:
               verbs:
                 - "*"
           serviceAccountName: topolvm-preparevg
+        - rules:
+            - apiGroups: [ "policy" ]
+              resources: [ "podsecuritypolicies" ]
+              verbs: [ "use" ]
+              resourceNames: [ "topolvm-preparevg" ]
+            - apiGroups:
+                - topolvm.cybozu.com
+              resources:
+                - "*"
+              verbs:
+                - "*"
+          serviceAccountName: topolvm-discover
     strategy: deployment
   installModes:
     - {supported: false, type: OwnNamespace}
