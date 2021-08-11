@@ -15,7 +15,7 @@ metadata:
               "namespace": "topolvm-system"
             },
             "spec": {
-              "topolvmVersion": "build-harbor.alauda.cn/acp/topolvm:feat-snapshot.2107191630",
+              "topolvmVersion": "build-harbor.alauda.cn/acp/topolvm:v3.6-6-g79a763c",
               "storage": {
                 "useAllNodes": false,
                 "useAllDevices": false,
@@ -536,4 +536,10 @@ spec:
     matchLabels: {}
   skips: []
   version: 2.0.0
+  relatedImages:
+    - name: topolvm-operator
+      image: build-harbor.alauda.cn/acp/topolvm-operator:@TOPOLVM_OPERATOR_VERSION@
+    - name: topolvm-v1
+      image: build-harbor.alauda.cn/acp/topolvm:v3.6-6-g79a763c
+
 
