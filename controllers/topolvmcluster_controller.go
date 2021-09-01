@@ -26,6 +26,7 @@ import (
 	"github.com/alauda/topolvm-operator/pkg/operator/csidriver"
 	"github.com/alauda/topolvm-operator/pkg/operator/discover"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
+	"github.com/alauda/topolvm-operator/pkg/operator/monitor"
 	"github.com/alauda/topolvm-operator/pkg/operator/psp"
 	"github.com/alauda/topolvm-operator/pkg/operator/volumectr"
 	"github.com/alauda/topolvm-operator/pkg/operator/volumegroup"
@@ -61,14 +62,18 @@ type TopolvmClusterReconciler struct {
 	statusLock          sync.Mutex
 	interval            time.Duration
 	checkStatusStopch   chan struct{}
+	metric              chan *cluster.Metrics
+	reflock             sync.Mutex
+	clusterRef          *metav1.OwnerReference
 }
 
-func NewTopolvmClusterReconciler(scheme *runtime.Scheme, context *cluster.Context, operatorImage string, checkInterval time.Duration) *TopolvmClusterReconciler {
+func NewTopolvmClusterReconciler(scheme *runtime.Scheme, context *cluster.Context, operatorImage string, checkInterval time.Duration, metricUpdater chan *cluster.Metrics) *TopolvmClusterReconciler {
 	return &TopolvmClusterReconciler{
 		scheme:            scheme,
 		context:           context,
 		clusterController: NewClusterContoller(context, operatorImage),
 		interval:          checkInterval,
+		metric:            metricUpdater,
 	}
 }
 
@@ -85,6 +90,18 @@ func (r *TopolvmClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&topolvmv1.TopolvmCluster{}).
 		Complete(r)
+}
+
+func (r *TopolvmClusterReconciler) updateRef(ref *metav1.OwnerReference) {
+	r.reflock.Lock()
+	defer r.reflock.Unlock()
+	r.clusterRef = ref
+}
+
+func (r *TopolvmClusterReconciler) getRef() *metav1.OwnerReference {
+	r.reflock.Lock()
+	defer r.reflock.Unlock()
+	return r.clusterRef
 }
 
 func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconcile.Result, error) {
@@ -172,6 +189,7 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 	if err != nil || ref == nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to get controller %q owner reference", topolvmCluster.Name)
 	}
+	r.updateRef(ref)
 
 	if err := r.checkStorageConfig(topolvmCluster); err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "check storage config failed")
@@ -225,21 +243,50 @@ func (r *TopolvmClusterReconciler) checkClusterStatus() {
 	for {
 		select {
 		case <-r.checkStatusStopch:
-			logger.Infof("stopping monitoring of ceph status")
+			clusterLogger.Infof("stopping monitoring of ceph status")
 			return
 
 		case <-time.After(r.interval):
 			r.checkStatus()
+			if err := monitor.EnableServiceMonitor(r.getRef()); err != nil {
+				clusterLogger.Errorf("monitor failed err %s", err.Error())
+			}
+
+			k8sClusterName, err := r.getK8sClusterName()
+			if err != nil {
+				clusterLogger.Error(err.Error())
+			} else {
+				if err := monitor.CreateOrUpdatePrometheusRule(r.getRef(), k8sClusterName); err != nil {
+					clusterLogger.Errorf("create rule failed err %s", err.Error())
+				}
+			}
+
 		}
 	}
 }
 
+func (r *TopolvmClusterReconciler) getK8sClusterName() (string, error) {
+	cm, err := r.context.Clientset.CoreV1().ConfigMaps(cluster.K8sClusterNamespace).Get(context.TODO(), cluster.K8sClusterConfigmap, metav1.GetOptions{})
+	if err != nil {
+		return "", errors.Wrap(err, "get k8s cluster info configmap failed")
+	}
+	return cm.Data["clusterName"], nil
+}
+
 func (r *TopolvmClusterReconciler) checkStatus() {
+
+	ctx := context.TODO()
+	pods, err := r.context.Clientset.CoreV1().Pods(cluster.NameSpace).List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", cluster.TopolvmComposeAttr, cluster.TopolvmComposeNode)})
+	if err != nil {
+		clusterLogger.Errorf("list topolvm node pod  failed %v", err)
+	}
+
+	var clusterMetric cluster.Metrics
 	r.statusLock.Lock()
 	defer r.statusLock.Unlock()
+
 	topolvmCluster := &topolvmv1.TopolvmCluster{}
-	ctx := context.TODO()
-	err := r.context.Client.Get(ctx, *r.namespacedName, topolvmCluster)
+	err = r.context.Client.Get(ctx, *r.namespacedName, topolvmCluster)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
 			clusterLogger.Debug("topolvm cluster resource not found. Ignoring since object must be deleted.")
@@ -248,31 +295,86 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 		clusterLogger.Errorf("failed to get topolvm cluster %v", err)
 		return
 	}
-	pods, err := r.context.Clientset.CoreV1().Pods(cluster.NameSpace).List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", cluster.TopolvmComposeAttr, cluster.TopolvmComposeNode)})
-	if err != nil {
-		clusterLogger.Errorf("list topolvm node pod  failed %v", err)
-	}
 
+	clusterStatus := topolvmCluster.Status.DeepCopy()
+
+	nodesStatus := make(map[string]*topolvmv1.NodeStorageState, 0)
 	ready := false
 	for _, item := range pods.Items {
-		if item.Status.Phase == corev1.PodRunning {
+
+		node := topolvmv1.NodeStorageState{
+			Node: item.Spec.NodeName,
+		}
+
+		nodeMetric := cluster.NodeStatusMetrics{
+			Node: item.Spec.NodeName,
+		}
+
+		switch item.Status.Phase {
+		case corev1.PodRunning:
+			node.Phase = topolvmv1.ConditionReady
+			nodeMetric.Status = 0
 			ready = true
+		case corev1.PodUnknown:
+			node.Phase = topolvmv1.ConditionUnknown
+			nodeMetric.Status = 1
+		case corev1.PodFailed:
+			node.Phase = topolvmv1.ConditionFailure
+			nodeMetric.Status = 1
+		case corev1.PodPending:
+			node.Phase = topolvmv1.ConditionPending
+			nodeMetric.Status = 1
+		default:
+			node.Phase = topolvmv1.ConditionUnknown
+			nodeMetric.Status = 1
+		}
+		nodesStatus[item.Spec.NodeName] = &node
+		clusterMetric.NodeStatus = append(clusterMetric.NodeStatus, nodeMetric)
+	}
+
+	for key, _ := range nodesStatus {
+		node, err := r.context.Clientset.CoreV1().Nodes().Get(ctx, key, metav1.GetOptions{})
+		if err != nil {
+			clusterLogger.Errorf("failed to get node  %v", err)
+			continue
+		}
+		switch node.Status.Phase {
+		case corev1.NodeTerminated:
+			nodesStatus[key].Phase = topolvmv1.ConditionUnknown
+			for index, ele := range clusterMetric.NodeStatus {
+				if ele.Node == key {
+					clusterMetric.NodeStatus[index].Status = 1
+				}
+			}
+
+		}
+	}
+
+	for index, item := range clusterStatus.NodeStorageStatus {
+		if val, ok := nodesStatus[item.Node]; ok {
+			clusterStatus.NodeStorageStatus[index].Phase = val.Phase
+			clusterLogger.Debugf("node %s, phase: %s", item.Node, topolvmCluster.Status.NodeStorageStatus[index].Phase)
+
 		}
 	}
 
 	if ready {
-		if topolvmCluster.Status.Phase == topolvmv1.ConditionReady {
-			return
-		}
-		topolvmCluster.Status.Phase = topolvmv1.ConditionReady
+		clusterStatus.Phase = topolvmv1.ConditionReady
+		clusterMetric.ClusterStatus = 0
 	} else {
-		if topolvmCluster.Status.Phase == topolvmv1.ConditionFailure {
-			return
-		}
-		topolvmCluster.Status.Phase = topolvmv1.ConditionFailure
+		clusterMetric.ClusterStatus = 1
 	}
 
-	clusterLogger.Debugf("update status phase %s", topolvmCluster.Status.Phase)
+	if reflect.DeepEqual(topolvmCluster.Status, *clusterStatus) {
+		clusterLogger.Debugf("no need to update cluster status")
+		return
+	} else {
+		topolvmCluster.Status = *clusterStatus
+	}
+
+	clusterLogger.Debugf("start update cluster status and metric")
+	clusterMetric.Cluster = topolvmCluster.Name
+	r.metric <- &clusterMetric
 	if err := k8sutil.UpdateStatus(r.context.Client, topolvmCluster); err != nil {
 		clusterLogger.Errorf("failed to update cluster %q status. %v", r.namespacedName.Name, err)
 	}

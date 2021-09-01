@@ -27,9 +27,11 @@ var (
 
 const (
 	// AppAttr app label
-	AppAttr            = "app.kubernetes.io/name"
-	TopolvmComposeAttr = "app.kubernetes.io/compose"
-	TopolvmComposeNode = "node"
+	K8sClusterNamespace = "kube-public"
+	K8sClusterConfigmap = "global-info"
+	AppAttr             = "app.kubernetes.io/name"
+	TopolvmComposeAttr  = "app.kubernetes.io/compose"
+	TopolvmComposeNode  = "node"
 
 	// ClusterAttr cluster label
 	ClusterAttr = "topolvm_cluster"
@@ -44,7 +46,7 @@ const (
 	LogLevelEnv                     = "TOPOLVM_LOG_LEVEL"
 	UseLoopEnv                      = "USE_LOOP"
 	CheckStatusIntervalEnv          = "CHECK_STATUS_INTERVAL"
-	DefaultCheckStatusInterval      = 5 * time.Second
+	DefaultCheckStatusInterval      = 10 * time.Second
 	TopolvmNodeDeploymentNamePrefix = "topolvm-node-"
 	NodeServiceAccount              = "topolvm-node"
 	TopolvmNodeDeploymentLabelName  = "topolvm-node"

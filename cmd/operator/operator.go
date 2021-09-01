@@ -23,6 +23,7 @@ import (
 	"github.com/alauda/topolvm-operator/cmd/topolvm"
 	"github.com/alauda/topolvm-operator/controllers"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
+	"github.com/alauda/topolvm-operator/pkg/metric"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -107,6 +108,11 @@ func startOperator(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	metricsCh := make(chan *cluster.Metrics)
+	if err := mgr.Add(metric.NewMetricsExporter(metricsCh)); err != nil {
+		return err
+	}
+
 	err = controllers.RemoveNodeCapacityAnnotations(ctx.Clientset)
 	if err != nil {
 		logger.Errorf("RemoveNodeCapacityAnnotations failed err %v", err)
@@ -114,7 +120,7 @@ func startOperator(cmd *cobra.Command, args []string) error {
 	}
 
 	operatorImage := topolvm.GetOperatorImage(ctx.Clientset, "")
-	c := controllers.NewTopolvmClusterReconciler(mgr.GetScheme(), ctx, operatorImage, checkStatusInterval)
+	c := controllers.NewTopolvmClusterReconciler(mgr.GetScheme(), ctx, operatorImage, checkStatusInterval, metricsCh)
 	if err := c.SetupWithManager(mgr); err != nil {
 		logger.Error(err, "unable to create controller", "controller", "TopolvmCluster")
 		os.Exit(1)

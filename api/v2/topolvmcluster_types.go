@@ -80,13 +80,18 @@ const (
 	ConditionReady ConditionType = "Ready"
 	// ConditionFailure represents Failure state of an object
 	ConditionFailure ConditionType = "Failure"
+
+	ConditionUnknown ConditionType = "Unknown"
+
+	ConditionPending ConditionType = "Pending"
 )
 
 type NodeStorageState struct {
-	Node           string       `json:"node"`
-	FailClasses    []ClassState `json:"failClasses"`
-	SuccessClasses []ClassState `json:"successClasses"`
-	Loops          []LoopState  `json:"loops"`
+	Node           string        `json:"node"`
+	Phase          ConditionType `json:"phase"`
+	FailClasses    []ClassState  `json:"failClasses"`
+	SuccessClasses []ClassState  `json:"successClasses"`
+	Loops          []LoopState   `json:"loops"`
 }
 
 type LoopState struct {

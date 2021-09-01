@@ -32,6 +32,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 )
@@ -43,6 +44,7 @@ type ConfigMapController struct {
 	namespace  string
 	ref        *metav1.OwnerReference
 	clusterCtr *TopolvmClusterReconciler
+	reflock    sync.Mutex
 }
 
 // NewClientController create controller for watching client custom resources created
@@ -69,7 +71,16 @@ func (c *ConfigMapController) Start() {
 }
 
 func (c *ConfigMapController) UpdateRef(ref *metav1.OwnerReference) {
+
+	c.reflock.Lock()
+	defer c.reflock.Unlock()
 	c.ref = ref
+}
+
+func (c *ConfigMapController) getRef() *metav1.OwnerReference {
+	c.reflock.Lock()
+	defer c.reflock.Unlock()
+	return c.ref
 }
 
 // Watch watches for instances of Client custom resources and acts on them
@@ -108,7 +119,7 @@ func (c *ConfigMapController) onAdd(obj interface{}) {
 		return
 	}
 
-	cm.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*c.ref}
+	cm.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*c.getRef()}
 	_, err = c.context.Clientset.CoreV1().ConfigMaps(c.namespace).Update(context.TODO(), cm, metav1.UpdateOptions{})
 	if err != nil {
 		logger.Errorf("failed update cm:%s  own ref", cm.Name)
@@ -130,7 +141,7 @@ func (c *ConfigMapController) onAdd(obj interface{}) {
 		return
 	}
 
-	createNodeDeployment(c.context, cm.ObjectMeta.Name, nodeName, c.ref)
+	createNodeDeployment(c.context, cm.ObjectMeta.Name, nodeName, c.getRef())
 }
 
 func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
@@ -152,7 +163,7 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 	}
 
 	if newCm.OwnerReferences == nil {
-		newCm.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*c.ref}
+		newCm.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*c.getRef()}
 		_, err = c.context.Clientset.CoreV1().ConfigMaps(c.namespace).Update(context.TODO(), newCm, metav1.UpdateOptions{})
 		if err != nil {
 			logger.Errorf("failed update cm:%s  own ref", newCm.Name)
@@ -172,7 +183,7 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 
 	if _, ok := oldCm.Data[cluster.LocalDiskCMData]; ok {
 		if oldCm.Data[cluster.LocalDiskCMData] != newCm.Data[cluster.LocalDiskCMData] && c.clusterCtr.clusterController.UseAllNodeAndDevices() {
-			c.clusterCtr.clusterController.RestartJob(nodeName, c.ref)
+			c.clusterCtr.clusterController.RestartJob(nodeName, c.getRef())
 		}
 	}
 
@@ -193,7 +204,7 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 		}
 		replaceNodePod(c.context, nodeName)
 	} else {
-		createNodeDeployment(c.context, newCm.ObjectMeta.Name, nodeName, c.ref)
+		createNodeDeployment(c.context, newCm.ObjectMeta.Name, nodeName, c.getRef())
 	}
 }
 

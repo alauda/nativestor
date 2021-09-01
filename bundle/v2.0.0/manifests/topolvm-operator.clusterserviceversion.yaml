@@ -11,8 +11,8 @@ metadata:
             "apiVersion": "topolvm.cybozu.com/v2",
             "kind": "TopolvmCluster",
             "metadata": {
-              "name": "topolvmcluster-sample",
-              "namespace": "topolvm-system"
+              "name": "topolvm",
+              "namespace": "operators"
             },
             "spec": {
               "topolvmVersion": "build-harbor.alauda.cn/acp/topolvm:v3.6-13-g8b3d6e0",
@@ -213,6 +213,12 @@ spec:
                 - cronjobs
               verbs:
                 - delete
+            - apiGroups:
+                - monitoring.coreos.com
+              resources:
+                - '*'
+              verbs:
+                - '*'
           serviceAccountName: topolvm-operator
         - rules:
             - apiGroups: [ "" ]
@@ -369,6 +375,9 @@ spec:
               verbs: [ "update" ]
           serviceAccountName: topolvm-controller
         - rules:
+            - apiGroups: [ "" ]
+              resources: [ "configmaps" ]
+              verbs: [ "get", "list", "watch"]
             - apiGroups: [ "" ]
               resources: [ "nodes" ]
               verbs: [ "get", "list", "watch", "update", "patch" ]
