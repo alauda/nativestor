@@ -47,6 +47,7 @@ metadata:
     certified: 'false'
     containerImage: "build-harbor.alauda.cn/acp/topolvm-operator:feat-conversion.2107301117"
     description: "topolvm 是一个轻量高性能的本地存储服务"
+    olm.skipRange: ">=1.0.0 <2.0.0"
   name: topolvm-operator.v2.0.0
 spec:
   customresourcedefinitions:
@@ -558,7 +559,6 @@ spec:
   maturity: alpha
   minKubeVersion: 1.19.4
   provider: {name: "platform"}
-  replaces: "topolvm-operator.v1.0.0"
   selector:
     matchLabels: {}
   skips: []
