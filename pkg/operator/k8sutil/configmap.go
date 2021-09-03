@@ -20,12 +20,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes"
+	"os"
 	"time"
 )
 
@@ -100,4 +102,32 @@ func PatchConfigMap(clientset kubernetes.Interface, namespace string, oldConfigM
 		return err
 	}
 	return nil
+}
+
+// GetOperatorSetting gets the operator setting from ConfigMap or Env Var
+// returns defaultValue if setting is not found
+func GetOperatorSetting(clientset kubernetes.Interface, configMapName, settingName, defaultValue string) (string, error) {
+	// config must be in operator pod namespace
+	ctx := context.TODO()
+	cm, err := clientset.CoreV1().ConfigMaps(cluster.NameSpace).Get(ctx, configMapName, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			if settingValue, ok := os.LookupEnv(settingName); ok {
+				logger.Infof("%s=%q (env var)", settingName, settingValue)
+				return settingValue, nil
+			}
+			logger.Infof("%s=%q (default)", settingName, defaultValue)
+			return defaultValue, nil
+		}
+		return defaultValue, fmt.Errorf("error reading ConfigMap %q. %v", configMapName, err)
+	}
+	if settingValue, ok := cm.Data[settingName]; ok {
+		logger.Infof("%s=%q (configmap)", settingName, settingValue)
+		return settingValue, nil
+	} else if settingValue, ok := os.LookupEnv(settingName); ok {
+		logger.Infof("%s=%q (env var)", settingName, settingValue)
+		return settingValue, nil
+	}
+	logger.Infof("%s=%q (default)", settingName, defaultValue)
+	return defaultValue, nil
 }

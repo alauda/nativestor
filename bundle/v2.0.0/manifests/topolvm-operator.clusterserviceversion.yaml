@@ -220,6 +220,9 @@ spec:
                 - '*'
               verbs:
                 - '*'
+            - apiGroups: [ "coordination.k8s.io" ]
+              resources: [ "leases" ]
+              verbs: [ "get", "watch", "list", "delete", "update", "create" ]
           serviceAccountName: topolvm-operator
         - rules:
             - apiGroups: [ "" ]

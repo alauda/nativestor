@@ -19,10 +19,14 @@ package cluster
 import "time"
 
 var (
-	TopolvmImage  string
-	NameSpace     string
-	ClusterName   string
-	IsOperatorHub string
+	TopolvmImage      string
+	NameSpace         string
+	ClusterName       string
+	CSIKubeletRootDir string
+
+	IsOperatorHub bool
+
+	CheckStatusInterval time.Duration
 )
 
 const (
@@ -39,14 +43,11 @@ const (
 	NodeNameEnv                     = "NODE_NAME"
 	ClusterNameEnv                  = "CLUSTER_NAME"
 	PodNameSpaceEnv                 = "POD_NAMESPACE"
-	IsOperatorHubEnv                = "IS_OPERATOR_HUB"
 	ConversionCertFileEnv           = "CONVERSION_TLS_CERT_FILE"
 	ConversionKeyFileEnv            = "CONVERSION_TLS_KEY_FILE"
 	PodNameEnv                      = "POD_NAME"
 	LogLevelEnv                     = "TOPOLVM_LOG_LEVEL"
 	UseLoopEnv                      = "USE_LOOP"
-	CheckStatusIntervalEnv          = "CHECK_STATUS_INTERVAL"
-	DefaultCheckStatusInterval      = 10 * time.Second
 	TopolvmNodeDeploymentNamePrefix = "topolvm-node-"
 	NodeServiceAccount              = "topolvm-node"
 	TopolvmNodeDeploymentLabelName  = "topolvm-node"
@@ -121,7 +122,6 @@ const (
 	TopolvmPrepareVgPsp = "topolvm-preparevg"
 
 	TopolvmCSIDriverName = "topolvm.cybozu.com"
-	IsOperator           = "1"
 	CapacityKeyPrefix    = "capacity.topolvm.cybozu.com/"
 	NodeAttr             = "topolvm/node"
 
@@ -130,4 +130,7 @@ const (
 	DiscoverContainerName  = "discover"
 	UseLoop                = "1"
 	LoopCreateSuccessful   = "successful"
+
+	OperatorSettingConfigMapName = "tooplvm-operator-setting"
+	KubeletRootPathEnv           = "KUBELET_ROOT_DIR"
 )

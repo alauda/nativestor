@@ -3,6 +3,7 @@ module github.com/alauda/topolvm-operator
 go 1.15
 
 require (
+	github.com/banzaicloud/k8s-objectmatcher v1.5.2
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
 	github.com/google/go-cmp v0.5.4
 	github.com/google/uuid v1.1.2

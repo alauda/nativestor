@@ -28,10 +28,10 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"time"
 )
 
 var OperatorCmd = &cobra.Command{
@@ -60,26 +60,23 @@ func startOperator(cmd *cobra.Command, args []string) error {
 	cluster.SetLogLevel()
 	var metricsAddr string
 	var enableLeaderElection bool
+	var leaderElectionID string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&leaderElectionID, "leader-election-id", "topolvm-operator", "ID for leader election by topolvm operator")
 	flag.Parse()
-
-	cluster.IsOperatorHub = os.Getenv(cluster.IsOperatorHubEnv)
-	if cluster.IsOperatorHub == "" {
-		logger.Errorf("unable get env %s ", cluster.IsOperatorHubEnv)
-		return fmt.Errorf("get env:%s failed ", cluster.IsOperatorHubEnv)
-	}
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		Port:               9443,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "355331c5.cybozu.com",
+		Scheme:                     scheme,
+		MetricsBindAddress:         metricsAddr,
+		Port:                       9443,
+		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+		LeaderElection:             true,
+		LeaderElectionID:           leaderElectionID,
 	})
 
 	if err != nil {
@@ -96,18 +93,6 @@ func startOperator(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get env:%s failed ", cluster.PodNameSpaceEnv)
 	}
 
-	var checkStatusInterval time.Duration
-	inter := os.Getenv(cluster.CheckStatusIntervalEnv)
-	if inter == "" {
-		checkStatusInterval = cluster.DefaultCheckStatusInterval
-	} else {
-		checkStatusInterval, err = time.ParseDuration(inter)
-		if err != nil {
-			logger.Errorf("parse check status interval failed %v", err)
-			return err
-		}
-	}
-
 	metricsCh := make(chan *cluster.Metrics)
 	if err := mgr.Add(metric.NewMetricsExporter(metricsCh)); err != nil {
 		return err
@@ -120,11 +105,12 @@ func startOperator(cmd *cobra.Command, args []string) error {
 	}
 
 	operatorImage := topolvm.GetOperatorImage(ctx.Clientset, "")
-	c := controllers.NewTopolvmClusterReconciler(mgr.GetScheme(), ctx, operatorImage, checkStatusInterval, metricsCh)
+	c := controllers.NewTopolvmClusterReconciler(mgr.GetScheme(), ctx, operatorImage, cluster.CheckStatusInterval, metricsCh)
 	if err := c.SetupWithManager(mgr); err != nil {
 		logger.Error(err, "unable to create controller", "controller", "TopolvmCluster")
 		os.Exit(1)
 	}
+
 	// +kubebuilder:scaffold:builder
 
 	logger.Info("starting manager")

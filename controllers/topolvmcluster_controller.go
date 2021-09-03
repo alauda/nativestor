@@ -27,6 +27,7 @@ import (
 	"github.com/alauda/topolvm-operator/pkg/operator/discover"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/alauda/topolvm-operator/pkg/operator/monitor"
+	"github.com/alauda/topolvm-operator/pkg/operator/node"
 	"github.com/alauda/topolvm-operator/pkg/operator/psp"
 	"github.com/alauda/topolvm-operator/pkg/operator/volumectr"
 	"github.com/alauda/topolvm-operator/pkg/operator/volumegroup"
@@ -57,21 +58,22 @@ type TopolvmClusterReconciler struct {
 	scheme              *runtime.Scheme
 	context             *cluster.Context
 	namespacedName      *types.NamespacedName
-	clusterController   *ClusterController
+	ClusterController   *ClusterController
 	configMapController *ConfigMapController
 	statusLock          sync.Mutex
 	interval            time.Duration
-	checkStatusStopch   chan struct{}
+	stopCh              chan struct{}
 	metric              chan *cluster.Metrics
 	reflock             sync.Mutex
 	clusterRef          *metav1.OwnerReference
 }
 
 func NewTopolvmClusterReconciler(scheme *runtime.Scheme, context *cluster.Context, operatorImage string, checkInterval time.Duration, metricUpdater chan *cluster.Metrics) *TopolvmClusterReconciler {
+
 	return &TopolvmClusterReconciler{
 		scheme:            scheme,
 		context:           context,
-		clusterController: NewClusterContoller(context, operatorImage),
+		ClusterController: NewClusterContoller(context, operatorImage),
 		interval:          checkInterval,
 		metric:            metricUpdater,
 	}
@@ -166,7 +168,7 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 	// DELETE: the CR was deleted
 	if !topolvmCluster.GetDeletionTimestamp().IsZero() {
 		clusterLogger.Infof("deleting topolvm cluster %q", topolvmCluster.Name)
-		r.clusterController.lastCluster = nil
+		r.ClusterController.lastCluster = nil
 		// Remove finalizer
 		err = removeFinalizer(r.context.Client, request.NamespacedName)
 		if err != nil {
@@ -179,7 +181,7 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 			return reconcile.Result{}, errors.Wrap(err, "failed to remove node capacity annotations")
 		}
 
-		close(r.checkStatusStopch)
+		close(r.stopCh)
 		// Return and do not requeue. Successful deletion.
 		return reconcile.Result{}, nil
 	}
@@ -201,13 +203,14 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 	}
 	r.configMapController.UpdateRef(ref)
 
-	if r.checkStatusStopch == nil {
-		r.checkStatusStopch = make(chan struct{})
+	if r.stopCh == nil {
+		r.stopCh = make(chan struct{})
 		go r.checkClusterStatus()
+		go r.ClusterController.StartOperatorSettingsWatch(r.stopCh)
 	}
 
 	// Do reconcile here!
-	if err := r.clusterController.onAdd(topolvmCluster, ref); err != nil {
+	if err := r.ClusterController.onAdd(topolvmCluster, ref); err != nil {
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile cluster %q", topolvmCluster.Name)
 	}
 	// Return and do not requeue
@@ -242,7 +245,7 @@ func (r *TopolvmClusterReconciler) checkClusterStatus() {
 	r.checkStatus()
 	for {
 		select {
-		case <-r.checkStatusStopch:
+		case <-r.stopCh:
 			clusterLogger.Infof("stopping monitoring of ceph status")
 			return
 
@@ -442,7 +445,7 @@ func (c *ClusterController) UseAllNodeAndDevices() bool {
 
 func (c *ClusterController) onAdd(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference) error {
 
-	if cluster.IsOperatorHub == cluster.IsOperator {
+	if cluster.IsOperatorHub {
 
 		err := csidriver.CheckTopolvmCsiDriverExisting(c.context.Clientset, ref)
 		if err != nil {
@@ -502,7 +505,7 @@ func (c *ClusterController) startReplaceNodeDeployment(topolvmCluster *topolvmv1
 			}
 			_, err := c.context.Clientset.AppsV1().Deployments(cluster.NameSpace).Update(ctx, &deploys.Items[i], metav1.UpdateOptions{})
 			if err != nil {
-				logger.Errorf("update deployment:%s image failed err:%v", deploys.Items[i].ObjectMeta.Name, err)
+				clusterLogger.Errorf("update deployment:%s image failed err:%v", deploys.Items[i].ObjectMeta.Name, err)
 
 			}
 		}
@@ -520,12 +523,12 @@ func (c *ClusterController) startPrepareVolumeGroupJob(topolvmCluster *topolvmv1
 		go func() {
 			for _, ele := range topolvmCluster.Status.NodeStorageStatus {
 				if len(ele.FailClasses) > 0 || len(ele.SuccessClasses) == 0 {
-					logger.Infof("node%s has fail classes recreate job again", ele.Node)
+					clusterLogger.Infof("node%s has fail classes recreate job again", ele.Node)
 					if err := volumegroup.MakeAndRunJob(c.context.Clientset, ele.Node, c.operatorImage, ref); err != nil {
 						clusterLogger.Errorf("create job for node failed %s", ele.Node)
 					}
 				} else {
-					logger.Infof("class info nothing change no need to start prepare volumegroup job")
+					clusterLogger.Infof("class info nothing change no need to start prepare volumegroup job")
 				}
 			}
 		}()
@@ -584,10 +587,10 @@ func (c *ClusterController) startDiscoverDaemonset(topolvmCluster *topolvmv1.Top
 		}
 		_, err := c.context.Clientset.AppsV1().DaemonSets(daemonset.Namespace).Update(ctx, daemonset, metav1.UpdateOptions{})
 		if err != nil {
-			logger.Errorf("update discover daemonset image failed err %v", err)
+			clusterLogger.Errorf("update discover daemonset image failed err %v", err)
 			return errors.Wrap(err, "update discover daemonset image failed")
 		} else {
-			logger.Infof("update discover daemonset image to %s", c.operatorImage)
+			clusterLogger.Infof("update discover daemonset image to %s", c.operatorImage)
 			return nil
 		}
 	}
@@ -600,7 +603,7 @@ func (c *ClusterController) startTopolvmControllerDeployment(topolvmCluster *top
 	ctx := context.TODO()
 	deployment, err := c.context.Clientset.AppsV1().Deployments(cluster.NameSpace).Get(ctx, cluster.TopolvmControllerDeploymentName, metav1.GetOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
-		logger.Errorf("failed to detect deployment:%s. err:%v", cluster.TopolvmControllerDeploymentName, err)
+		clusterLogger.Errorf("failed to detect deployment:%s. err:%v", cluster.TopolvmControllerDeploymentName, err)
 		return errors.Wrap(err, "failed to detect deployment")
 	} else if err == nil {
 		if deployment.Spec.Template.Spec.Containers[0].Image == topolvmCluster.Spec.TopolvmVersion {
@@ -613,22 +616,63 @@ func (c *ClusterController) startTopolvmControllerDeployment(topolvmCluster *top
 		}
 		_, err := c.context.Clientset.AppsV1().Deployments(deployment.Namespace).Update(ctx, deployment, metav1.UpdateOptions{})
 		if err != nil {
-			logger.Errorf("update topolvm controller image failed err %v", err)
+			clusterLogger.Errorf("update topolvm controller image failed err %v", err)
 			return errors.Wrap(err, "update topolvm controller image failed")
 		} else {
-			logger.Infof("update topolvm contorller image to %s", topolvmCluster.Spec.TopolvmVersion)
+			clusterLogger.Infof("update topolvm contorller image to %s", topolvmCluster.Spec.TopolvmVersion)
 			return nil
 		}
 
 	}
 
-	logger.Info("start create controller deployment")
+	clusterLogger.Info("start create controller deployment")
 	if err := volumectr.CreateReplaceTopolvmControllerDeployment(c.context.Clientset, ref); err != nil {
 		clusterLogger.Errorf("create and replace controller deployment failed err: %v", err)
 		return errors.Wrap(err, "create and replace controller deployment failed")
 	}
 
 	return nil
+}
+
+// StartOperatorSettingsWatch starts the operator settings watcher
+func (c *ClusterController) StartOperatorSettingsWatch(stopCh chan struct{}) {
+	k8sutil.StartOperatorSettingsWatch(c.context, cluster.NameSpace, cluster.OperatorSettingConfigMapName,
+		c.operatorConfigChange,
+		func(oldObj, newObj interface{}) {
+			if reflect.DeepEqual(oldObj, newObj) {
+				return
+			}
+			c.operatorConfigChange(newObj)
+		}, nil, stopCh)
+}
+
+func (c *ClusterController) operatorConfigChange(obj interface{}) {
+	cm, ok := obj.(*corev1.ConfigMap)
+	if !ok {
+		clusterLogger.Warningf("Expected ConfigMap but handler received %T. %#v", obj, obj)
+		return
+	}
+
+	clusterLogger.Infof("ConfigMap %q changes detected. Updating configurations", cm.Name)
+
+	c.updateCsiDriver()
+
+}
+
+func (c *ClusterController) updateCsiDriver() error {
+	kubeletRootDir, err := k8sutil.GetOperatorSetting(c.context.Clientset, cluster.OperatorSettingConfigMapName, cluster.KubeletRootPathEnv, cluster.CSIKubeletRootDir)
+	if err != nil {
+		return err
+	}
+
+	if kubeletRootDir != cluster.CSIKubeletRootDir {
+		if err := node.UpdateNodeDeploymentCSIKubeletRootPath(c.context.Clientset, kubeletRootDir); err != nil {
+			clusterLogger.Errorf("updater csi kubelet path failed err:%s", err.Error())
+			return err
+		}
+	}
+	return nil
+
 }
 
 // removeFinalizer removes a finalizer
