@@ -27,14 +27,12 @@ import (
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/client-go/tools/cache"
 	"os"
 	"os/signal"
 	"strings"
 	"sync"
 	"syscall"
-	"time"
 )
 
 var logger = capnslog.NewPackageLogger("topolvm/operator", "lvmd-config")
@@ -92,14 +90,13 @@ func (c *ConfigMapController) StartWatch(stopCh <-chan struct{}) {
 		DeleteFunc: c.onDelete,
 	}
 
-	watchlist := cache.NewListWatchFromClient(c.context.Clientset.CoreV1().RESTClient(), string(v1.ResourceConfigMaps), c.namespace, fields.Everything())
-	_, controller := cache.NewInformer(
-		watchlist,
-		&v1.ConfigMap{},
-		time.Second*0,
+	_, controller := cache.NewInformer(cache.NewFilteredListWatchFromClient(c.context.Clientset.CoreV1().RESTClient(),
+		string(v1.ResourceConfigMaps), c.namespace, func(options *metav1.ListOptions) {
+			options.LabelSelector = fmt.Sprintf("%s=%s", cluster.LvmdConfigMapLabelKey, cluster.LvmdConfigMapLabelValue)
+		}), &v1.ConfigMap{},
+		0,
 		resourceHandlerFuncs,
 	)
-
 	go controller.Run(stopCh)
 
 }
