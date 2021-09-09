@@ -280,14 +280,13 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 
 	ctx := context.TODO()
 	pods, err := r.context.Clientset.CoreV1().Pods(cluster.NameSpace).List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", cluster.TopolvmComposeAttr, cluster.TopolvmComposeNode)})
-	if err != nil {
+	if err != nil && !kerrors.IsNotFound(err) {
 		clusterLogger.Errorf("list topolvm node pod  failed %v", err)
 	}
 
 	var clusterMetric cluster.Metrics
 	r.statusLock.Lock()
 	defer r.statusLock.Unlock()
-
 	topolvmCluster := &topolvmv1.TopolvmCluster{}
 	err = r.context.Client.Get(ctx, *r.namespacedName, topolvmCluster)
 	if err != nil {
@@ -299,40 +298,78 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 		return
 	}
 
-	clusterStatus := topolvmCluster.Status.DeepCopy()
-
-	nodesStatus := make(map[string]*topolvmv1.NodeStorageState, 0)
 	ready := false
-	for _, item := range pods.Items {
+	nodesStatus := make(map[string]*topolvmv1.NodeStorageState, 0)
+	if len(pods.Items) == 0 {
+		for _, item := range topolvmCluster.Spec.DeviceClasses {
 
-		node := topolvmv1.NodeStorageState{
-			Node: item.Spec.NodeName,
+			node := topolvmv1.NodeStorageState{
+				Node:  item.NodeName,
+				Phase: topolvmv1.ConditionFailure,
+			}
+			nodeMetric := cluster.NodeStatusMetrics{
+				Node:   item.NodeName,
+				Status: 1,
+			}
+			nodesStatus[item.NodeName] = &node
+			clusterMetric.NodeStatus = append(clusterMetric.NodeStatus, nodeMetric)
+
+		}
+	} else {
+		for _, deviceclass := range topolvmCluster.Spec.DeviceClasses {
+			found := false
+			for _, item := range pods.Items {
+				if item.Spec.NodeName == deviceclass.NodeName {
+					found = true
+				} else {
+					continue
+				}
+
+				node := topolvmv1.NodeStorageState{
+					Node: item.Spec.NodeName,
+				}
+
+				nodeMetric := cluster.NodeStatusMetrics{
+					Node: item.Spec.NodeName,
+				}
+
+				switch item.Status.Phase {
+				case corev1.PodRunning:
+					node.Phase = topolvmv1.ConditionReady
+					nodeMetric.Status = 0
+					ready = true
+				case corev1.PodUnknown:
+					node.Phase = topolvmv1.ConditionUnknown
+					nodeMetric.Status = 1
+				case corev1.PodFailed:
+					node.Phase = topolvmv1.ConditionFailure
+					nodeMetric.Status = 1
+				case corev1.PodPending:
+					node.Phase = topolvmv1.ConditionPending
+					nodeMetric.Status = 1
+				default:
+					node.Phase = topolvmv1.ConditionUnknown
+					nodeMetric.Status = 1
+				}
+				nodesStatus[item.Spec.NodeName] = &node
+				clusterMetric.NodeStatus = append(clusterMetric.NodeStatus, nodeMetric)
+			}
+
+			if !found {
+				node := topolvmv1.NodeStorageState{
+					Node:  deviceclass.NodeName,
+					Phase: topolvmv1.ConditionFailure,
+				}
+				nodeMetric := cluster.NodeStatusMetrics{
+					Node:   deviceclass.NodeName,
+					Status: 1,
+				}
+				nodesStatus[deviceclass.NodeName] = &node
+				clusterMetric.NodeStatus = append(clusterMetric.NodeStatus, nodeMetric)
+			}
+
 		}
 
-		nodeMetric := cluster.NodeStatusMetrics{
-			Node: item.Spec.NodeName,
-		}
-
-		switch item.Status.Phase {
-		case corev1.PodRunning:
-			node.Phase = topolvmv1.ConditionReady
-			nodeMetric.Status = 0
-			ready = true
-		case corev1.PodUnknown:
-			node.Phase = topolvmv1.ConditionUnknown
-			nodeMetric.Status = 1
-		case corev1.PodFailed:
-			node.Phase = topolvmv1.ConditionFailure
-			nodeMetric.Status = 1
-		case corev1.PodPending:
-			node.Phase = topolvmv1.ConditionPending
-			nodeMetric.Status = 1
-		default:
-			node.Phase = topolvmv1.ConditionUnknown
-			nodeMetric.Status = 1
-		}
-		nodesStatus[item.Spec.NodeName] = &node
-		clusterMetric.NodeStatus = append(clusterMetric.NodeStatus, nodeMetric)
 	}
 
 	for key, _ := range nodesStatus {
@@ -352,12 +389,21 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 
 		}
 	}
-
-	for index, item := range clusterStatus.NodeStorageStatus {
-		if val, ok := nodesStatus[item.Node]; ok {
+	clusterStatus := topolvmCluster.Status.DeepCopy()
+	for key, val := range nodesStatus {
+		found := false
+		for index, item := range clusterStatus.NodeStorageStatus {
+			if item.Node == key {
+				found = true
+			} else {
+				continue
+			}
 			clusterStatus.NodeStorageStatus[index].Phase = val.Phase
 			clusterLogger.Debugf("node %s, phase: %s", item.Node, topolvmCluster.Status.NodeStorageStatus[index].Phase)
 
+		}
+		if !found {
+			clusterStatus.NodeStorageStatus = append(clusterStatus.NodeStorageStatus, *val)
 		}
 	}
 
