@@ -26,7 +26,7 @@ metadata:
                     "classes": [
                       {
                         "className": "hdd",
-                        "volumeGroup": "test",
+                        "volumeGroup": "hdd",
                         "default": true,
                         "devices": [
                           {
@@ -56,7 +56,7 @@ spec:
         displayName: TopolvmCluster
         kind: TopolvmCluster
         name: topolvmclusters.topolvm.cybozu.com
-        specDescriptors: []
+        specDescriptors: [ ]
         statusDescriptors: []
         version: v2
       - description: TopolvmCluster
@@ -560,7 +560,7 @@ spec:
   maintainers:
     - {email: xrluo@alauda.io, name: 罗小仁}
   maturity: alpha
-  minKubeVersion: 1.19.4
+  minKubeVersion: 1.19.0
   provider: {name: "platform"}
   selector:
     matchLabels: {}
