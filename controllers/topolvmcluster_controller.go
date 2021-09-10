@@ -412,6 +412,7 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 		clusterMetric.ClusterStatus = 0
 	} else {
 		clusterMetric.ClusterStatus = 1
+		clusterStatus.Phase = topolvmv1.ConditionFailure
 	}
 
 	if reflect.DeepEqual(topolvmCluster.Status, *clusterStatus) {
