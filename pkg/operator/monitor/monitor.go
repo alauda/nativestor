@@ -67,8 +67,8 @@ func addK8sClusterLable(rule *monitoringv1.PrometheusRule, k8sClusterName string
 
 	rule.Labels[prometheusRuleClusterLabel] = k8sClusterName
 	rule.Labels[prometheusRuleNameSpaceLabel] = cluster.NameSpace
-	for i, _ := range rule.Spec.Groups {
-		for j, _ := range rule.Spec.Groups[i].Rules {
+	for i := range rule.Spec.Groups {
+		for j := range rule.Spec.Groups[i].Rules {
 			rule.Spec.Groups[i].Rules[j].Labels["alert_cluster"] = k8sClusterName
 		}
 	}

@@ -62,7 +62,7 @@ func convertExampleCRD(Object *unstructured.Unstructured, toVersion string) (*un
 
 				for index1, node := range devices.DeviceClasses {
 					for index2, devs := range node.DeviceClasses {
-						for index3, _ := range devs.Device {
+						for index3 := range devs.Device {
 							devices.DeviceClasses[index1].DeviceClasses[index2].Device[index3].Type = "disk"
 						}
 					}

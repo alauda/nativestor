@@ -80,9 +80,9 @@ func UpdateNodeDeploymentCSIKubeletRootPath(clientset kubernetes.Interface, path
 		fmt.Sprintf("--kubelet-registration-path=%splugins/topolvm.cybozu.com/node/csi-topolvm.sock", getAbsoluteKubeletPath(path)),
 	}
 
-	for i, _ := range d.Items {
+	for i := range d.Items {
 		newDep := d.Items[i].DeepCopy()
-		for j, _ := range newDep.Spec.Template.Spec.Volumes {
+		for j := range newDep.Spec.Template.Spec.Volumes {
 			switch newDep.Spec.Template.Spec.Volumes[j].Name {
 			case "registration-dir":
 				newDep.Spec.Template.Spec.Volumes[j].VolumeSource.HostPath.Path = fmt.Sprintf("%splugins_registry/", getAbsoluteKubeletPath(path))
@@ -95,7 +95,7 @@ func UpdateNodeDeploymentCSIKubeletRootPath(clientset kubernetes.Interface, path
 			}
 		}
 
-		for j, _ := range newDep.Spec.Template.Spec.Containers {
+		for j := range newDep.Spec.Template.Spec.Containers {
 			if newDep.Spec.Template.Spec.Containers[j].Name == cluster.CsiRegistrarContainerName {
 				newDep.Spec.Template.Spec.Containers[j].Command = command
 			}

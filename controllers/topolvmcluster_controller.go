@@ -299,7 +299,7 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 	}
 
 	ready := false
-	nodesStatus := make(map[string]*topolvmv1.NodeStorageState, 0)
+	nodesStatus := make(map[string]*topolvmv1.NodeStorageState)
 	if len(pods.Items) == 0 {
 		for _, item := range topolvmCluster.Spec.DeviceClasses {
 
@@ -372,7 +372,7 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 
 	}
 
-	for key, _ := range nodesStatus {
+	for key := range nodesStatus {
 		node, err := r.context.Clientset.CoreV1().Nodes().Get(ctx, key, metav1.GetOptions{})
 		if err != nil {
 			clusterLogger.Errorf("failed to get node  %v", err)
