@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package v1 contains API Schema definitions for the topolvm v1 API group
+// Package v2 contains API Schema definitions for the topolvm v2 API group
 // +kubebuilder:object:generate=true
 // +groupName=topolvm.cybozu.com
 package v2

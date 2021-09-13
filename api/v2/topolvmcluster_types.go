@@ -116,6 +116,7 @@ type DeviceState struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:storageversion
 
 // TopolvmCluster is the Schema for the topolvmclusters API
 type TopolvmCluster struct {
