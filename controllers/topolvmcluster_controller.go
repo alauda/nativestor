@@ -378,6 +378,7 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 				nodesStatus[deviceclass.NodeName] = &node
 				clusterMetric.NodeStatus = append(clusterMetric.NodeStatus, nodeMetric)
 			}
+
 		}
 
 	}
@@ -388,13 +389,16 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 			clusterLogger.Errorf("failed to get node  %v", err)
 			continue
 		}
-		switch node.Status.Phase {
-		case corev1.NodeTerminated:
-			nodesStatus[key].Phase = topolvmv1.ConditionUnknown
-			for index, ele := range clusterMetric.NodeStatus {
-				if ele.Node == key {
-					clusterMetric.NodeStatus[index].Status = 1
+		for _, ele := range node.Status.Conditions {
+			if ele.Type == corev1.NodeReady && ele.Status == corev1.ConditionUnknown {
+
+				nodesStatus[key].Phase = topolvmv1.ConditionUnknown
+				for index, n := range clusterMetric.NodeStatus {
+					if n.Node == key {
+						clusterMetric.NodeStatus[index].Status = 1
+					}
 				}
+
 			}
 		}
 	}
