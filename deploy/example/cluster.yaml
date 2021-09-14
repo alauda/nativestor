@@ -2,7 +2,7 @@ apiVersion: topolvm.cybozu.com/v1
 kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample
-  # namespace must be the same with topolvm-operator
+  # namespace must be the same with topolvm-operator hello
   namespace: topolvm-system
 spec:
   # Add fields here
