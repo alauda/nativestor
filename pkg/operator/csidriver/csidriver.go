@@ -53,3 +53,7 @@ func CheckTopolvmCsiDriverExisting(clientset kubernetes.Interface, ref *metav1.O
 	_, err = clientset.StorageV1().CSIDrivers().Create(context.TODO(), csiDriver, metav1.CreateOptions{})
 	return err
 }
+
+func DeleteTopolvmCsiDriver(clientset kubernetes.Interface) error {
+	return clientset.StorageV1().CSIDrivers().Delete(context.TODO(), cluster.TopolvmCSIDriverName, metav1.DeleteOptions{})
+}

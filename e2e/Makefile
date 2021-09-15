@@ -1,7 +1,7 @@
 
 TEST_KUBERNETES_TARGET ?= current
 ## Dependency versions
-KIND_VERSION=0.10.0
+KIND_VERSION=0.11.0
 BINDIR=$(PWD)/bin
 
 SUDO=sudo
@@ -41,7 +41,7 @@ BACKING_STORE=./build
 topolvm-operator.img: $(GO_FILES)
 	rm -rf tmpbin
 	mkdir -p tmpbin
-	CGO_ENABLED=0 go build -o tmpbin/topolvm ../main.go
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o tmpbin/topolvm ../main.go
 	docker build --no-cache --rm=false -f Dockerfile -t topolvm-operator:dev tmpbin
 	docker save -o $@ topolvm-operator:dev
 

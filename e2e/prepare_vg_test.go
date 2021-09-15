@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/yaml"
 )
 
 func testPrepareVg() {
@@ -47,6 +48,8 @@ func testPrepareVg() {
 
 			for _, dev := range podList.Items {
 				if dev.Status.Phase != corev1.PodSucceeded {
+					podYaml, _ := yaml.Marshal(&dev)
+					fmt.Println(string(podYaml))
 					return fmt.Errorf("pod %s phase is %s  should be %s", dev.Name, dev.Status.Phase, corev1.PodSucceeded)
 				}
 			}

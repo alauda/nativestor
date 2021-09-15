@@ -30,13 +30,13 @@ func testDiscover() {
 
 	It("topolvm cluster should be created", func() {
 
-		topolvmCluster := `apiVersion: topolvm.cybozu.com/v1
+		topolvmCluster := `apiVersion: topolvm.cybozu.com/v2
 kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample
   namespace: topolvm-system
 spec:
-  topolvmVersion: "alaudapublic/topolvm:1.0.0"
+  topolvmVersion: "alaudapublic/topolvm:2.0.0"
   storage:
     useAllNodes: true
     useAllDevices: true

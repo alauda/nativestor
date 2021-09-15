@@ -20,8 +20,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"math/rand"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -85,7 +87,7 @@ var _ = BeforeSuite(func() {
 	By("Waiting for mutating webhook to get ready")
 	// Because kindnet will crash. we need to confirm its readiness twice.
 	Eventually(waitKindnet).Should(Succeed())
-	time.Sleep(5 * time.Second)
+	time.Sleep(2 * time.Second)
 	Eventually(waitKindnet).Should(Succeed())
 	SetDefaultEventuallyTimeout(15 * time.Minute)
 
@@ -110,6 +112,26 @@ spec:
 	}).Should(Succeed())
 	stdout, stderr, err := kubectlWithInput([]byte(podYAML), "delete", "-f", "-")
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
+
+	Eventually(func() error {
+		result, stderr, err := kubectl("get", "-n", "topolvm-system", "pod", "-l", "app=topolvm-operator", "-o", "name")
+		if err != nil {
+			return errors.New(string(stderr))
+		}
+		podName := strings.TrimSuffix(string(result), "\n")
+		fmt.Printf("topolvm operator name %s \n", podName)
+		result, stderr, err = kubectl("get", "-n", "topolvm-system", podName, "-o=json")
+		if err != nil {
+			return errors.New(string(stderr))
+		}
+		var pod corev1.Pod
+		json.Unmarshal(result, &pod)
+		if pod.Status.Phase != corev1.PodRunning {
+			return fmt.Errorf("topolvm operator pod is not running phase:%s", pod.Status.Phase)
+		}
+		return nil
+	}).Should(Succeed())
+
 })
 
 var _ = Describe("TopoLVM", func() {

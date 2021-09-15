@@ -181,6 +181,8 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 			return reconcile.Result{}, errors.Wrap(err, "failed to remove node capacity annotations")
 		}
 
+		r.cleanCluster()
+
 		close(r.stopCh)
 		// Return and do not requeue. Successful deletion.
 		return reconcile.Result{}, nil
@@ -215,6 +217,15 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 	}
 	// Return and do not requeue
 	return reconcile.Result{}, nil
+}
+
+func (r *TopolvmClusterReconciler) cleanCluster() error {
+
+	if err := csidriver.DeleteTopolvmCsiDriver(r.context.Clientset); err != nil {
+		clusterLogger.Errorf("clean csi driver failed err:%s", err.Error())
+		return err
+	}
+	return nil
 }
 
 func (r *TopolvmClusterReconciler) checkStorageConfig(topolvmCluster *topolvmv1.TopolvmCluster) error {
@@ -367,7 +378,6 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 				nodesStatus[deviceclass.NodeName] = &node
 				clusterMetric.NodeStatus = append(clusterMetric.NodeStatus, nodeMetric)
 			}
-
 		}
 
 	}
@@ -386,7 +396,6 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 					clusterMetric.NodeStatus[index].Status = 1
 				}
 			}
-
 		}
 	}
 	clusterStatus := topolvmCluster.Status.DeepCopy()

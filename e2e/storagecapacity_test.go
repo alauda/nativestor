@@ -110,7 +110,7 @@ func testCsiStorageCapacity() {
 			loopMap[topolvmCluster.Spec.DeviceClasses[i].NodeName] = topolvmCluster.Spec.DeviceClasses[i].DeviceClasses[0].Device[0].Name
 		}
 
-		topolvmClusterTemplate := `apiVersion: topolvm.cybozu.com/v1
+		topolvmClusterTemplate := `apiVersion: topolvm.cybozu.com/v2
 kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample

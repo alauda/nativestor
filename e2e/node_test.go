@@ -93,13 +93,14 @@ func testNode() {
 						return err
 					}
 					if len(pods.Items) != 1 {
+						fmt.Printf("the number of pod is not equal to 1: %d", len(pods.Items))
 						return fmt.Errorf("the number of pod is not equal to 1: %d", len(pods.Items))
 					}
 					if pods.Items[0].Status.Phase != corev1.PodRunning {
+						fmt.Printf("the node pod status %s", pods.Items[0].Status.Phase)
 						return fmt.Errorf("the node pod status %s", pods.Items[0].Status.Phase)
 					}
-					pod := pods.Items[0].Name
-					kubectl("-n=topolvm-system", "logs", pod)
+
 				}
 				Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
 			}
