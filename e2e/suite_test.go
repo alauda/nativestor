@@ -40,8 +40,8 @@ func TestMtest(t *testing.T) {
 
 	RegisterFailHandler(Fail)
 
-	SetDefaultEventuallyPollingInterval(time.Second)
-	SetDefaultEventuallyTimeout(time.Minute)
+	SetDefaultEventuallyPollingInterval(2 * time.Second)
+	SetDefaultEventuallyTimeout(10 * time.Minute)
 
 	RunSpecs(t, "Test on sanity")
 }
@@ -89,7 +89,7 @@ var _ = BeforeSuite(func() {
 	Eventually(waitKindnet).Should(Succeed())
 	time.Sleep(2 * time.Second)
 	Eventually(waitKindnet).Should(Succeed())
-	SetDefaultEventuallyTimeout(15 * time.Minute)
+	SetDefaultEventuallyTimeout(30 * time.Minute)
 
 	podYAML := `apiVersion: v1
 kind: Pod

@@ -6,6 +6,9 @@ metadata:
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 rules:
+  - apiGroups: [ "coordination.k8s.io" ]
+    resources: [ "leases" ]
+    verbs: [ "get", "watch", "list", "delete", "update", "create" ]
   - apiGroups:
       - ""
     resources:
@@ -41,6 +44,12 @@ rules:
       - cronjobs
     verbs:
       - delete
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - '*'
+    verbs:
+      - '*'
 ---
 
 apiVersion: rbac.authorization.k8s.io/v1

@@ -441,6 +441,9 @@ metadata:
   name: topolvm-operator
   namespace: topolvm-system
 rules:
+  - apiGroups: [ "coordination.k8s.io" ]
+    resources: [ "leases" ]
+    verbs: [ "get", "watch", "list", "delete", "update", "create" ]
   - apiGroups:
       - ""
     resources:
@@ -475,6 +478,12 @@ rules:
       - cronjobs
     verbs:
       - delete
+  - apiGroups:
+      - monitoring.coreos.com
+    resources:
+      - '*'
+    verbs:
+      - '*'
 
 
 ---
@@ -497,6 +506,9 @@ rules:
   - apiGroups: [ "" ]
     resources: [ "pods" ]
     verbs: [ "get", "list", "watch", "update", "delete" ]
+  - apiGroups: [ "" ]
+    resources: [ "configmaps" ]
+    verbs: [ "get", "list", "watch"]
   - apiGroups:
       - ""
     resources:
@@ -662,7 +674,6 @@ subjects:
     name: topolvm-discover
     namespace: topolvm-system
 
-
 ---
 
 kind: RoleBinding
@@ -689,8 +700,8 @@ kind: ServiceAccount
 metadata:
   name: topolvm-preparevg
   namespace: topolvm-system
----
 
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -730,3 +741,5 @@ spec:
   fsGroup:
     rule: 'RunAsAny'
   readOnlyRootFilesystem: true
+
+
