@@ -40,8 +40,8 @@ func TestMtest(t *testing.T) {
 
 	RegisterFailHandler(Fail)
 
-	SetDefaultEventuallyPollingInterval(time.Second)
-	SetDefaultEventuallyTimeout(time.Minute)
+	SetDefaultEventuallyPollingInterval(2 * time.Second)
+	SetDefaultEventuallyTimeout(10 * time.Minute)
 
 	RunSpecs(t, "Test on sanity")
 }
