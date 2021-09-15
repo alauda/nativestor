@@ -136,6 +136,7 @@ spec:
 
 var _ = Describe("TopoLVM", func() {
 	Context("preparevg", testPrepareVg)
+	Context("topolvm-controller", testCSIController)
 	Context("topolvm-node", testNode)
 	Context("storagecapacity", testCsiStorageCapacity)
 	Context("scheduler", testScheduler)
