@@ -5,11 +5,11 @@
 replicaCount: 1
 global:
   registry:
-    address: build-harbor.alauda.cn
+    address: docker.io
   images:
     topolvmOperator:
-      repository: acp/topolvm-operator
-      tag: feat-discover-loop.2106171453
+      repository: alaudapublic/topolvm-operator
+      tag: 2.0.0
       pullPolicy: IfNotPresent
       support_arm: true
     certInit:
@@ -62,9 +62,9 @@ podSecurityPolicy:
   create: true
 
 cluster:
-  create: true
+  create: false
   name: topolvmcluster-sample
-  topolvmVersion: build-harbor.alauda.cn/acp/topolvm:fb8bb31
+  topolvmVersion:  alaudapublic/topolvm:2.0.0
   storage:
     useAllNodes: true
     useAllDevices: false
