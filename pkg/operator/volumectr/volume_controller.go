@@ -71,7 +71,7 @@ func getDeployment(ref *metav1.OwnerReference) *v1.Deployment {
 		{Name: "socket-dir", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}},
 	}
 
-	containers := []corev1.Container{*getContorllerContainer(), *getCsiProvisionerContainer(), *getCsiAttacherContainer(), *getCsiResizerContainer(), *getLivenessProbeContainer()}
+	containers := []corev1.Container{*getContorllerContainer(), *getCsiProvisionerContainer(), *getCsiAttacherContainer(), *getCsiResizerContainer(), *getCsiSnapShotterContainer(), *getLivenessProbeContainer()}
 
 	controllerDeployment := &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -194,6 +194,7 @@ func getCsiProvisionerContainer() *corev1.Container {
 		"--enable-capacity",
 		"--capacity-ownerref-level=2",
 		"--capacity-poll-interval=30s",
+		"--feature-gates=Topology=true",
 		"--leader-election",
 		"--leader-election-namespace=" + cluster.NameSpace,
 	}
@@ -227,6 +228,39 @@ func getCsiProvisionerContainer() *corev1.Container {
 		Env:          env,
 	}
 	return csiProvisoiner
+}
+
+func getCsiSnapShotterContainer() *corev1.Container {
+
+	command := []string{"/csi-snapshotter",
+		"--csi-address=/run/topolvm/csi-topolvm.sock",
+		"--leader-election",
+		"--leader-election-namespace=" + cluster.NameSpace,
+	}
+
+	resourceRequirements := corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse(cluster.TopolvmControllerCsiSnapShotterCPULimit),
+			corev1.ResourceMemory: resource.MustParse(cluster.TopolvmControllerCsiSnapShotterMemLimit),
+		},
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse(cluster.TopolvmControllerCsiSnapShotterCPURequest),
+			corev1.ResourceMemory: resource.MustParse(cluster.TopolvmControllerCsiSnapShotterMemRequest),
+		},
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{Name: "socket-dir", MountPath: "/run/topolvm"},
+	}
+
+	csiSnapShotter := &corev1.Container{
+		Name:         cluster.TopolvmCsiSnapShotterContainerName,
+		Image:        cluster.TopolvmImage,
+		Command:      command,
+		Resources:    resourceRequirements,
+		VolumeMounts: volumeMounts,
+	}
+	return csiSnapShotter
 }
 
 func getLivenessProbeContainer() *corev1.Container {

@@ -1,29 +1,36 @@
-apiVersion: topolvm.cybozu.com/v1
+apiVersion: topolvm.cybozu.com/v2
 kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample
   namespace: topolvm-system
 spec:
-  topolvmVersion: alaudapublic/topolvm:1.0.0
-  deviceClasses:
-    - nodeName: "topolvm-e2e-worker"
-      classes:
-        - className: "hdd1"
-          volumeGroup: "node1-myvg1"
-          default: true
-          devices:
-            - name: "@DEVICE_LOOP1@"
-    - nodeName: "topolvm-e2e-worker2"
-      classes:
-        - className: "hdd2"
-          volumeGroup: "node2-myvg1"
-          default: true
-          devices:
-            - name: "@DEVICE_LOOP2@"
-    - nodeName: "topolvm-e2e-worker3"
-      classes:
-        - className: "hdd3"
-          volumeGroup: "node3-myvg1"
-          default: true
-          devices:
-            - name: "@DEVICE_LOOP3@"
+  topolvmVersion: alaudapublic/topolvm:2.0.0
+  storage:
+    useAllNodes: false
+    useAllDevices: false
+    useLoop: true
+    deviceClasses:
+      - nodeName: "topolvm-e2e-worker"
+        classes:
+          - className: "hdd1"
+            volumeGroup: "node1-myvg1"
+            default: true
+            devices:
+              - name: "@DEVICE_LOOP1@"
+                type: "loop"
+      - nodeName: "topolvm-e2e-worker2"
+        classes:
+          - className: "hdd2"
+            volumeGroup: "node2-myvg1"
+            default: true
+            devices:
+              - name: "@DEVICE_LOOP2@"
+                type: "loop"
+      - nodeName: "topolvm-e2e-worker3"
+        classes:
+          - className: "hdd3"
+            volumeGroup: "node3-myvg1"
+            default: true
+            devices:
+              - name: "@DEVICE_LOOP3@"
+                type: "loop"

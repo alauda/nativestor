@@ -18,8 +18,10 @@ package node
 
 import (
 	"context"
+	"fmt"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
+	"github.com/banzaicloud/k8s-objectmatcher/patch"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -28,6 +30,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
+	"strings"
 )
 
 func CheckNodeDeploymentIsExisting(clientset kubernetes.Interface, deploymentName string) (bool, error) {
@@ -64,6 +67,60 @@ func CreateNodeDeployment(clientset kubernetes.Interface, deploymentName string,
 	return nil
 }
 
+func UpdateNodeDeploymentCSIKubeletRootPath(clientset kubernetes.Interface, path string) error {
+
+	d, err := clientset.AppsV1().Deployments(cluster.NameSpace).List(context.TODO(), metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", cluster.AppAttr, cluster.TopolvmNodeDeploymentLabelName)})
+	if err != nil && !kerrors.IsNotFound(err) {
+		return errors.Wrapf(err, "failed to list topolvm node deployment")
+	}
+
+	command := []string{
+		"/csi-node-driver-registrar",
+		"--csi-address=/run/topolvm/csi-topolvm.sock",
+		fmt.Sprintf("--kubelet-registration-path=%splugins/topolvm.cybozu.com/node/csi-topolvm.sock", getAbsoluteKubeletPath(path)),
+	}
+
+	for i := range d.Items {
+		newDep := d.Items[i].DeepCopy()
+		for j := range newDep.Spec.Template.Spec.Volumes {
+			switch newDep.Spec.Template.Spec.Volumes[j].Name {
+			case "registration-dir":
+				newDep.Spec.Template.Spec.Volumes[j].VolumeSource.HostPath.Path = fmt.Sprintf("%splugins_registry/", getAbsoluteKubeletPath(path))
+			case "node-plugin-dir":
+				newDep.Spec.Template.Spec.Volumes[j].VolumeSource.HostPath.Path = fmt.Sprintf("%splugins/topolvm.cybozu.com/node", getAbsoluteKubeletPath(path))
+			case "csi-plugin-dir":
+				newDep.Spec.Template.Spec.Volumes[j].VolumeSource.HostPath.Path = fmt.Sprintf("%splugins/kubernetes.io/csi", getAbsoluteKubeletPath(path))
+			case "pod-volumes-dir":
+				newDep.Spec.Template.Spec.Volumes[j].VolumeSource.HostPath.Path = fmt.Sprintf("%spods/", getAbsoluteKubeletPath(path))
+			}
+		}
+
+		for j := range newDep.Spec.Template.Spec.Containers {
+			if newDep.Spec.Template.Spec.Containers[j].Name == cluster.CsiRegistrarContainerName {
+				newDep.Spec.Template.Spec.Containers[j].Command = command
+			}
+		}
+
+		patchChanged := false
+		patchResult, err := patch.DefaultPatchMaker.Calculate(&d.Items[i], newDep)
+		if err != nil {
+			patchChanged = true
+		} else if !patchResult.IsEmpty() {
+			patchChanged = true
+		}
+
+		if !patchChanged {
+			continue
+		}
+
+		if _, err := clientset.AppsV1().Deployments(cluster.NameSpace).Update(context.TODO(), newDep, metav1.UpdateOptions{}); err != nil {
+			return fmt.Errorf("failed to update deployment %q. %v", newDep.Name, err)
+		}
+
+	}
+	return nil
+}
+
 func getDeployment(appName string, nodeName string, congfigmap string, ref *metav1.OwnerReference) *v1.Deployment {
 
 	replicas := int32(1)
@@ -72,10 +129,10 @@ func getDeployment(appName string, nodeName string, congfigmap string, ref *meta
 	storageMedium := corev1.StorageMediumMemory
 
 	volumes := []corev1.Volume{
-		{Name: "registration-dir", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: "/var/lib/kubelet/plugins_registry/", Type: &hostPathDirectory}}},
-		{Name: "node-plugin-dir", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: "/var/lib/kubelet/plugins/topolvm.cybozu.com/node", Type: &hostPathDirectoryOrCreateType}}},
-		{Name: "csi-plugin-dir", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: "/var/lib/kubelet/plugins/kubernetes.io/csi", Type: &hostPathDirectoryOrCreateType}}},
-		{Name: "pod-volumes-dir", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: "/var/lib/kubelet/pods/", Type: &hostPathDirectoryOrCreateType}}},
+		{Name: "registration-dir", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: fmt.Sprintf("%splugins_registry/", getAbsoluteKubeletPath(cluster.CSIKubeletRootDir)), Type: &hostPathDirectory}}},
+		{Name: "node-plugin-dir", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: fmt.Sprintf("%splugins/topolvm.cybozu.com/node", getAbsoluteKubeletPath(cluster.CSIKubeletRootDir)), Type: &hostPathDirectoryOrCreateType}}},
+		{Name: "csi-plugin-dir", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: fmt.Sprintf("%splugins/kubernetes.io/csi", getAbsoluteKubeletPath(cluster.CSIKubeletRootDir)), Type: &hostPathDirectoryOrCreateType}}},
+		{Name: "pod-volumes-dir", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: fmt.Sprintf("%spods/", getAbsoluteKubeletPath(cluster.CSIKubeletRootDir)), Type: &hostPathDirectoryOrCreateType}}},
 		{Name: "lvmd-config-dir", VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: congfigmap}}}},
 		{Name: "lvmd-socket-dir", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: storageMedium}}},
 	}
@@ -101,7 +158,8 @@ func getDeployment(appName string, nodeName string, congfigmap string, ref *meta
 				ObjectMeta: metav1.ObjectMeta{
 					Name: appName,
 					Labels: map[string]string{
-						cluster.AppAttr: appName,
+						cluster.AppAttr:            appName,
+						cluster.TopolvmComposeAttr: cluster.TopolvmComposeNode,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -204,7 +262,8 @@ func getCsiRegistrarContainer() *corev1.Container {
 	command := []string{
 		"/csi-node-driver-registrar",
 		"--csi-address=/run/topolvm/csi-topolvm.sock",
-		"--kubelet-registration-path=/var/lib/kubelet/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"}
+		fmt.Sprintf("--kubelet-registration-path=%splugins/topolvm.cybozu.com/node/csi-topolvm.sock", getAbsoluteKubeletPath(cluster.CSIKubeletRootDir)),
+	}
 
 	volumeMounts := []corev1.VolumeMount{
 		{Name: "node-plugin-dir", MountPath: "/run/topolvm"},
@@ -251,4 +310,12 @@ func getPrivilegeSecurityContext() *corev1.SecurityContext {
 	privilege := true
 	runUser := int64(0)
 	return &corev1.SecurityContext{Privileged: &privilege, RunAsUser: &runUser}
+}
+
+func getAbsoluteKubeletPath(name string) string {
+	if strings.HasSuffix(name, "/") {
+		return name
+	} else {
+		return name + "/"
+	}
 }

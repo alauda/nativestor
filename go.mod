@@ -3,12 +3,17 @@ module github.com/alauda/topolvm-operator
 go 1.15
 
 require (
+	github.com/banzaicloud/k8s-objectmatcher v1.5.2
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f
 	github.com/google/go-cmp v0.5.4
 	github.com/google/uuid v1.1.2
+	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 	github.com/onsi/ginkgo v1.15.0
 	github.com/onsi/gomega v1.10.5
 	github.com/pkg/errors v0.9.1
+	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.50.0
+	github.com/prometheus-operator/prometheus-operator/pkg/client v0.50.0
+	github.com/prometheus/client_golang v1.9.0
 	github.com/spf13/cobra v1.1.3
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
@@ -16,12 +21,15 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.20.2
 	k8s.io/apiextensions-apiserver v0.20.2
-	k8s.io/apimachinery v0.20.2
-	k8s.io/client-go v0.20.2
+	k8s.io/apimachinery v0.22.0
+	k8s.io/client-go v0.22.0
+	k8s.io/klog v1.0.0
 	sigs.k8s.io/controller-runtime v0.8.2
+	sigs.k8s.io/yaml v1.2.0
 )
 
 replace (
+	github.com/gogo/protobuf => github.com/gogo/protobuf v1.3.2
 	k8s.io/api => k8s.io/api v0.20.0
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.20.0
 	k8s.io/apimachinery => k8s.io/apimachinery v0.20.0

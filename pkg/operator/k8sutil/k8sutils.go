@@ -20,7 +20,19 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/alauda/topolvm-operator/pkg/cluster"
+	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
+	"k8s.io/client-go/tools/cache"
+)
+
+const (
+	PodNameEnvVar = "POD_NAME"
+	// PodNamespaceEnvVar is the env variable for getting the pod namespace via downward api
+	PodNamespaceEnvVar = "POD_NAMESPACE"
+	// NodeNameEnvVar is the env variable for getting the node via downward api
+	NodeNameEnvVar = "NODE_NAME"
 )
 
 func TruncateNodeName(format, nodeName string) string {
@@ -37,4 +49,20 @@ func TruncateNodeName(format, nodeName string) string {
 func Hash(s string) string {
 	h := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(h[:16])
+}
+
+// StartOperatorSettingsWatch starts the watch for Operator Settings ConfigMap
+func StartOperatorSettingsWatch(context *cluster.Context, operatorNamespace, operatorSettingConfigMapName string,
+	addFunc func(obj interface{}), updateFunc func(oldObj, newObj interface{}), deleteFunc func(obj interface{}), stopCh chan struct{}) {
+	_, cacheController := cache.NewInformer(cache.NewFilteredListWatchFromClient(context.Clientset.CoreV1().RESTClient(),
+		"configmaps", operatorNamespace, func(options *metav1.ListOptions) {
+			options.FieldSelector = fmt.Sprintf("%s=%s", "metadata.name", operatorSettingConfigMapName)
+		}), &v1.ConfigMap{},
+		0,
+		cache.ResourceEventHandlerFuncs{
+			AddFunc:    addFunc,
+			UpdateFunc: updateFunc,
+			DeleteFunc: deleteFunc,
+		})
+	go cacheController.Run(stopCh)
 }

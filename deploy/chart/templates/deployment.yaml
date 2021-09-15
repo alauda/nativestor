@@ -4,11 +4,12 @@ metadata:
   name: {{ include "topolvm-operator.fullname" . }}
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
+  namespace: topolvm-system
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "topolvm-operator.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/name: {{ template "topolvm-operator.fullname" . }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -16,7 +17,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "topolvm-operator.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/name: {{ template "topolvm-operator.fullname" . }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
@@ -37,6 +38,9 @@ spec:
           imagePullPolicy: {{ .Values.global.images.topolvmOperator.pullPolicy }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+          ports:
+            - name: tls
+              containerPort: 443
           env:
             - name: TOPOLVM_LOG_LEVEL
               value: "{{ .Values.logLevel }}"
@@ -50,6 +54,27 @@ spec:
                   fieldPath: metadata.namespace
             - name: IS_OPERATOR_HUB
               value: "{{ .Values.isOperatorHub }}"
+      initContainers:
+        - command:
+            - sh
+            - /generate_certificate.sh
+            - --service
+            - topolvm-operator
+            - --webhook
+            - no-use
+            - --secret
+            - topolvm-conversion-webhook-cert
+            - --namespace
+            - $(KUBERNETES_NAMESPACE)
+          env:
+            - name: KUBERNETES_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+          image: "{{ .Values.global.registry.address }}/{{ .Values.global.images.certInit.repository }}:{{ .Values.global.images.certInit.tag }}"
+          imagePullPolicy: {{ .Values.global.images.certInit.pullPolicy }}
+          name: cert-init
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}

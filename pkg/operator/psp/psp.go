@@ -32,8 +32,7 @@ func CreateTopolvmNodePsp(clientset kubernetes.Interface, ref *metav1.OwnerRefer
 
 	topolvmNodePsp := &v1beta1.PodSecurityPolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            cluster.TopolvmNodePsp,
-			OwnerReferences: []metav1.OwnerReference{*ref},
+			Name: cluster.TopolvmNodePsp,
 		},
 		Spec: v1beta1.PodSecurityPolicySpec{
 			Privileged:               true,
@@ -75,8 +74,7 @@ func CreateTopolvmPrepareVgPsp(clientset kubernetes.Interface, ref *metav1.Owner
 
 	topolvmPrepareVgPsp := &v1beta1.PodSecurityPolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            cluster.TopolvmPrepareVgPsp,
-			OwnerReferences: []metav1.OwnerReference{*ref},
+			Name: cluster.TopolvmPrepareVgPsp,
 		},
 		Spec: v1beta1.PodSecurityPolicySpec{
 			Privileged:               true,
@@ -85,6 +83,7 @@ func CreateTopolvmPrepareVgPsp(clientset kubernetes.Interface, ref *metav1.Owner
 			AllowedHostPaths: []v1beta1.AllowedHostPath{
 				{PathPrefix: "/dev", ReadOnly: false},
 				{PathPrefix: "/run/udev", ReadOnly: false},
+				{PathPrefix: "/sys", ReadOnly: false},
 			},
 			HostNetwork:            true,
 			HostPID:                true,

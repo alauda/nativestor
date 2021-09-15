@@ -23,6 +23,7 @@ import (
 	"github.com/coreos/pkg/capnslog"
 	batch "k8s.io/api/batch/v1"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -99,13 +100,25 @@ func provisionPodTemplateSpec(nodeName string, image string, restart v1.RestartP
 	privileged := true
 	runAsUser := int64(0)
 
+	resourceRequirements := v1.ResourceRequirements{
+		Limits: v1.ResourceList{
+			v1.ResourceCPU:    resource.MustParse(cluster.TopolvmPrepareVgCPULimit),
+			v1.ResourceMemory: resource.MustParse(cluster.TopolvmPrepareVgMemLimit),
+		},
+		Requests: v1.ResourceList{
+			v1.ResourceCPU:    resource.MustParse(cluster.TopolvmPrepareVgCPURequest),
+			v1.ResourceMemory: resource.MustParse(cluster.TopolvmPrepareVgMemRequest),
+		},
+	}
+
 	podSpec := v1.PodSpec{
 		ServiceAccountName: cluster.PrepareVgServiceAccount,
 		Containers: []v1.Container{
 			{
-				Name:    cluster.PrePareVgContainerName,
-				Image:   image,
-				Command: command,
+				Name:      cluster.PrePareVgContainerName,
+				Image:     image,
+				Command:   command,
+				Resources: resourceRequirements,
 				SecurityContext: &v1.SecurityContext{
 					Privileged: &privileged,
 					RunAsUser:  &runAsUser,
@@ -124,7 +137,6 @@ func provisionPodTemplateSpec(nodeName string, image string, restart v1.RestartP
 		RestartPolicy: restart,
 		Volumes:       volumes,
 		NodeName:      nodeName,
-		HostNetwork:   true,
 		HostIPC:       true,
 		HostPID:       true,
 	}

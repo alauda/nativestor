@@ -23,6 +23,12 @@ Features
 - Perception of storage topology
 - Volume capacity limit
 
+OperatorHub.io
+--------
+
+[Topolvm Operator](https://operatorhub.io/operator/topolvm-operator) had been shared in operatorhub.io home.  
+
+
 ### Planned features
 
 - Raid of volume group

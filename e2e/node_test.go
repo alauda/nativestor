@@ -19,61 +19,14 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/alauda/topolvm-operator/pkg/cluster"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/topolvm/topolvm"
-	"gopkg.in/yaml.v2"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 )
 
 func testNode() {
-
-	It("should be created", func() {
-		Eventually(func() error {
-
-			By("check lvmd configmap count")
-			result, stderr, err := kubectl("get", "-n=topolvm-system", "configmap", fmt.Sprintf("--selector=%s=%s", cluster.LvmdConfigMapLabelKey, cluster.LvmdConfigMapLabelValue), "-o=json")
-			if err != nil {
-				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
-			}
-			var cmList corev1.ConfigMapList
-			err = json.Unmarshal(result, &cmList)
-			if err != nil {
-				return err
-			}
-			if len(cmList.Items) != 3 {
-				return fmt.Errorf("the number of topolvm-node deployment is not equal to 3: %d", len(cmList.Items))
-			}
-
-			classNameMap := map[string]string{
-				"topolvm-e2e-worker":        "hdd1",
-				"topolvm-e2e-worker2":       "hdd2",
-				"topolvm-e2e-worker3":       "hdd3",
-				"topolvm-e2e-control-plane": "",
-			}
-
-			By("checking lvmd classname")
-			for _, cm := range cmList.Items {
-				lmvdConf := &cluster.LmvdConf{}
-				err = yaml.Unmarshal([]byte(cm.Data[cluster.LvmdConfigMapKey]), lmvdConf)
-				if err != nil {
-					return err
-				}
-				nodename := cm.Annotations[cluster.LvmdAnnotationsNodeKey]
-				if len(lmvdConf.DeviceClasses) > 0 {
-					if lmvdConf.DeviceClasses[0].Name != classNameMap[nodename] {
-						return fmt.Errorf("cm %s lvmd class name %s not equal %s", cm.Name, lmvdConf.DeviceClasses[0].Name, classNameMap[nodename])
-					}
-				} else {
-					return fmt.Errorf("cm lvmd class name is empty")
-				}
-
-			}
-			return nil
-		}).Should(Succeed())
-	})
 
 	It("should be deployed", func() {
 		Eventually(func() error {
@@ -129,6 +82,26 @@ func testNode() {
 
 				By("checking " + node.Name)
 				_, ok = node.Annotations[topolvm.CapacityKeyPrefix+classNameMap[node.Name]]
+				if !ok {
+					result, stderr, err := kubectl("get", "-n=topolvm-system", "pod", "--selector=app.kubernetes.io/name=topolvm-node-"+node.Name, "-o=json")
+					if err != nil {
+						return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+					}
+					var pods corev1.PodList
+					err = json.Unmarshal(result, &pods)
+					if err != nil {
+						return err
+					}
+					if len(pods.Items) != 1 {
+						fmt.Printf("the number of pod is not equal to 1: %d", len(pods.Items))
+						return fmt.Errorf("the number of pod is not equal to 1: %d", len(pods.Items))
+					}
+					if pods.Items[0].Status.Phase != corev1.PodRunning {
+						fmt.Printf("the node pod status %s", pods.Items[0].Status.Phase)
+						return fmt.Errorf("the node pod status %s", pods.Items[0].Status.Phase)
+					}
+
+				}
 				Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
 			}
 

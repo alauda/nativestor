@@ -11,21 +11,24 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: topolvm-operator
-    namespace: {{ .Release.Namespace }}
+    namespace: topolvm-system
 
 ---
 
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: topolvm-preparevg
+  name: {{ .Release.Namespace }}-preparevg
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: topolvm-preparevg
+  name: {{ .Release.Namespace }}-preparevg
 subjects:
   - kind: ServiceAccount
     name: topolvm-preparevg
-    namespace: {{ .Release.Namespace }}
+    namespace: topolvm-system
+  - kind: ServiceAccount
+    name: topolvm-discover
+    namespace: topolvm-system

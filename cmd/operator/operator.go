@@ -19,14 +19,16 @@ package operator
 import (
 	"flag"
 	"fmt"
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v1"
+	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/cmd/topolvm"
 	"github.com/alauda/topolvm-operator/controllers"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
+	"github.com/alauda/topolvm-operator/pkg/metric"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/leaderelection/resourcelock"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -48,9 +50,7 @@ func init() {
 }
 
 func addScheme() {
-
 	_ = clientgoscheme.AddToScheme(scheme)
-
 	_ = topolvmv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
@@ -60,20 +60,23 @@ func startOperator(cmd *cobra.Command, args []string) error {
 	cluster.SetLogLevel()
 	var metricsAddr string
 	var enableLeaderElection bool
+	var leaderElectionID string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.StringVar(&leaderElectionID, "leader-election-id", "topolvm-operator", "ID for leader election by topolvm operator")
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		Port:               9443,
-		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "355331c5.cybozu.com",
+		Scheme:                     scheme,
+		MetricsBindAddress:         metricsAddr,
+		Port:                       9443,
+		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
+		LeaderElection:             true,
+		LeaderElectionID:           leaderElectionID,
 	})
 
 	if err != nil {
@@ -90,10 +93,9 @@ func startOperator(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("get env:%s failed ", cluster.PodNameSpaceEnv)
 	}
 
-	cluster.IsOperatorHub = os.Getenv(cluster.IsOperatorHubEnv)
-	if cluster.NameSpace == "" {
-		logger.Errorf("unable get env %s ", cluster.IsOperatorHubEnv)
-		return fmt.Errorf("get env:%s failed ", cluster.IsOperatorHubEnv)
+	metricsCh := make(chan *cluster.Metrics)
+	if err := mgr.Add(metric.NewMetricsExporter(metricsCh)); err != nil {
+		return err
 	}
 
 	err = controllers.RemoveNodeCapacityAnnotations(ctx.Clientset)
@@ -103,11 +105,12 @@ func startOperator(cmd *cobra.Command, args []string) error {
 	}
 
 	operatorImage := topolvm.GetOperatorImage(ctx.Clientset, "")
-	c := controllers.NewTopolvmClusterReconciler(mgr.GetScheme(), ctx, operatorImage)
+	c := controllers.NewTopolvmClusterReconciler(mgr.GetScheme(), ctx, operatorImage, cluster.CheckStatusInterval, metricsCh)
 	if err := c.SetupWithManager(mgr); err != nil {
 		logger.Error(err, "unable to create controller", "controller", "TopolvmCluster")
 		os.Exit(1)
 	}
+
 	// +kubebuilder:scaffold:builder
 
 	logger.Info("starting manager")

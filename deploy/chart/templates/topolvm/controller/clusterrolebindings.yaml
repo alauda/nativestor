@@ -6,7 +6,7 @@ metadata:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 subjects:
   - kind: ServiceAccount
-    namespace: {{ .Release.Namespace }}
+    namespace: topolvm-system
     name: topolvm-controller
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -16,12 +16,12 @@ roleRef:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-provisioner-role
+  name: {{ .Release.Namespace }}-csi-provisioner-role
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 subjects:
   - kind: ServiceAccount
-    namespace: {{ .Release.Namespace }}
+    namespace: topolvm-system
     name: topolvm-controller
 roleRef:
   kind: ClusterRole
@@ -33,12 +33,12 @@ roleRef:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-attacher-role
+  name: {{ .Release.Namespace }}-csi-attacher-role
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 subjects:
   - kind: ServiceAccount
-    namespace: {{ .Release.Namespace }}
+    namespace: topolvm-system
     name: topolvm-controller
 roleRef:
   kind: ClusterRole
@@ -50,14 +50,29 @@ roleRef:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-resizer-role
+  name: {{ .Release.Namespace }}-csi-resizer-role
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 subjects:
   - kind: ServiceAccount
-    namespace: {{ .Release.Namespace }}
+    namespace: topolvm-system
     name: topolvm-controller
 roleRef:
   kind: ClusterRole
   name: external-resizer-runner
+  apiGroup: rbac.authorization.k8s.io
+
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: csi-snapshotter-role
+subjects:
+  - kind: ServiceAccount
+    name: topolvm-controller
+    namespace: topolvm-system
+roleRef:
+  kind: ClusterRole
+  name: external-snapshotter-runner
   apiGroup: rbac.authorization.k8s.io

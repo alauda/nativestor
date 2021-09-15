@@ -29,3 +29,14 @@ type DeviceClass struct {
 	Stripe      uint   `yaml:"stripe,omitempty"`
 	StripeSize  string `yaml:"stripe-size,omitempty"`
 }
+
+type Metrics struct {
+	Cluster       string
+	ClusterStatus uint8
+	NodeStatus    []NodeStatusMetrics
+}
+
+type NodeStatusMetrics struct {
+	Node   string
+	Status uint8
+}

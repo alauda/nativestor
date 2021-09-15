@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: topolvm-operator
+  namespace: topolvm-system
+spec:
+  ports:
+    - name: tls
+      port: 443
+      targetPort: tls
+  selector:
+    app.kubernetes.io/name: {{ template "topolvm-operator.fullname" . }}
+  type: ClusterIP

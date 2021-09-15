@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: crd-conversion-webhook
+  namespace: crd-conversion-webhook
+  labels:
+    name: crd-conversion-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: crd-conversion-webhook
+  template:
+    metadata:
+      labels:
+        name: crd-conversion-webhook
+    spec:
+      containers:
+       - name: crd-conversion-webhook
+         image: quay.io/madorn/crd-conversion-webhook
+         command:
+         - /crd-conversion-webhook
+         args:
+           - -tls-cert-file=/etc/webhook/certs/cert.pem
+           - -tls-private-key-file=/etc/webhook/certs/key.pem
+         ports:
+         - name: tls
+           containerPort: 443
+         volumeMounts:
+           - name: webhook-certs
+             mountPath: /etc/webhook/certs
+             readOnly: true
+      volumes:
+      - name: webhook-certs
+        secret:
+          secretName: crd-conversion-webhook.crd-conversion-webhook.svc
