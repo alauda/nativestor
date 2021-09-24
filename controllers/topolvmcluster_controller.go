@@ -362,6 +362,15 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 					node.Phase = topolvmv1.ConditionUnknown
 					nodeMetric.Status = 1
 				}
+
+				for _, s := range item.Status.ContainerStatuses {
+					if s.Ready != true {
+						node.Phase = topolvmv1.ConditionFailure
+						nodeMetric.Status = 1
+						break
+					}
+				}
+
 				nodesStatus[item.Spec.NodeName] = &node
 				clusterMetric.NodeStatus = append(clusterMetric.NodeStatus, nodeMetric)
 			}
