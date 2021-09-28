@@ -167,7 +167,7 @@ func getDeployment(appName string, nodeName string, congfigmap string, ref *meta
 					ServiceAccountName: cluster.NodeServiceAccount,
 					Volumes:            volumes,
 					HostPID:            true,
-					NodeName:           nodeName,
+					NodeSelector:       map[string]string{corev1.LabelHostname: nodeName},
 					Tolerations:        []corev1.Toleration{{Operator: corev1.TolerationOpExists}},
 				},
 			},
