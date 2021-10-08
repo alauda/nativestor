@@ -314,7 +314,7 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 	if len(pods.Items) == 0 {
 		for _, item := range topolvmCluster.Spec.DeviceClasses {
 
-			node := topolvmv1.NodeStorageState{
+			n := topolvmv1.NodeStorageState{
 				Node:  item.NodeName,
 				Phase: topolvmv1.ConditionFailure,
 			}
@@ -322,7 +322,7 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 				Node:   item.NodeName,
 				Status: 1,
 			}
-			nodesStatus[item.NodeName] = &node
+			nodesStatus[item.NodeName] = &n
 			clusterMetric.NodeStatus = append(clusterMetric.NodeStatus, nodeMetric)
 
 		}
@@ -336,7 +336,7 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 					continue
 				}
 
-				node := topolvmv1.NodeStorageState{
+				n := topolvmv1.NodeStorageState{
 					Node: item.Spec.NodeName,
 				}
 
@@ -346,28 +346,37 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 
 				switch item.Status.Phase {
 				case corev1.PodRunning:
-					node.Phase = topolvmv1.ConditionReady
+					n.Phase = topolvmv1.ConditionReady
 					nodeMetric.Status = 0
 					ready = true
 				case corev1.PodUnknown:
-					node.Phase = topolvmv1.ConditionUnknown
+					n.Phase = topolvmv1.ConditionUnknown
 					nodeMetric.Status = 1
 				case corev1.PodFailed:
-					node.Phase = topolvmv1.ConditionFailure
+					n.Phase = topolvmv1.ConditionFailure
 					nodeMetric.Status = 1
 				case corev1.PodPending:
-					node.Phase = topolvmv1.ConditionPending
+					n.Phase = topolvmv1.ConditionPending
 					nodeMetric.Status = 1
 				default:
-					node.Phase = topolvmv1.ConditionUnknown
+					n.Phase = topolvmv1.ConditionUnknown
 					nodeMetric.Status = 1
 				}
-				nodesStatus[item.Spec.NodeName] = &node
+
+				for _, s := range item.Status.ContainerStatuses {
+					if !s.Ready {
+						n.Phase = topolvmv1.ConditionFailure
+						nodeMetric.Status = 1
+						break
+					}
+				}
+
+				nodesStatus[item.Spec.NodeName] = &n
 				clusterMetric.NodeStatus = append(clusterMetric.NodeStatus, nodeMetric)
 			}
 
 			if !found {
-				node := topolvmv1.NodeStorageState{
+				n := topolvmv1.NodeStorageState{
 					Node:  deviceclass.NodeName,
 					Phase: topolvmv1.ConditionFailure,
 				}
@@ -375,26 +384,30 @@ func (r *TopolvmClusterReconciler) checkStatus() {
 					Node:   deviceclass.NodeName,
 					Status: 1,
 				}
-				nodesStatus[deviceclass.NodeName] = &node
+				nodesStatus[deviceclass.NodeName] = &n
 				clusterMetric.NodeStatus = append(clusterMetric.NodeStatus, nodeMetric)
 			}
+
 		}
 
 	}
 
 	for key := range nodesStatus {
-		node, err := r.context.Clientset.CoreV1().Nodes().Get(ctx, key, metav1.GetOptions{})
+		n, err := r.context.Clientset.CoreV1().Nodes().Get(ctx, key, metav1.GetOptions{})
 		if err != nil {
 			clusterLogger.Errorf("failed to get node  %v", err)
 			continue
 		}
-		switch node.Status.Phase {
-		case corev1.NodeTerminated:
-			nodesStatus[key].Phase = topolvmv1.ConditionUnknown
-			for index, ele := range clusterMetric.NodeStatus {
-				if ele.Node == key {
-					clusterMetric.NodeStatus[index].Status = 1
+		for _, ele := range n.Status.Conditions {
+			if ele.Type == corev1.NodeReady && ele.Status == corev1.ConditionUnknown {
+
+				nodesStatus[key].Phase = topolvmv1.ConditionUnknown
+				for index, n := range clusterMetric.NodeStatus {
+					if n.Node == key {
+						clusterMetric.NodeStatus[index].Status = 1
+					}
 				}
+
 			}
 		}
 	}
@@ -758,8 +771,8 @@ func RemoveNodeCapacityAnnotations(clientset kubernetes.Interface) error {
 		errors.Wrapf(err, "failed list node")
 	}
 	nodes := nodeList.DeepCopy()
-	for index, node := range nodes.Items {
-		for key := range node.Annotations {
+	for index, n := range nodes.Items {
+		for key := range n.Annotations {
 			if strings.HasPrefix(key, cluster.CapacityKeyPrefix) {
 
 				delete(nodes.Items[index].Annotations, key)

@@ -127,10 +127,6 @@ spec:
                             fieldPath: metadata.namespace
                       - name: IS_OPERATOR_HUB
                         value: "1"
-                      - name: CONVERSION_TLS_CERT_FILE
-                        value: /tmp/k8s-webhook-server/serving-certs/tls.crt
-                      - name: CONVERSION_TLS_KEY_FILE
-                        value: /tmp/k8s-webhook-server/serving-certs/tls.key
                     image: build-harbor.alauda.cn/acp/topolvm-operator:@TOPOLVM_OPERATOR_VERSION@
                     command:
                       - /topolvm
@@ -158,9 +154,9 @@ spec:
                 containers:
                   - env:
                       - name: CONVERSION_TLS_CERT_FILE
-                        value: /tmp/k8s-webhook-server/serving-certs/tls.crt
+                        value: /apiserver.local.config/certificates/apiserver.crt
                       - name: CONVERSION_TLS_KEY_FILE
-                        value: /tmp/k8s-webhook-server/serving-certs/tls.key
+                        value: /apiserver.local.config/certificates/apiserver.key
                     image: build-harbor.alauda.cn/acp/topolvm-operator:@TOPOLVM_OPERATOR_VERSION@
                     command:
                       - /topolvm
