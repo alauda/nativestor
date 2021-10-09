@@ -1,0 +1,13 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  #名字固定， 不能修改
+  name: tooplvm-operator-setting
+  # 名字空间应该和topolvm-operator一致
+  namespace: operators
+data:
+  #应该配置成对应环境的kublet目录
+  KUBELET_ROOT_DIR: /data/topolvm
+
+
+

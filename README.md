@@ -22,6 +22,9 @@ Features
 - Volume group dynamic expand
 - Perception of storage topology
 - Volume capacity limit
+- PVC snapshot
+- Prometheus metric and alarm
+- Auto discover available devices
 
 OperatorHub.io
 --------
@@ -32,7 +35,6 @@ OperatorHub.io
 ### Planned features
 
 - Raid of volume group
-- Auto discover available devices
 - Manage volume group that user created
 
 
