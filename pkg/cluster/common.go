@@ -35,6 +35,7 @@ const (
 	AppAttr             = "app.kubernetes.io/name"
 	TopolvmComposeAttr  = "app.kubernetes.io/compose"
 	TopolvmComposeNode  = "node"
+	TopologKey          = "kubernetes.io/hostname"
 
 	// ClusterAttr cluster label
 	ClusterAttr = "topolvm_cluster"
