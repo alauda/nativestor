@@ -9,17 +9,15 @@ User manual
 - [How to use block pvc](#How-to-use-block-pvc)
 - [How to use loop device](#How-to-use-loop-device)
 
-
 TopolvmCluster
 ------------
 
 A kubernetes cluster map to a `TopolvmCluster` instance. No support a kubernetes cluster has multi `TopolvmCluster` instances  
 
-
-####Use all node and devices
+###Use all node and devices
 An example of TopolvmCluster look like this:
 ```yaml
-apiVersion: topolvm.cybozu.com/v1
+apiVersion: topolvm.cybozu.com/v2
 kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample
@@ -27,7 +25,7 @@ metadata:
   namespace: topolvm-system
 spec:
   # Add fields here
-  topolvmVersion: alaudapublic/topolvm:1.0.0
+  topolvmVersion: alaudapublic/topolvm:2.0.0
   storage:
     useAllNodes: true
     useAllDevices: true
@@ -40,15 +38,14 @@ a kubernetes cluster only existing a TopolvmCluster , not support multi TopolvmC
 `topolvmVersion` topolvm image version, the image include csi sidecar.  
 `useAllNodes` use all nodes of kubernetes cluster, default false.  
 `useAllDevices` use all available devices of each node, default false.  
-`volumeGroupName` each node will create volume group
+`useLoop` use loop devices present in nodes.  
+`volumeGroupName` each node will create volume group.  
 `className` used for classifying devices. such as hdd and ssd.  
-`nodeName` kubernetes cluster node name, the node has some available devices.  
-`classes` you can define multi classes up to your need, for example the node has ssd and hdd disk.  
 
 ###Use all node and specific device
 
 ```yaml
-apiVersion: topolvm.cybozu.com/v1
+apiVersion: topolvm.cybozu.com/v2
 kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample
@@ -56,7 +53,7 @@ metadata:
   namespace: topolvm-system
 spec:
   # Add fields here
-  topolvmVersion: alaudapublic/topolvm:1.0.0
+  topolvmVersion: alaudapublic/topolvm:2.0.0
   storage:
     useAllNodes: true
     # if you not want to use all devices of node, you should make it false, and define devices
@@ -71,11 +68,10 @@ spec:
 `devices` you can assign some devices to topolvm instead of using all available devices.  
 note: if you want to use this case, you must set `useAllDevices` false
 
-
 ###Specific nodes and devices
 
 ```yaml
-apiVersion: topolvm.cybozu.com/v1
+apiVersion: topolvm.cybozu.com/v2
 kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample
@@ -83,7 +79,7 @@ metadata:
   namespace: topolvm-system
 spec:
   # Add fields here
-  topolvmVersion: alaudapublic/topolvm:1.0.0
+  topolvmVersion: alaudapublic/topolvm:2.0.0
   storage:
     useAllNodes: false
     useAllDevices: false
@@ -95,7 +91,7 @@ spec:
         classes:
           # node class name
           - className: "hdd"
-            # user should specific volume group name , operator will create it
+            # user should specify volume group name , operator will create it
             volumeGroup: "test"
             # a node must a class should set default, when StorageClass not specific device class name , the default class will be used
             default: true
@@ -104,7 +100,8 @@ spec:
               - name: "/dev/sdb"
                 type: "disk"
 ```
-`deviceClasses' you can assign some nodes and devices to topolvm instead of using all nodes.
+`deviceClasses` you can assign some nodes and devices to topolvm instead of using all nodes.
+`classes` you can define multi classes up to your need, for example the node has ssd and hdd disk.
 
 note: if you want to use this case, you must set `useAllNodes` false 
 
@@ -112,19 +109,15 @@ The class settings can be specified in the following fields:
 
 | Name           | Type        | Default | Description                                                                        |
 | -------------- | ------      | ------- | ---------------------------------------------------------------------------------- |
-| `name`         | string      | -       | The name of a class.                                                               |
+| `className`    | string      | -       | The name of a class.                                                               |
 | `volumeGroup`  | string      | -       | The group where this class creates the logical volumes.                            | 
 | `default`      | bool        | `false` | A flag to indicate that this device-class is used by default.                      |
 | `devices`      | array/name  | -       | The available devices used for creating volume group                               |
 | `devices.type` | string      | -       | the type of devices now can be support disk and loop                               |
 
-
-
-
 StorageClass
 ------------
 An example StorageClass looks like this:
-
 
 ```yaml
 kind: StorageClass
@@ -153,7 +146,6 @@ Supported filesystems are: `ext4` and `xfs`.
 wisely if `volumeBindingMode` is `Immediate`.
 
 `allowVolumeExpansion` enables CSI drivers to expand volumes.
-
 
 How to make pod be scheduler to specific node
 --------------
@@ -218,7 +210,6 @@ spec:
 How to use block pvc
 -----------
 [PersistentVolumeClaim requesting a Raw Block Volume](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volume-claim-requesting-a-raw-block-volume)
-
 
 How to use loop device 
 ----------
