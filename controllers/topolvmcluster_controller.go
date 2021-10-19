@@ -205,10 +205,10 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 	}
 	r.configMapController.UpdateRef(ref)
 
-	if r.stopCh == nil {
+	if r.ClusterController.lastCluster == nil {
 		r.stopCh = make(chan struct{})
 		go r.checkClusterStatus()
-		go r.ClusterController.StartOperatorSettingsWatch(r.stopCh)
+		r.ClusterController.StartOperatorSettingsWatch(r.stopCh)
 	}
 
 	// Do reconcile here!
