@@ -473,8 +473,7 @@ func (r *TopolvmClusterReconciler) UpdateStatus(state *topolvmv1.NodeStorageStat
 	for i := 0; i < length; i++ {
 		if topolvmCluster.Status.NodeStorageStatus[i].Node == state.Node {
 			nodeFound = true
-			topolvmCluster.Status.NodeStorageStatus[i].FailClasses = state.FailClasses
-			topolvmCluster.Status.NodeStorageStatus[i].SuccessClasses = state.SuccessClasses
+			topolvmCluster.Status.NodeStorageStatus[i] = *state
 			break
 		}
 	}
