@@ -12,7 +12,7 @@ User manual
 TopolvmCluster
 ------------
 
-A kubernetes cluster map to a `TopolvmCluster` instance. No support a kubernetes cluster has multi `TopolvmCluster` instances  
+A kubernetes cluster map to a `TopolvmCluster` instance. No support a kubernetes cluster has multi `TopolvmCluster` instances
 
 ###Use all node and devices
 An example of TopolvmCluster look like this:
@@ -33,14 +33,14 @@ spec:
     volumeGroupName: "hdd"
     className: "hdd"
 ```
-`namespace` must be the same with the namespace of operator. one and only one class in a node must set `default` to true.   
-a kubernetes cluster only existing a TopolvmCluster , not support multi TopolvmClusters.  
-`topolvmVersion` topolvm image version, the image include csi sidecar.  
-`useAllNodes` use all nodes of kubernetes cluster, default false.  
-`useAllDevices` use all available devices of each node, default false.  
-`useLoop` use loop devices present in nodes.  
-`volumeGroupName` each node will create volume group.  
-`className` used for classifying devices. such as hdd and ssd.  
+`namespace` must be the same with the namespace of operator. one and only one class in a node must set `default` to true.
+a kubernetes cluster only existing a TopolvmCluster , not support multi TopolvmClusters.
+`topolvmVersion` topolvm image version, the image include csi sidecar.
+`useAllNodes` use all nodes of kubernetes cluster, default false.
+`useAllDevices` use all available devices of each node, default false.
+`useLoop` use loop devices present in nodes.
+`volumeGroupName` each node will create volume group.
+`className` used for classifying devices. such as hdd and ssd.
 
 ###Use all node and specific device
 
@@ -65,7 +65,7 @@ spec:
       - name: "/dev/sdb"
         type: "disk"
 ```
-`devices` you can assign some devices to topolvm instead of using all available devices.  
+`devices` you can assign some devices to topolvm instead of using all available devices.
 note: if you want to use this case, you must set `useAllDevices` false
 
 ###Specific nodes and devices
@@ -103,14 +103,14 @@ spec:
 `deviceClasses` you can assign some nodes and devices to topolvm instead of using all nodes.
 `classes` you can define multi classes up to your need, for example the node has ssd and hdd disk.
 
-note: if you want to use this case, you must set `useAllNodes` false 
+note: if you want to use this case, you must set `useAllNodes` false
 
 The class settings can be specified in the following fields:
 
 | Name           | Type        | Default | Description                                                                        |
 | -------------- | ------      | ------- | ---------------------------------------------------------------------------------- |
 | `className`    | string      | -       | The name of a class.                                                               |
-| `volumeGroup`  | string      | -       | The group where this class creates the logical volumes.                            | 
+| `volumeGroup`  | string      | -       | The group where this class creates the logical volumes.                            |
 | `default`      | bool        | `false` | A flag to indicate that this device-class is used by default.                      |
 | `devices`      | array/name  | -       | The available devices used for creating volume group                               |
 | `devices.type` | string      | -       | the type of devices now can be support disk and loop                               |
@@ -150,7 +150,7 @@ wisely if `volumeBindingMode` is `Immediate`.
 How to make pod be scheduler to specific node
 --------------
 
-if you want your deployment pod be scheduled to node "192.168.16.98", you can create a `StorageClass` that specific `"topolvm.cybozu.com/device-class": "hdd"`.  
+if you want your deployment pod be scheduled to node "192.168.16.98", you can create a `StorageClass` that specific `"topolvm.cybozu.com/device-class": "hdd"`.
 example look like this:
 ```yaml
 kind: StorageClass
@@ -166,6 +166,7 @@ allowVolumeExpansion: true
 
 ---
 apiVersion: v1
+kind: PersistentVolumeClaim
 metadata:
   name: hello
 spec:
@@ -211,7 +212,7 @@ How to use block pvc
 -----------
 [PersistentVolumeClaim requesting a Raw Block Volume](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volume-claim-requesting-a-raw-block-volume)
 
-How to use loop device 
+How to use loop device
 ----------
 
 An example look like this:
@@ -221,18 +222,10 @@ truncate --size=20G  tmp.img
 losetup -f tmp.img
 ```
 
-Suppose that you create loop device is /dev/loop1.  
+Suppose that you create loop device is /dev/loop1.
 if node reboot, the loop device will be lost, so you should losetup once again when node restart.
-one of recommended solution is losetup loop device again before kubelet start.  
+one of recommended solution is losetup loop device again before kubelet start.
 you can add one command to /etc/systemd/system/kubelet.service. see below:
 ```
 ExecStartPre=/bin/bash -c 'losetup /dev/loop1 /your-path/tmp.img'
 ```
-
-
-
-
-
-
-
-
