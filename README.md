@@ -47,21 +47,18 @@ Components
 ### Diagram
 
 A diagram of components and the how they work see below:
-
-![component diagram](./topolvm.svg)
-
+![component diagram](./diagram.svg)
 
 ### How components work
 
-1. `TopolvmCluster controller` watch the `TopolvmCluster`(CRD) 
-2. `TopolvmCluster controller` start  `ConfigMap controller` to watch `lvmd ConfigMap` if `TopolvmCluster` created
-3. `TopolvmCluster controller` create `preparevg` Job,`Topolvm-controller` Deployment depend on `TopolvmCluster`
-4. `preparevg` Job on specific node check disk that provided in `TopolvmCluster` and create volume group, if volume group created successfully and then create `lvmd ConfigMap` for the node
-5. `ConfigMap controller` finds the new `lvmd ConfigMap` then create `Topolvm-node` Deployment
-6. `TopolvmCluster controller` update `TopolvmCluster` status
-
-
-
+1. `Topolvm-operator` watch the `TopolvmCluster`(CRD) 
+2. `Topolvm-operator` watch the `operator-setting ConfigMap`
+3. `Topolvm-operator` start `discover devices Daemonset`
+4. `Topolvm-operator` start  `ConfigMap controller` to watch `lvmd ConfigMap` if `TopolvmCluster` created
+5. `TopolvmCluster controller` create `preparevg` Job,`Topolvm-controller` Deployment depend on `TopolvmCluster`
+6. `preparevg` Job on specific node check disk that provided in `TopolvmCluster` and create volume group, if volume group created successfully and then create `lvmd ConfigMap` for the node
+7. `ConfigMap controller` finds the new `lvmd ConfigMap` then create `Topolvm-node` Deployment
+8. `TopolvmCluster controller` update `TopolvmCluster` status
 
 Getting started and Documentation
 ---------------
@@ -72,14 +69,15 @@ Getting started and Documentation
 Topolvm
 -------------
 
-topolvm-operator is based on topolvm, we fork [topolvm/topolvm](https://github.com/topolvm/topolvm)  and do some changes. 
+topolvm-operator is based on topolvm, we fork [topolvm/topolvm](https://github.com/topolvm/topolvm)  and do some enhancements. 
 
 see [alauda/topolvm](https://github.com/alauda/topolvm)
 
-the changes are below:
+the enhancements are below:
 
 - remove topolvm-scheduler 
 - lvmd containerized
+- add new feature snapshot 
 
 Docker images
 ------------
