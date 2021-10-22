@@ -40,3 +40,8 @@ type NodeStatusMetrics struct {
 	Node   string
 	Status uint8
 }
+
+type OperatorConfig struct {
+	Parameters map[string]string
+	Image      string
+}

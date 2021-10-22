@@ -19,14 +19,13 @@ package cluster
 import "time"
 
 var (
-	TopolvmImage      string
-	NameSpace         string
-	ClusterName       string
-	CSIKubeletRootDir string
-
-	IsOperatorHub bool
-
-	CheckStatusInterval time.Duration
+	TopolvmImage          string
+	NameSpace             string
+	ClusterName           string
+	CSIKubeletRootDir     string
+	IsOperatorHub         bool
+	EnableDiscoverDevices string
+	CheckStatusInterval   time.Duration
 )
 
 const (
@@ -70,7 +69,6 @@ const (
 
 	TopolvmControllerDeploymentName      = "topolvm-controller"
 	TopolvmControllerContainerName       = "topolvm-controller"
-	TopolvmControllerSecrectsName        = "topolvm-mutatingwebhook"
 	TopolvmCsiResizerContainerName       = "csi-resizer"
 	TopolvmCsiAttacherContainerName      = "csi-attacher"
 	TopolvmCsiProvisionerContainerName   = "csi-provisioner"
@@ -128,9 +126,12 @@ const (
 	DiscoverDevicesAccount = "topolvm-discover"
 	DiscoverAppName        = "topolvm-discover"
 	DiscoverContainerName  = "discover"
-	UseLoop                = "1"
+	UseLoop                = "true"
 	LoopCreateSuccessful   = "successful"
+	LoopAnnotationsKey     = "loop"
+	LoopAnnotationsVal     = "true"
 
 	OperatorSettingConfigMapName = "tooplvm-operator-setting"
 	KubeletRootPathEnv           = "KUBELET_ROOT_DIR"
+	DiscoverDevicesEnv           = "ENABLE_DISCOVER_DEVICES"
 )

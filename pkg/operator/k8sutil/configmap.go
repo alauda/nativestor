@@ -131,3 +131,15 @@ func GetOperatorSetting(clientset kubernetes.Interface, configMapName, settingNa
 	logger.Infof("%s=%q (default)", settingName, defaultValue)
 	return defaultValue, nil
 }
+
+func GetValue(data map[string]string, settingName, defaultValue string) string {
+	if settingValue, ok := data[settingName]; ok {
+		logger.Infof("%s=%q (configmap)", settingName, settingValue)
+		return settingValue
+	} else if settingValue, ok := os.LookupEnv(settingName); ok {
+		logger.Infof("%s=%q (env var)", settingName, settingValue)
+		return settingValue
+	}
+	logger.Infof("%s=%q (default)", settingName, defaultValue)
+	return defaultValue
+}

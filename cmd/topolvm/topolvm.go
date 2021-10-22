@@ -45,6 +45,7 @@ var RootCmd = &cobra.Command{
 func init() {
 	RootCmd.PersistentFlags().StringVar(&cluster.LogLevelRaw, "log-level", "INFO", "logging level for logging/tracing output (valid values: CRITICAL,ERROR,WARNING,NOTICE,INFO,DEBUG,TRACE)")
 	RootCmd.Flags().StringVar(&cluster.CSIKubeletRootDir, "csi-kubelet-root-dir", "/var/lib/kubelet/", "csi kubelet root dir")
+	RootCmd.Flags().StringVar(&cluster.EnableDiscoverDevices, "enable-discover-devices", "false", "enable discover devices")
 	RootCmd.Flags().BoolVar(&cluster.IsOperatorHub, "is-operator-hub", true, "is operator or not")
 	RootCmd.Flags().DurationVar(&cluster.CheckStatusInterval, "check-status-interval", 10*time.Second, "check cluster status interval")
 	flags.SetFlagsFromEnv(RootCmd.Flags(), TopolvmEnvVarPrefix)

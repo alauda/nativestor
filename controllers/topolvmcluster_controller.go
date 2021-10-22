@@ -27,7 +27,6 @@ import (
 	"github.com/alauda/topolvm-operator/pkg/operator/discover"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/alauda/topolvm-operator/pkg/operator/monitor"
-	"github.com/alauda/topolvm-operator/pkg/operator/node"
 	"github.com/alauda/topolvm-operator/pkg/operator/psp"
 	"github.com/alauda/topolvm-operator/pkg/operator/volumectr"
 	"github.com/alauda/topolvm-operator/pkg/operator/volumegroup"
@@ -208,7 +207,6 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 	if r.ClusterController.lastCluster == nil {
 		r.stopCh = make(chan struct{})
 		go r.checkClusterStatus()
-		r.ClusterController.StartOperatorSettingsWatch(r.stopCh)
 	}
 
 	// Do reconcile here!
@@ -527,8 +525,8 @@ func (c *ClusterController) onAdd(topolvmCluster *topolvmv1.TopolvmCluster, ref 
 		}
 	}
 
-	if err := c.startDiscoverDaemonset(topolvmCluster, ref, topolvmCluster.Spec.UseLoop); err != nil {
-		return errors.Wrap(err, "start discover daemonset failed")
+	if err := c.checkUpdateDiscoverDaemonset(topolvmCluster); err != nil {
+		return errors.Wrap(err, "check update discover damemonset failed")
 	}
 
 	// Start the main topolvm cluster orchestration
@@ -545,6 +543,49 @@ func (c *ClusterController) onAdd(topolvmCluster *topolvmv1.TopolvmCluster, ref 
 	}
 
 	c.lastCluster = topolvmCluster
+
+	return nil
+
+}
+
+func (c *ClusterController) checkUpdateDiscoverDaemonset(topolvmCluster *topolvmv1.TopolvmCluster) error {
+
+	ctx := context.TODO()
+	daemonset, err := c.context.Clientset.AppsV1().DaemonSets(cluster.NameSpace).Get(ctx, cluster.DiscoverAppName, metav1.GetOptions{})
+	if err != nil && !kerrors.IsNotFound(err) {
+		logger.Errorf("failed to detect daemonset:%s. err:%v", cluster.DiscoverAppName, err)
+		return errors.Wrap(err, "failed to detect daemonset")
+	} else if err == nil {
+		needUpdate := false
+		if daemonset.Spec.Template.Spec.Containers[0].Image != c.operatorImage {
+			length := len(daemonset.Spec.Template.Spec.Containers)
+			for i := 0; i < length; i++ {
+				daemonset.Spec.Template.Spec.Containers[i].Image = c.operatorImage
+			}
+			needUpdate = true
+		}
+		if topolvmCluster.Spec.UseLoop {
+			if _, ok := daemonset.Annotations[cluster.LoopAnnotationsKey]; !ok {
+				needUpdate = true
+				daemonset.Annotations[cluster.LoopAnnotationsKey] = cluster.LoopAnnotationsVal
+				daemonset.Spec.Template.Spec.Containers[0].Env = append(daemonset.Spec.Template.Spec.Containers[0].Env, corev1.EnvVar{Name: cluster.UseLoopEnv, Value: cluster.UseLoop})
+			}
+		}
+
+		if needUpdate {
+			_, err := c.context.Clientset.AppsV1().DaemonSets(daemonset.Namespace).Update(ctx, daemonset, metav1.UpdateOptions{})
+			if err != nil {
+				clusterLogger.Errorf("update discover daemonset image failed err %v", err)
+				return errors.Wrap(err, "update discover daemonset failed")
+			}
+		}
+		clusterLogger.Info("discover daemonset no change need not reconcile")
+		return nil
+	}
+
+	if topolvmCluster.Spec.UseLoop {
+		return discover.MakeDiscoverDevicesDaemonset(c.context.Clientset, cluster.DiscoverAppName, c.operatorImage, topolvmCluster.Spec.UseLoop)
+	}
 
 	return nil
 
@@ -637,35 +678,6 @@ func (c *ClusterController) RestartJob(node string, ref *metav1.OwnerReference) 
 	return volumegroup.MakeAndRunJob(c.context.Clientset, node, c.operatorImage, ref)
 }
 
-func (c *ClusterController) startDiscoverDaemonset(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference, useLoop bool) error {
-
-	ctx := context.TODO()
-	daemonset, err := c.context.Clientset.AppsV1().DaemonSets(cluster.NameSpace).Get(ctx, cluster.DiscoverAppName, metav1.GetOptions{})
-	if err != nil && !kerrors.IsNotFound(err) {
-		logger.Errorf("failed to detect daemonset:%s. err:%v", cluster.DiscoverAppName, err)
-		return errors.Wrap(err, "failed to detect daemonset")
-	} else if err == nil {
-		if daemonset.Spec.Template.Spec.Containers[0].Image == c.operatorImage {
-			clusterLogger.Info("discover daemonset no change need not reconcile")
-			return nil
-		}
-		length := len(daemonset.Spec.Template.Spec.Containers)
-		for i := 0; i < length; i++ {
-			daemonset.Spec.Template.Spec.Containers[i].Image = c.operatorImage
-		}
-		_, err := c.context.Clientset.AppsV1().DaemonSets(daemonset.Namespace).Update(ctx, daemonset, metav1.UpdateOptions{})
-		if err != nil {
-			clusterLogger.Errorf("update discover daemonset image failed err %v", err)
-			return errors.Wrap(err, "update discover daemonset image failed")
-		} else {
-			clusterLogger.Infof("update discover daemonset image to %s", c.operatorImage)
-			return nil
-		}
-	}
-
-	return discover.MakeDiscoverDevicesDaemonset(c.context.Clientset, cluster.DiscoverAppName, c.operatorImage, useLoop, ref)
-}
-
 func (c *ClusterController) startTopolvmControllerDeployment(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference) error {
 
 	ctx := context.TODO()
@@ -700,47 +712,6 @@ func (c *ClusterController) startTopolvmControllerDeployment(topolvmCluster *top
 	}
 
 	return nil
-}
-
-// StartOperatorSettingsWatch starts the operator settings watcher
-func (c *ClusterController) StartOperatorSettingsWatch(stopCh chan struct{}) {
-	k8sutil.StartOperatorSettingsWatch(c.context, cluster.NameSpace, cluster.OperatorSettingConfigMapName,
-		c.operatorConfigChange,
-		func(oldObj, newObj interface{}) {
-			if reflect.DeepEqual(oldObj, newObj) {
-				return
-			}
-			c.operatorConfigChange(newObj)
-		}, nil, stopCh)
-}
-
-func (c *ClusterController) operatorConfigChange(obj interface{}) {
-	cm, ok := obj.(*corev1.ConfigMap)
-	if !ok {
-		clusterLogger.Warningf("Expected ConfigMap but handler received %T. %#v", obj, obj)
-		return
-	}
-
-	clusterLogger.Infof("ConfigMap %q changes detected. Updating configurations", cm.Name)
-
-	c.updateCsiDriver()
-
-}
-
-func (c *ClusterController) updateCsiDriver() error {
-	kubeletRootDir, err := k8sutil.GetOperatorSetting(c.context.Clientset, cluster.OperatorSettingConfigMapName, cluster.KubeletRootPathEnv, cluster.CSIKubeletRootDir)
-	if err != nil {
-		return err
-	}
-
-	if kubeletRootDir != cluster.CSIKubeletRootDir {
-		if err := node.UpdateNodeDeploymentCSIKubeletRootPath(c.context.Clientset, kubeletRootDir); err != nil {
-			clusterLogger.Errorf("updater csi kubelet path failed err:%s", err.Error())
-			return err
-		}
-	}
-	return nil
-
 }
 
 // removeFinalizer removes a finalizer
