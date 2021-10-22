@@ -655,7 +655,7 @@ func checkLoopDevice(executor exec.Executor, disks []topolvmv1.Disk, loops *[]to
 			} else {
 				if !created {
 					vgLogger.Debugf("get loop %s back file", ele.Name)
-					s := topolvmv1.LoopState{Name: ele.Name, Status: cluster.LoopCreateSuccessful}
+					s := topolvmv1.LoopState{Name: ele.Name, Status: cluster.LoopCreateSuccessful, DeviceName: ele.Name}
 					file, err := sys.GetLoopBackFile(executor, ele.Name)
 					if err != nil {
 						vgLogger.Errorf("get loop %s back file failed %v", ele.Name, err)

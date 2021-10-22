@@ -39,7 +39,7 @@ var DiscoverCmd = &cobra.Command{
 }
 
 func init() {
-	DiscoverCmd.Flags().DurationVar(&discoverDevicesInterval, "discover-interval", 60*time.Minute, "interval between discovering devices (default 60m)")
+	DiscoverCmd.Flags().DurationVar(&discoverDevicesInterval, "discover-interval", 60*time.Second, "interval between discovering devices (default 60m)")
 	utilruntime.Must(topolvmv1.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	DiscoverCmd.RunE = discover

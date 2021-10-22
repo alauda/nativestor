@@ -17,6 +17,7 @@ limitations under the License.
 package operator
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
@@ -32,6 +33,7 @@ import (
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 var OperatorCmd = &cobra.Command{
@@ -53,6 +55,10 @@ func addScheme() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = topolvmv1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
+}
+
+var AddToManagerFuncs = []func(manager.Manager, *cluster.Context, context.Context, cluster.OperatorConfig) error{
+	controllers.Add,
 }
 
 func startOperator(cmd *cobra.Command, args []string) error {
@@ -111,8 +117,20 @@ func startOperator(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
+	opctx := context.TODO()
+	config := cluster.OperatorConfig{
+		Image: operatorImage,
+	}
+	for _, f := range AddToManagerFuncs {
+		if err := f(mgr, ctx, opctx, config); err != nil {
+			return err
+		}
+	}
+	if err != nil {
+		logger.Error(err, "problem running manager")
+		os.Exit(1)
+	}
 	// +kubebuilder:scaffold:builder
-
 	logger.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		logger.Error(err, "problem running manager")

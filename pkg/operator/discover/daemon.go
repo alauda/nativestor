@@ -20,6 +20,7 @@ import (
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/pkg/errors"
+	rookutils "github.com/rook/rook/pkg/operator/k8sutil"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -27,16 +28,23 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func MakeDiscoverDevicesDaemonset(clientset kubernetes.Interface, appName string, image string, useLoop bool, reference *metav1.OwnerReference) error {
+func MakeDiscoverDevicesDaemonset(clientset kubernetes.Interface, appName string, image string, useLoop bool) error {
 
-	daemon := getDaemonset(appName, image, useLoop, reference)
+	daemon := getDaemonset(appName, image, useLoop)
+
+	operatorPod, err := k8sutil.GetRunningPod(clientset)
+	if err != nil {
+		logger.Errorf("failed to get operator pod. %+v", err)
+	} else {
+		rookutils.SetOwnerRefsWithoutBlockOwner(&daemon.ObjectMeta, operatorPod.OwnerReferences)
+	}
 	if err := k8sutil.CreateDaemonSet(appName, cluster.NameSpace, clientset, daemon); err != nil {
 		return errors.Wrapf(err, "create daemonset  %s failed", appName)
 	}
 	return nil
 }
 
-func getDaemonset(appName string, image string, useLoop bool, ref *metav1.OwnerReference) *v1.DaemonSet {
+func getDaemonset(appName string, image string, useLoop bool) *v1.DaemonSet {
 
 	var volumes []corev1.Volume
 	devVolume := corev1.Volume{Name: "devices", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: "/dev"}}}
@@ -56,13 +64,6 @@ func getDaemonset(appName string, image string, useLoop bool, ref *metav1.OwnerR
 	runAsUser := int64(0)
 	command := []string{"/topolvm", "discover"}
 
-	var loop corev1.EnvVar
-	if useLoop {
-		loop = corev1.EnvVar{Name: cluster.UseLoopEnv, Value: cluster.UseLoop}
-	} else {
-		loop = corev1.EnvVar{Name: cluster.UseLoopEnv, Value: "0"}
-	}
-
 	resourceRequirements := corev1.ResourceRequirements{
 		Limits: corev1.ResourceList{
 			corev1.ResourceCPU:    resource.MustParse(cluster.TopolvmDiscoverDeviceCPULimit),
@@ -73,12 +74,23 @@ func getDaemonset(appName string, image string, useLoop bool, ref *metav1.OwnerR
 			corev1.ResourceMemory: resource.MustParse(cluster.TopolvmDiscoverDeviceMemRequest),
 		},
 	}
+	env := []corev1.EnvVar{
+		k8sutil.NamespaceEnvVar(),
+		k8sutil.NodeEnvVar(),
+		k8sutil.NameEnvVar(),
+	}
+	annotate := make(map[string]string)
+
+	if useLoop {
+		env = append(env, corev1.EnvVar{Name: cluster.UseLoopEnv, Value: cluster.UseLoop})
+		annotate[cluster.LoopAnnotationsKey] = cluster.LoopAnnotationsVal
+	}
 
 	daemonset := &v1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            appName,
-			Namespace:       cluster.NameSpace,
-			OwnerReferences: []metav1.OwnerReference{*ref},
+			Name:        appName,
+			Namespace:   cluster.NameSpace,
+			Annotations: annotate,
 		},
 		Spec: v1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
@@ -109,12 +121,7 @@ func getDaemonset(appName string, image string, useLoop bool, ref *metav1.OwnerR
 								RunAsUser:  &runAsUser,
 							},
 							VolumeMounts: volumeMount,
-							Env: []corev1.EnvVar{
-								k8sutil.NamespaceEnvVar(),
-								k8sutil.NodeEnvVar(),
-								k8sutil.NameEnvVar(),
-								loop,
-							},
+							Env:          env,
 						},
 					},
 					Volumes:     volumes,

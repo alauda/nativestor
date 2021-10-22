@@ -52,9 +52,7 @@ var (
 	namespace       string
 	cmName          string
 	udevEventPeriod = time.Duration(5) * time.Second
-	cm              *v1.ConfigMap
 	useLoop         bool
-	lastDevice      string
 )
 
 // Monitors udev for block device changes, and collapses these events such that
@@ -230,12 +228,31 @@ func updateDeviceCM(clusterdContext *cluster.Context) error {
 		return err
 	}
 	deviceStr := string(deviceJSON)
-	if cm == nil {
-		cm, err = clusterdContext.Clientset.CoreV1().ConfigMaps(namespace).Get(ctx, cmName, metav1.GetOptions{})
-	}
+	cm, err := clusterdContext.Clientset.CoreV1().ConfigMaps(namespace).Get(ctx, cmName, metav1.GetOptions{})
 	if err == nil {
-		lastDevice = cm.Data[cluster.LocalDiskCMData]
+		lastDevice := cm.Data[cluster.LocalDiskCMData]
 		logger.Debugf("last devices %s", lastDevice)
+		if lastDevice != deviceStr {
+			newcm := cm.DeepCopy()
+			newcm.Data[cluster.LocalDiskCMData] = deviceStr
+			newJSON, err := json.Marshal(*newcm)
+			if err != nil {
+				return err
+			}
+			oldJSON, err := json.Marshal(*cm)
+			if err != nil {
+				return err
+			}
+			patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldJSON, newJSON, v1.ConfigMap{})
+			if err != nil {
+				return err
+			}
+			_, err = clusterdContext.Clientset.CoreV1().ConfigMaps(namespace).Patch(ctx, cm.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
+			if err != nil {
+				logger.Infof("failed to update configmap %s: %v", cmName, err)
+				return err
+			}
+		}
 	} else {
 		if !kerrors.IsNotFound(err) {
 			logger.Infof("failed to get configmap: %v", err)
@@ -258,35 +275,12 @@ func updateDeviceCM(clusterdContext *cluster.Context) error {
 			Data: data,
 		}
 
-		cm, err = clusterdContext.Clientset.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{})
+		_, err = clusterdContext.Clientset.CoreV1().ConfigMaps(namespace).Create(ctx, cm, metav1.CreateOptions{})
 		if err != nil {
 			logger.Infof("failed to create configmap: %v", err)
 			return fmt.Errorf("failed to create local device map %s: %+v", cmName, err)
 		}
-		lastDevice = deviceStr
 		return nil
-	}
-
-	if lastDevice != deviceStr {
-		newcm := cm.DeepCopy()
-		newcm.Data[cluster.LocalDiskCMData] = deviceStr
-		newJSON, err := json.Marshal(*newcm)
-		if err != nil {
-			return err
-		}
-		oldJSON, err := json.Marshal(*cm)
-		if err != nil {
-			return err
-		}
-		patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldJSON, newJSON, v1.ConfigMap{})
-		if err != nil {
-			return err
-		}
-		_, err = clusterdContext.Clientset.CoreV1().ConfigMaps(namespace).Patch(ctx, cm.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
-		if err != nil {
-			logger.Infof("failed to update configmap %s: %v", cmName, err)
-			return err
-		}
 	}
 	return nil
 }
