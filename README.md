@@ -47,29 +47,7 @@ Components
 ### Diagram
 
 A diagram of components and the how they work see below:
-```mermaid
- sequenceDiagram
- User->>Topolvm-operator: Deploy
- Topolvm-operator->>APIServer: watch TopolvmCluster
- Topolvm-operator->>APIServer: watch operator-setting ConfigMap
- User->>APIServer: Crete operator-setting Configmap
- Topolvm-operator->>DiscoverDevices-Daemonset: create
- Note right of DiscoverDevices-Daemonset: discover available devices
- DiscoverDevices-Daemonset--x User: lvmd confimap containe devices
- User->>APIServer: Create TopolvmCluster
- Topolvm-operator->>TopolvmController: create
- Topolvm-operator->>PrepareVolumeGroupJob: create
- opt vg
- PrepareVolumeGroupJob->> host lvm: create volume group base topolvmcsluter info
- end
- PrepareVolumeGroupJob->>APIServer: create lvmd configmap
- Topolvm-operator->>TopolvmNode: create and using configmap mount to topolvmnode
- User->>APIServer: Update TopolvmCluster
- Topolvm-operator->>TopolvmController: update
- Topolvm-operator->>PrepareVolumeGroupJob: update
- PrepareVolumeGroupJob->>APIServer: update lvmd configmap
- Topolvm-operator->>TopolvmNode: update topolvmnode
-```
+![component diagram](./diagram.svg)
 
 ### How components work
 
@@ -81,9 +59,6 @@ A diagram of components and the how they work see below:
 6. `preparevg` Job on specific node check disk that provided in `TopolvmCluster` and create volume group, if volume group created successfully and then create `lvmd ConfigMap` for the node
 7. `ConfigMap controller` finds the new `lvmd ConfigMap` then create `Topolvm-node` Deployment
 8. `TopolvmCluster controller` update `TopolvmCluster` status
-
-
-
 
 Getting started and Documentation
 ---------------
