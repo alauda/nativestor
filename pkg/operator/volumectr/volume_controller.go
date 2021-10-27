@@ -72,7 +72,9 @@ func getDeployment(ref *metav1.OwnerReference) *v1.Deployment {
 	}
 
 	containers := []corev1.Container{*getContorllerContainer(), *getCsiProvisionerContainer(), *getCsiAttacherContainer(), *getCsiResizerContainer(), *getCsiSnapShotterContainer(), *getLivenessProbeContainer()}
-
+	var maxSurge, maxUnavailable intstr.IntOrString
+	maxSurge.IntVal = 1
+	maxUnavailable.IntVal = 1
 	controllerDeployment := &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            cluster.TopolvmControllerDeploymentName,
@@ -84,6 +86,12 @@ func getDeployment(ref *metav1.OwnerReference) *v1.Deployment {
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
 					cluster.AppAttr: cluster.TopolvmControllerDeploymentName,
+				},
+			},
+			Strategy: v1.DeploymentStrategy{
+				RollingUpdate: &v1.RollingUpdateDeployment{
+					MaxSurge:       &maxSurge,
+					MaxUnavailable: &maxUnavailable,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
@@ -99,6 +107,19 @@ func getDeployment(ref *metav1.OwnerReference) *v1.Deployment {
 					ServiceAccountName: cluster.ContollerServiceAccount,
 					Volumes:            volumes,
 					Tolerations:        []corev1.Toleration{{Operator: corev1.TolerationOpExists}},
+					Affinity: &corev1.Affinity{
+						PodAntiAffinity: &corev1.PodAntiAffinity{
+							RequiredDuringSchedulingIgnoredDuringExecution: []corev1.PodAffinityTerm{
+								{
+									LabelSelector: &metav1.LabelSelector{
+										MatchExpressions: []metav1.LabelSelectorRequirement{
+											{Key: cluster.AppAttr, Operator: metav1.LabelSelectorOpIn, Values: []string{cluster.TopolvmControllerDeploymentName}}},
+									},
+									TopologyKey: cluster.TopologKey,
+								},
+							},
+						},
+					},
 				},
 			},
 		},
