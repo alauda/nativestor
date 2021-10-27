@@ -263,13 +263,14 @@ func updateDeviceCM(clusterdContext *cluster.Context) error {
 		data[cluster.LocalDiskCMData] = deviceStr
 
 		// the map doesn't exist yet, create it now
+		annotations := make(map[string]string)
+		annotations[cluster.LvmdAnnotationsNodeKey] = nodeName
 		cm = &v1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      cmName,
 				Namespace: namespace,
 				Labels: map[string]string{
 					cluster.LvmdConfigMapLabelKey: cluster.LvmdConfigMapLabelValue,
-					cluster.NodeAttr:              nodeName,
 				},
 			},
 			Data: data,

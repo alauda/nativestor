@@ -22,6 +22,7 @@ import (
 	"fmt"
 	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
+	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/alauda/topolvm-operator/pkg/operator/node"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
@@ -229,7 +230,7 @@ func (c *ConfigMapController) onDelete(obj interface{}) {
 
 func checkingDeploymentExisting(contextd *cluster.Context, nodeName string) bool {
 
-	deploymentName := cluster.TopolvmNodeDeploymentNamePrefix + nodeName
+	deploymentName := k8sutil.TruncateNodeName(cluster.TopolvmNodeDeploymentFmt, nodeName)
 	existing, err := node.CheckNodeDeploymentIsExisting(contextd.Clientset, deploymentName)
 	if err != nil {
 		return false
@@ -239,7 +240,7 @@ func checkingDeploymentExisting(contextd *cluster.Context, nodeName string) bool
 
 func replaceNodePod(contextd *cluster.Context, nodeName string) {
 
-	deploymentName := cluster.TopolvmNodeDeploymentNamePrefix + nodeName
+	deploymentName := k8sutil.TruncateNodeName(cluster.TopolvmNodeDeploymentFmt, nodeName)
 	ctx := context.TODO()
 	pods, err := contextd.Clientset.CoreV1().Pods(cluster.NameSpace).List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", cluster.AppAttr, deploymentName)})
 	if err != nil {
@@ -254,7 +255,7 @@ func replaceNodePod(contextd *cluster.Context, nodeName string) {
 
 func createNodeDeployment(context *cluster.Context, configmap, nodeName string, ref *metav1.OwnerReference) {
 
-	deploymentName := cluster.TopolvmNodeDeploymentNamePrefix + nodeName
+	deploymentName := k8sutil.TruncateNodeName(cluster.TopolvmNodeDeploymentFmt, nodeName)
 	err := node.CreateReplaceDeployment(context.Clientset, deploymentName, configmap, nodeName, ref)
 	if err != nil {
 		logger.Errorf("create topolvm node deployment %s  failed, err:%v ", deploymentName, err)
@@ -263,7 +264,7 @@ func createNodeDeployment(context *cluster.Context, configmap, nodeName string, 
 
 func getNodeName(cm *v1.ConfigMap) string {
 
-	nodeName, ok := cm.Labels[cluster.NodeAttr]
+	nodeName, ok := cm.GetAnnotations()[cluster.LvmdAnnotationsNodeKey]
 	if !ok {
 		logger.Error("can not get node name")
 		return ""

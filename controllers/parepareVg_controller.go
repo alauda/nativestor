@@ -254,7 +254,6 @@ func (c *PrePareVg) provisionFirst(disks map[string]*sys.LocalDisk, cm *v1.Confi
 				Namespace: c.namespace,
 				Labels: map[string]string{
 					cluster.LvmdConfigMapLabelKey: cluster.LvmdConfigMapLabelValue,
-					cluster.NodeAttr:              c.nodeName,
 				},
 				Annotations: annotations,
 			},

@@ -48,6 +48,7 @@ const (
 	LogLevelEnv                     = "TOPOLVM_LOG_LEVEL"
 	UseLoopEnv                      = "USE_LOOP"
 	TopolvmNodeDeploymentNamePrefix = "topolvm-node-"
+	TopolvmNodeDeploymentFmt        = "topolvm-node-%s"
 	NodeServiceAccount              = "topolvm-node"
 	TopolvmNodeDeploymentLabelName  = "topolvm-node"
 
@@ -121,7 +122,6 @@ const (
 
 	TopolvmCSIDriverName = "topolvm.cybozu.com"
 	CapacityKeyPrefix    = "capacity.topolvm.cybozu.com/"
-	NodeAttr             = "topolvm/node"
 
 	DiscoverDevicesAccount = "topolvm-discover"
 	DiscoverAppName        = "topolvm-discover"
