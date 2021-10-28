@@ -6,6 +6,7 @@ User manual
 - [TopolvmCluster](#topolvmcluster)
 - [StorageClass](#storageclass)
 - [How to make pod be scheduler to specific node](#How-to-make-pod-be-scheduler-to-specific-node)
+- [How to add device to volume group when space is not enough](#How-to-add-device-to-volume-group-when-space-is-not-enough)
 - [How to use block pvc](#How-to-use-block-pvc)
 - [How to use loop device for developing](#How-to-use-loop-device-for-developing)
 - [How to get available devices in your cluster](#How-to-get-available-devices-in-your-cluster)
@@ -94,7 +95,7 @@ spec:
           # node class name
           - className: "hdd"
             # user should specify volume group name , operator will create it
-            volumeGroup: "test"
+            volumeGroup: "hdd"
             # a node must a class should set default, when StorageClass not specific device class name , the default class will be used
             default: true
             # available devices used for creating volume group
@@ -208,6 +209,37 @@ spec:
           persistentVolumeClaim:
             claimName: hello
 
+```
+
+
+How to add device to volume group when space is not enough
+----------
+if specific node available storage space is not enough, you can add device to volume group just edit `TopolvmCluster` instance.  
+
+```yaml
+apiVersion: topolvm.cybozu.com/v2
+kind: TopolvmCluster
+metadata:
+  name: topolvmcluster-sample
+  namespace: topolvm-system
+spec:
+  topolvmVersion: alaudapublic/topolvm:2.0.0
+  storage:
+    useAllNodes: false
+    useAllDevices: false
+    useLoop: false
+    deviceClasses:
+      - nodeName: "192.168.16.98"
+        classes:
+          - className: "hdd"
+            volumeGroup: "hdd"
+            default: true
+            devices:
+              - name: "/dev/sdb"
+                type: "disk"
+              #add new device
+              - name: "/dev/sdc"
+                type: "disk"
 ```
 
 How to use block pvc
