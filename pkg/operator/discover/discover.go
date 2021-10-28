@@ -272,6 +272,7 @@ func updateDeviceCM(clusterdContext *cluster.Context) error {
 				Labels: map[string]string{
 					cluster.LvmdConfigMapLabelKey: cluster.LvmdConfigMapLabelValue,
 				},
+				Annotations: annotations,
 			},
 			Data: data,
 		}
