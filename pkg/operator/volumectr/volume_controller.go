@@ -71,7 +71,7 @@ func getDeployment(ref *metav1.OwnerReference) *v1.Deployment {
 		{Name: "socket-dir", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}},
 	}
 
-	containers := []corev1.Container{*getContorllerContainer(), *getCsiProvisionerContainer(), *getCsiAttacherContainer(), *getCsiResizerContainer(), *getCsiSnapShotterContainer(), *getLivenessProbeContainer()}
+	containers := []corev1.Container{*getContorllerContainer(), *getCsiProvisionerContainer(), *getCsiResizerContainer(), *getCsiSnapShotterContainer(), *getLivenessProbeContainer()}
 	var maxSurge, maxUnavailable intstr.IntOrString
 	maxSurge.IntVal = 1
 	maxUnavailable.IntVal = 1
@@ -185,29 +185,6 @@ func getCsiResizerContainer() *corev1.Container {
 	}
 	return csiResizer
 }
-
-func getCsiAttacherContainer() *corev1.Container {
-
-	command := []string{
-		"/csi-attacher",
-		"--csi-address=/run/topolvm/csi-topolvm.sock",
-		"--leader-election",
-		"--leader-election-namespace=" + cluster.NameSpace,
-	}
-
-	volumeMounts := []corev1.VolumeMount{
-		{Name: "socket-dir", MountPath: "/run/topolvm"},
-	}
-
-	csiAttacher := &corev1.Container{
-		Name:         cluster.TopolvmCsiAttacherContainerName,
-		Image:        cluster.TopolvmImage,
-		Command:      command,
-		VolumeMounts: volumeMounts,
-	}
-	return csiAttacher
-}
-
 func getCsiProvisionerContainer() *corev1.Container {
 
 	command := []string{"/csi-provisioner",
