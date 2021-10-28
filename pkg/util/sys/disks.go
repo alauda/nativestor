@@ -44,13 +44,19 @@ func GetAvailableDevices(dcontext *cluster.Context) (map[string]*LocalDisk, erro
 	for _, device := range disks {
 		// Ignore device with filesystem signature since c-v inventory
 		// cannot detect that correctly
+		if device.Size < uint64(2*(1<<30)) {
+			logger.Infof("skipping device %q because it size less than 1G", device.Name)
+			continue
+		}
+
 		if device.Filesystem != "" {
 			logger.Infof("skipping device %q because it contains a filesystem %q", device.Name, device.Filesystem)
 			continue
-		} else {
-			logger.Debugf("device:%s is available", device.Name)
-			availableDevices[diskPrefix+device.Name] = device
 		}
+
+		logger.Debugf("device:%s is available", device.Name)
+		availableDevices[diskPrefix+device.Name] = device
+
 	}
 
 	return availableDevices, nil
@@ -205,7 +211,6 @@ func supportedDeviceType(device string) bool {
 	return device == DiskType ||
 		device == SSDType ||
 		device == CryptType ||
-		device == LVMType ||
 		device == MultiPath ||
 		device == PartType ||
 		device == LinearType ||
