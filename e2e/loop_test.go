@@ -116,7 +116,7 @@ spec:
 
 			By("checking lvmd classname")
 			for _, cm := range cmList.Items {
-				if cm.Labels[cluster.NodeAttr] == "topolvm-e2e-control-plane" {
+				if cm.GetAnnotations()[cluster.LvmdAnnotationsNodeKey] == "topolvm-e2e-control-plane" {
 					continue
 				}
 				nodeStatus := &topolvmv1.NodeStorageState{}
