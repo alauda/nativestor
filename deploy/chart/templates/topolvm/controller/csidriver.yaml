@@ -5,7 +5,6 @@ metadata:
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 spec:
-  attachRequired: true
   podInfoOnMount: true
   storageCapacity: true
   volumeLifecycleModes:
