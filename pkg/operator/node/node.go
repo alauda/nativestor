@@ -80,6 +80,14 @@ func UpdateNodeDeploymentCSIKubeletRootPath(clientset kubernetes.Interface, path
 		fmt.Sprintf("--kubelet-registration-path=%splugins/topolvm.cybozu.com/node/csi-topolvm.sock", getAbsoluteKubeletPath(path)),
 	}
 
+	mountPropagationMode := corev1.MountPropagationBidirectional
+	volumeMounts := []corev1.VolumeMount{
+		{Name: "node-plugin-dir", MountPath: "/run/topolvm"},
+		{Name: "lvmd-socket-dir", MountPath: "/run/lvmd"},
+		{Name: "pod-volumes-dir", MountPath: fmt.Sprintf("%spods", getAbsoluteKubeletPath(path)), MountPropagation: &mountPropagationMode},
+		{Name: "csi-plugin-dir", MountPath: fmt.Sprintf("%splugins/kubernetes.io/csi", getAbsoluteKubeletPath(path)), MountPropagation: &mountPropagationMode},
+	}
+
 	for i := range d.Items {
 		newDep := d.Items[i].DeepCopy()
 		for j := range newDep.Spec.Template.Spec.Volumes {
@@ -96,8 +104,15 @@ func UpdateNodeDeploymentCSIKubeletRootPath(clientset kubernetes.Interface, path
 		}
 
 		for j := range newDep.Spec.Template.Spec.Containers {
+
 			if newDep.Spec.Template.Spec.Containers[j].Name == cluster.CsiRegistrarContainerName {
 				newDep.Spec.Template.Spec.Containers[j].Command = command
+				continue
+			}
+
+			if newDep.Spec.Template.Spec.Containers[j].Name == cluster.NodeContainerName {
+				newDep.Spec.Template.Spec.Containers[j].VolumeMounts = volumeMounts
+				continue
 			}
 		}
 
@@ -234,8 +249,8 @@ func getNodeContainer() *corev1.Container {
 	volumeMounts := []corev1.VolumeMount{
 		{Name: "node-plugin-dir", MountPath: "/run/topolvm"},
 		{Name: "lvmd-socket-dir", MountPath: "/run/lvmd"},
-		{Name: "pod-volumes-dir", MountPath: "/var/lib/kubelet/pods", MountPropagation: &mountPropagationMode},
-		{Name: "csi-plugin-dir", MountPath: "/var/lib/kubelet/plugins/kubernetes.io/csi", MountPropagation: &mountPropagationMode},
+		{Name: "pod-volumes-dir", MountPath: fmt.Sprintf("%spods", getAbsoluteKubeletPath(cluster.CSIKubeletRootDir)), MountPropagation: &mountPropagationMode},
+		{Name: "csi-plugin-dir", MountPath: fmt.Sprintf("%splugins/kubernetes.io/csi", getAbsoluteKubeletPath(cluster.CSIKubeletRootDir)), MountPropagation: &mountPropagationMode},
 	}
 
 	env := []corev1.EnvVar{
