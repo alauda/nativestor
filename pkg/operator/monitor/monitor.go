@@ -12,12 +12,10 @@ import (
 )
 
 const (
-	serviceMonitorName           = "topolvm-service-monitor"
-	interval                     = "30s"
-	path                         = "/metrics"
-	port                         = "metrics"
-	prometheusRuleClusterLabel   = "alert.cpaas.io/cluster"
-	prometheusRuleNameSpaceLabel = "alert.cpaas.io/namespace"
+	serviceMonitorName = "topolvm-service-monitor"
+	interval           = "30s"
+	path               = "/metrics"
+	port               = "metrics"
 )
 
 func EnableServiceMonitor(ref *metav1.OwnerReference) error {
@@ -50,7 +48,7 @@ func EnableServiceMonitor(ref *metav1.OwnerReference) error {
 	return nil
 }
 
-func CreateOrUpdatePrometheusRule(ref *metav1.OwnerReference, k8sClusterName string) error {
+func CreateOrUpdatePrometheusRule(ref *metav1.OwnerReference) error {
 	var rule monitoringv1.PrometheusRule
 	err := k8sYAML.NewYAMLOrJSONDecoder(bytes.NewBufferString(PrometheusRule), 1000).Decode(&rule)
 	if err != nil {
@@ -58,18 +56,6 @@ func CreateOrUpdatePrometheusRule(ref *metav1.OwnerReference, k8sClusterName str
 	}
 	rule.OwnerReferences = []metav1.OwnerReference{*ref}
 	rule.Namespace = cluster.NameSpace
-	addK8sClusterLable(&rule, k8sClusterName)
 	_, err = k8sutil.CreateOrUpdatePrometheusRule(&rule)
 	return err
-}
-
-func addK8sClusterLable(rule *monitoringv1.PrometheusRule, k8sClusterName string) {
-
-	rule.Labels[prometheusRuleClusterLabel] = k8sClusterName
-	rule.Labels[prometheusRuleNameSpaceLabel] = cluster.NameSpace
-	for i := range rule.Spec.Groups {
-		for j := range rule.Spec.Groups[i].Rules {
-			rule.Spec.Groups[i].Rules[j].Labels["alert_cluster"] = k8sClusterName
-		}
-	}
 }

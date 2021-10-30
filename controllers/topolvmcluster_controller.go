@@ -264,25 +264,11 @@ func (r *TopolvmClusterReconciler) checkClusterStatus() {
 				clusterLogger.Errorf("monitor failed err %s", err.Error())
 			}
 
-			k8sClusterName, err := r.getK8sClusterName()
-			if err != nil {
-				clusterLogger.Error(err.Error())
-			} else {
-				if err := monitor.CreateOrUpdatePrometheusRule(r.getRef(), k8sClusterName); err != nil {
-					clusterLogger.Errorf("create rule failed err %s", err.Error())
-				}
+			if err := monitor.CreateOrUpdatePrometheusRule(r.getRef()); err != nil {
+				clusterLogger.Errorf("create rule failed err %s", err.Error())
 			}
-
 		}
 	}
-}
-
-func (r *TopolvmClusterReconciler) getK8sClusterName() (string, error) {
-	cm, err := r.context.Clientset.CoreV1().ConfigMaps(cluster.K8sClusterNamespace).Get(context.TODO(), cluster.K8sClusterConfigmap, metav1.GetOptions{})
-	if err != nil {
-		return "", errors.Wrap(err, "get k8s cluster info configmap failed")
-	}
-	return cm.Data["clusterName"], nil
 }
 
 func (r *TopolvmClusterReconciler) checkStatus() {
