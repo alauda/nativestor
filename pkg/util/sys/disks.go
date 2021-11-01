@@ -45,7 +45,7 @@ func GetAvailableDevices(dcontext *cluster.Context) (map[string]*LocalDisk, erro
 		// Ignore device with filesystem signature since c-v inventory
 		// cannot detect that correctly
 		if device.Size < uint64(2*(1<<30)) {
-			logger.Infof("skipping device %q because it size less than 1G", device.Name)
+			logger.Infof("skipping device %q because it size less than 2G", device.Name)
 			continue
 		}
 
