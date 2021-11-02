@@ -42,6 +42,7 @@ const (
 
 	NodeNameEnv                     = "NODE_NAME"
 	ClusterNameEnv                  = "CLUSTER_NAME"
+	NameSpaceEnv                    = "NAMESPACE"
 	PodNameSpaceEnv                 = "POD_NAMESPACE"
 	ConversionCertFileEnv           = "CONVERSION_TLS_CERT_FILE"
 	ConversionKeyFileEnv            = "CONVERSION_TLS_KEY_FILE"
