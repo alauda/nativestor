@@ -64,7 +64,7 @@ podSecurityPolicy:
 cluster:
   create: false
   name: topolvmcluster-sample
-  topolvmVersion:  alaudapublic/topolvm:2.0.0
+  topolvmVersion:  quay.io/topolvm/topolvm-with-sidecar:0.10
   storage:
     useAllNodes: true
     useAllDevices: false
