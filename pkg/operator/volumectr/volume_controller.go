@@ -69,9 +69,11 @@ func getDeployment(ref *metav1.OwnerReference) *v1.Deployment {
 
 	volumes := []corev1.Volume{
 		{Name: "socket-dir", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}},
+		{Name: "certs", VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: "mutatingwebhook"}}},
 	}
 
-	containers := []corev1.Container{*getContorllerContainer(), *getCsiProvisionerContainer(), *getCsiResizerContainer(), *getLivenessProbeContainer()}
+	containers := []corev1.Container{*getControllerContainer(), *getCsiProvisionerContainer(), *getCsiResizerContainer(), *getLivenessProbeContainer()}
+
 	var maxSurge, maxUnavailable intstr.IntOrString
 	maxSurge.IntVal = 1
 	maxUnavailable.IntVal = 1
@@ -128,7 +130,7 @@ func getDeployment(ref *metav1.OwnerReference) *v1.Deployment {
 
 }
 
-func getContorllerContainer() *corev1.Container {
+func getControllerContainer() *corev1.Container {
 
 	command := []string{
 		"/topolvm-controller",
@@ -148,6 +150,7 @@ func getContorllerContainer() *corev1.Container {
 
 	volumeMounts := []corev1.VolumeMount{
 		{Name: "socket-dir", MountPath: "/run/topolvm"},
+		{Name: "certs", MountPath: "/certs"},
 	}
 
 	controller := &corev1.Container{
@@ -215,9 +218,10 @@ func getCsiProvisionerContainer() *corev1.Container {
 	env := []corev1.EnvVar{
 		{Name: cluster.PodNameSpaceEnv, ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
 		{Name: cluster.PodNameEnv, ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.name"}}},
+		{Name: cluster.NameSpaceEnv, ValueFrom: &corev1.EnvVarSource{FieldRef: &corev1.ObjectFieldSelector{FieldPath: "metadata.namespace"}}},
 	}
 
-	csiProvisoiner := &corev1.Container{
+	csiProvisioner := &corev1.Container{
 		Name:         cluster.TopolvmCsiProvisionerContainerName,
 		Image:        cluster.TopolvmImage,
 		Command:      command,
@@ -225,7 +229,7 @@ func getCsiProvisionerContainer() *corev1.Container {
 		VolumeMounts: volumeMounts,
 		Env:          env,
 	}
-	return csiProvisoiner
+	return csiProvisioner
 }
 
 func getLivenessProbeContainer() *corev1.Container {
