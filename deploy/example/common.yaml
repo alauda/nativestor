@@ -218,6 +218,7 @@ kind: CSIDriver
 metadata:
   name: topolvm.cybozu.com
 spec:
+  attachRequired: false
   podInfoOnMount: true
   storageCapacity: true
   volumeLifecycleModes:
