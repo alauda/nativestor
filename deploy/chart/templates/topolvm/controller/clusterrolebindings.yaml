@@ -33,23 +33,6 @@ roleRef:
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: {{ .Release.Namespace }}-csi-attacher-role
-  labels:
-    {{- include "topolvm-operator.labels" . | nindent 4 }}
-subjects:
-  - kind: ServiceAccount
-    namespace: topolvm-system
-    name: topolvm-controller
-roleRef:
-  kind: ClusterRole
-  name: external-attacher-runner
-  apiGroup: rbac.authorization.k8s.io
-
----
-
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
   name: {{ .Release.Namespace }}-csi-resizer-role
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}

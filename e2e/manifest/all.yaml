@@ -399,21 +399,6 @@ roleRef:
   name: external-provisioner-runner
 
 ---
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: csi-attacher-role
-
-subjects:
-  - kind: ServiceAccount
-    namespace: topolvm-system
-    name: topolvm-controller
-roleRef:
-  kind: ClusterRole
-  name: external-attacher-runner
-  apiGroup: rbac.authorization.k8s.io
-
----
 
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -488,24 +473,6 @@ rules:
   - apiGroups: [""]
     resources: ["nodes"]
     verbs: ["get", "list", "watch"]
----
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: external-attacher-runner
-rules:
-  - apiGroups: [""]
-    resources: ["persistentvolumes"]
-    verbs: ["get", "list", "watch", "update", "patch"]
-  - apiGroups: [""]
-    resources: ["nodes"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["storage.k8s.io"]
-    resources: ["csinodes"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: ["storage.k8s.io"]
-    resources: ["volumeattachments", "volumeattachments/status"]
-    verbs: ["get", "list", "watch", "update", "patch"]
 
 ---
 
@@ -534,7 +501,7 @@ kind: CSIDriver
 metadata:
   name: topolvm.cybozu.com
 spec:
-  attachRequired: true
+  attachRequired: false
   podInfoOnMount: true
   storageCapacity: true
   volumeLifecycleModes:
@@ -576,22 +543,6 @@ roleRef:
 kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: csi-attacher-role-cfg
-  namespace: topolvm-system
-subjects:
-  - kind: ServiceAccount
-    name: topolvm-controller
-    namespace: topolvm-system
-roleRef:
-  kind: Role
-  name: external-attacher-cfg
-  apiGroup: rbac.authorization.k8s.io
-
----
-
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
   name: csi-resizer-role-cfg
   namespace: topolvm-system
 subjects:
@@ -625,18 +576,6 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: external-provisioner-cfg
-  namespace: topolvm-system
-rules:
-  - apiGroups: ["coordination.k8s.io"]
-    resources: ["leases"]
-    verbs: ["get", "watch", "list", "delete", "update", "create"]
-
----
-
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: external-attacher-cfg
   namespace: topolvm-system
 rules:
   - apiGroups: ["coordination.k8s.io"]

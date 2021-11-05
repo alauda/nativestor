@@ -35,7 +35,7 @@ func CheckTopolvmCsiDriverExisting(clientset kubernetes.Interface, ref *metav1.O
 		return nil
 	}
 
-	attachRequired := true
+	attachRequired := false
 	podInfoOnMount := true
 	storageCapacity := true
 	csiDriver := &storagev1.CSIDriver{
