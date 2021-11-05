@@ -4,7 +4,7 @@ metadata:
   name: topolvmcluster-sample
   namespace: topolvm-system
 spec:
-  topolvmVersion: alaudapublic/topolvm:2.0.0
+  topolvmVersion: quay.io/topolvm/topolvm-with-sidecar:0.10
   storage:
     useAllNodes: false
     useAllDevices: false
