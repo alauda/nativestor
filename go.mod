@@ -10,6 +10,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.14.0
+	github.com/openshift/api v0.0.0-20190322043348-8741ff068a47
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring v0.50.0
 	github.com/prometheus-operator/prometheus-operator/pkg/client v0.50.0
