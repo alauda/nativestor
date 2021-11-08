@@ -1,7 +1,6 @@
 name: Main
 on:
   pull_request:
-  push:
     branches:
       - 'main'
       - 'origin-topolvm'
