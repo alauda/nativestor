@@ -96,11 +96,11 @@ func testNode() {
 						fmt.Printf("the number of pod is not equal to 1: %d", len(pods.Items))
 						return fmt.Errorf("the number of pod is not equal to 1: %d", len(pods.Items))
 					}
-					if pods.Items[0].Status.Phase != corev1.PodRunning {
+					err = checkPodReady(&pods.Items[0])
+					if err != nil {
 						fmt.Printf("the node pod status %s", pods.Items[0].Status.Phase)
 						return fmt.Errorf("the node pod status %s", pods.Items[0].Status.Phase)
 					}
-
 				}
 				Expect(ok).To(Equal(true), "capacity is not annotated: "+node.Name)
 			}
