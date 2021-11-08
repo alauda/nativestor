@@ -73,20 +73,23 @@ func testCsiStorageCapacity() {
 			"topolvm-provisioner2": nil,
 			"topolvm-provisioner3": nil,
 		}
-
 		var csiStorageCapacities v1alpha1.CSIStorageCapacityList
+
 		Eventually(func() error {
+			By("checking csi storage capacity num")
+			var csiStorageCapacitiesTemp v1alpha1.CSIStorageCapacityList
 			stdout, stderr, err := kubectl("get", "-n", "topolvm-system", "csistoragecapacities", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, stdout, stderr)
 			}
-			err = json.Unmarshal(stdout, &csiStorageCapacities)
+			err = json.Unmarshal(stdout, &csiStorageCapacitiesTemp)
 			if err != nil {
 				return err
 			}
-			if len(csiStorageCapacities.Items) != 3 {
+			if len(csiStorageCapacitiesTemp.Items) != 3 {
 				return fmt.Errorf("csi storagecapacity num:%d should be %d", len(csiStorageCapacities.Items), 3)
 			}
+			csiStorageCapacities = csiStorageCapacitiesTemp
 			return nil
 		}).Should(Succeed())
 
@@ -206,7 +209,7 @@ spec:
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Eventually(func() error {
-
+			By("checking csi storagecapacity free space")
 			stdout, stderr, err := kubectl("get", "pvc", "pvc-test", "-o=template", "--template={{.status.phase}}")
 			if err != nil {
 				return fmt.Errorf("failed to get pvc. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
