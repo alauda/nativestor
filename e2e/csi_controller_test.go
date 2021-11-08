@@ -25,7 +25,8 @@ func testCSIController() {
 				return fmt.Errorf(" topolvm controller pod should be 2 but %d \n", len(pods.Items))
 			}
 			for _, ele := range pods.Items {
-				if ele.Status.Phase != corev1.PodRunning {
+				err = checkPodReady(&ele)
+				if err != nil {
 					fmt.Printf("the node pod status %s", pods.Items[0].Status.Phase)
 					return fmt.Errorf("the node pod status %s", pods.Items[0].Status.Phase)
 				}
