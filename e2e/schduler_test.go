@@ -117,7 +117,14 @@ spec:
 				}
 				phase := strings.TrimSpace(string(stdout))
 				if phase != "Bound" {
-					return fmt.Errorf("pvc %s is not bind", "pvc-"+key)
+					eventMessages := ""
+					stdout, stderr, err := kubectl("-n", ns, "get", "events", "--field-selector=involvedObject.name=pvc-"+key, "-o=jsonpath='{.items[*].message}'")
+					if err != nil {
+						eventMessages = fmt.Sprintf("failed to get pvc events. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+					} else {
+						eventMessages = strings.TrimSpace(string(stdout))
+					}
+					return fmt.Errorf("pvc %s is not bind. Event messages: %s", "pvc-"+key, eventMessages)
 				}
 				return nil
 			}).Should(Succeed())
