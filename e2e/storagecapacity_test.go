@@ -68,18 +68,27 @@ func testCsiStorageCapacity() {
 
 	It("should csistoragecapacities create and update", func() {
 
-		stdout, stderr, err := kubectl("get", "-n", "topolvm-system", "csistoragecapacities", "-o=json")
-		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
-		var csiStorageCapacities v1alpha1.CSIStorageCapacityList
-		err = json.Unmarshal(stdout, &csiStorageCapacities)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(len(csiStorageCapacities.Items)).To(Equal(3))
-
 		csiStorageCapacitiesMap := map[string]*resource.Quantity{
 			"topolvm-provisioner1": nil,
 			"topolvm-provisioner2": nil,
 			"topolvm-provisioner3": nil,
 		}
+
+		var csiStorageCapacities v1alpha1.CSIStorageCapacityList
+		Eventually(func() error {
+			stdout, stderr, err := kubectl("get", "-n", "topolvm-system", "csistoragecapacities", "-o=json")
+			if err != nil {
+				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, stdout, stderr)
+			}
+			err = json.Unmarshal(stdout, &csiStorageCapacities)
+			if err != nil {
+				return err
+			}
+			if len(csiStorageCapacities.Items) != 3 {
+				return fmt.Errorf("csi storagecapacity num:%d should be %d", len(csiStorageCapacities.Items), 3)
+			}
+			return nil
+		}).Should(Succeed())
 
 		var updateTestName string
 
@@ -94,7 +103,7 @@ func testCsiStorageCapacity() {
 			csiStorageCapacitiesMap[s.StorageClassName] = s.Capacity
 		}
 
-		stdout, stderr, err = kubectl("get", "-n", "topolvm-system", "topolvmcluster", "topolvmcluster-sample", "-o=json")
+		stdout, stderr, err := kubectl("get", "-n", "topolvm-system", "topolvmcluster", "topolvmcluster-sample", "-o=json")
 		Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 		var topolvmCluster v2.TopolvmCluster
 		err = json.Unmarshal(stdout, &topolvmCluster)
