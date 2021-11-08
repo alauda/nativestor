@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/api/storage/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -152,5 +153,21 @@ func waitCreatingDefaultSA(ns string) error {
 	if err != nil {
 		return fmt.Errorf("default sa is not found. stdout=%s, stderr=%s, err=%v", stdout, stderr, err)
 	}
+	return nil
+}
+
+func checkPodReady(pod *corev1.Pod) error {
+	podReady := false
+	for _, cond := range pod.Status.Conditions {
+		fmt.Fprintln(GinkgoWriter, cond)
+		if cond.Type == corev1.PodReady && cond.Status == corev1.ConditionTrue {
+			podReady = true
+			break
+		}
+	}
+	if !podReady {
+		return errors.New("pod is not yet ready")
+	}
+
 	return nil
 }
