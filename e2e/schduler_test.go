@@ -17,9 +17,11 @@ limitations under the License.
 package e2e
 
 import (
+	"encoding/json"
 	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"k8s.io/api/storage/v1alpha1"
 	"strings"
 )
 
@@ -91,6 +93,23 @@ spec:
 			"test-pod2": "topolvm-e2e-worker2",
 			"test-pod3": "topolvm-e2e-worker3",
 		}
+
+		Eventually(func() error {
+			By("checking csi storage capacity num")
+			var csiStorageCapacitiesTemp v1alpha1.CSIStorageCapacityList
+			stdout, stderr, err := kubectl("get", "-n", "topolvm-system", "csistoragecapacities", "-o=json")
+			if err != nil {
+				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, stdout, stderr)
+			}
+			err = json.Unmarshal(stdout, &csiStorageCapacitiesTemp)
+			if err != nil {
+				return err
+			}
+			if len(csiStorageCapacitiesTemp.Items) < 3 {
+				return fmt.Errorf("csi storagecapacity num:%d should more than %d", len(csiStorageCapacitiesTemp.Items), 3)
+			}
+			return nil
+		}).Should(Succeed())
 
 		for key, val := range storageClassPodMap {
 
