@@ -1,9 +1,6 @@
 apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
-  labels:
-    operatorframework.io/arch.amd64: supported
-    operatorframework.io/arch.arm64: supported
   annotations:
     alm-examples: |-
       [
@@ -15,7 +12,7 @@ metadata:
               "namespace": "operators"
             },
             "spec": {
-              "topolvmVersion": "build-harbor.alauda.cn/acp/topolvm:v3.6-13-g8b3d6e0",
+              "topolvmVersion": "docker.io/alaudapublic/topolvm:2.0.0",
               "storage": {
                 "useAllNodes": false,
                 "useAllDevices": false,
@@ -40,14 +37,24 @@ metadata:
                 ]
               }
             }
+          },
+          {
+            "apiVersion": "topolvm.cybozu.com/v1",
+            "kind": "LogicalVolume",
+            "metadata": {
+              "name": "example-logicalvolume"
+            },
+            "spec": {}
           }
       ]
     capabilities: Basic Install
     categories: Storage
     certified: 'false'
-    containerImage: "build-harbor.alauda.cn/acp/topolvm-operator:feat-conversion.2107301117"
-    description: "topolvm 是一个轻量高性能的本地存储服务"
-    olm.skipRange: ">=1.0.0 <2.0.0"
+    containerImage: docker.io/alaudapublic/topolvm-operator:2.0.0
+    createdAt: 2021-05-12T10-00-00Z
+    repository: https://github.com/alauda/topolvm-operator
+    support: alauda
+    description: "TopoLVM is a CSI plugin using LVM for Kubernetes. The Topolvm operator manages full lifecycle of using topolvm in Kubernetes-enabled cloud environment."
   name: topolvm-operator.v2.0.0
 spec:
   customresourcedefinitions:
@@ -56,46 +63,44 @@ spec:
         displayName: TopolvmCluster
         kind: TopolvmCluster
         name: topolvmclusters.topolvm.cybozu.com
-        specDescriptors: [ ]
+        specDescriptors: []
         statusDescriptors: []
         version: v2
-      - description: TopolvmCluster
-        displayName: TopolvmCluster
-        kind: TopolvmCluster
-        name: topolvmclusters.topolvm.cybozu.com
-        specDescriptors: [ ]
-        statusDescriptors: [ ]
-        version: v1
       - description: LogicalVolume
         displayName: LogicalVolume
         kind: LogicalVolume
         name: logicalvolumes.topolvm.cybozu.com
-        specDescriptors: [ ]
-        statusDescriptors: [ ]
+        specDescriptors: []
+        statusDescriptors: []
         version: v1
     required: []
   description: >+
-    ## Topolvm Operator
 
-    ### 介绍
+    [TopoLVM](https://github.com/topolvm/topolvm) provide kubernetes local storage which is light weight and high performance.
 
-    Topolvm 是一个基于lvm实现的轻量高性能的本地存储服务.
+    [Topolvm Operator](https://github.com/alauda/topolvm-operator) manages full lifecycle of using topolvm in Kubernetes-enabled cloud environment.
 
-    Topolvm Operator 是一款全自动部署管理topolvm实例的部署架构.
+    ### Supported Features
 
-    ### 支持的功能
+    * **Dynamic provisioning** - Volumes are created dynamically when PersistentVolumeClaim objects are created.
 
-    - topolvm 全自动部署
+    * **Raw block volume** - Volumes are available as block devices inside containers.
 
-    - 自动创建volume group
+    * **Ephemeral inline volume** - Volumes can be directly embedded in the Pod specification.
 
-    - volume group 动态扩容
+    * **Volume Expansion** - Volumes can be expanded by editing PersistentVolumeClaim objects.
 
-    - 存储拓扑感知
+    * **Volume group Expansion** - Volume group can be expanded by updating Custom Resource.
 
-    - 存储卷配额限制
+    * **Topology Perception** - Pod and PVC can be scheduled to node which has free storage.
 
-    - pvc动态扩容
+    * **Volume capacity limit** - The volume capacity can be limited.
+
+    * **Auto device discover** - auto discover available devices on each node.
+
+    * **Stripe** - Use stripe to improve performance.
+
+    * **Metric and Alarm** - prometheus metric and alarm.
 
   displayName: Topolvm Operator
   icon:
@@ -127,7 +132,7 @@ spec:
                             fieldPath: metadata.namespace
                       - name: IS_OPERATOR_HUB
                         value: "1"
-                    image: build-harbor.alauda.cn/acp/topolvm-operator:@TOPOLVM_OPERATOR_VERSION@
+                    image: docker.io/alaudapublic/topolvm-operator:2.1.0
                     command:
                       - /topolvm
                     args:
@@ -142,38 +147,6 @@ spec:
                     imagePullPolicy: IfNotPresent
                     name: topolvm-operator
                 serviceAccountName: topolvm-operator
-        - name: topolvm-operator-webhook
-          spec:
-            replicas: 1
-            selector:
-              matchLabels: { name: topolvm-operator-webhook }
-            template:
-              metadata:
-                labels: { name: topolvm-operator-webhook }
-              spec:
-                containers:
-                  - env:
-                      - name: CONVERSION_TLS_CERT_FILE
-                        value: /apiserver.local.config/certificates/apiserver.crt
-                      - name: CONVERSION_TLS_KEY_FILE
-                        value: /apiserver.local.config/certificates/apiserver.key
-                    image: build-harbor.alauda.cn/acp/topolvm-operator:@TOPOLVM_OPERATOR_VERSION@
-                    command:
-                      - /topolvm
-                    args:
-                      - conversion
-                    ports:
-                      - containerPort: 443
-                        name: https
-                    resources:
-                      limits:
-                        cpu: 100m
-                        memory: 150Mi
-                      requests:
-                        cpu: 100m
-                        memory: 150Mi
-                    imagePullPolicy: IfNotPresent
-                    name: topolvm-operator-webhook
       permissions:
         - rules:
             - apiGroups:
@@ -535,37 +508,18 @@ spec:
     - {supported: false, type: SingleNamespace}
     - {supported: false, type: MultiNamespace}
     - {supported: true, type: AllNamespaces}
-  webhookdefinitions:
-    - type: ConversionWebhook
-      admissionReviewVersions:
-        - v1
-        - v2
-      containerPort: 443
-      targetPort: 443
-      deploymentName: topolvm-operator-webhook
-      generateName: cwebhook.cybozu.com
-      sideEffects: None
-      webhookPath: /crdconvert
-      conversionCRDs:
-        - topolvmclusters.topolvm.cybozu.com
   keywords: [LocalStorage, Kubernetes, Topolvm, Storage]
   labels: {}
   links:
     - {name: Topolvm, url: 'https://github.com/alauda/topolvm'}
     - {name: Topolvm-operator, url: 'https://github.com/alauda/topolvm-operator'}
   maintainers:
-    - {email: xrluo@alauda.io, name: 罗小仁}
+    - {email: xrluo@alauda.io, name: xiaorenluo}
   maturity: alpha
   minKubeVersion: 1.19.0
-  provider: {name: "platform"}
+  provider: {name: "alauda"}
   selector:
     matchLabels: {}
   skips: []
   version: 2.0.0
-  relatedImages:
-    - name: topolvm-operator
-      image: build-harbor.alauda.cn/acp/topolvm-operator:@TOPOLVM_OPERATOR_VERSION@
-    - name: topolvm-v1
-      image: build-harbor.alauda.cn/acp/topolvm:v3.6-13-g8b3d6e0
-
 
