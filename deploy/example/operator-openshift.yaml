@@ -1,0 +1,75 @@
+# scc for the topolvm deployment and daemonsets
+kind: SecurityContextConstraints
+apiVersion: security.openshift.io/v1
+metadata:
+  name: topolvm
+allowPrivilegedContainer: true
+allowHostDirVolumePlugin: true
+priority:
+allowHostNetwork: false
+allowHostPorts: false
+allowedCapabilities: []
+allowHostPID: true
+allowHostIPC: true
+readOnlyRootFilesystem: false
+requiredDropCapabilities: []
+defaultAddCapabilities: []
+runAsUser:
+  type: RunAsAny
+seLinuxContext:
+  type: MustRunAs
+fsGroup:
+  type: MustRunAs
+supplementalGroups:
+  type: RunAsAny
+volumes:
+  - configMap
+  - emptyDir
+  - hostPath
+  - secret
+users:
+  - system:serviceaccount:topolvm-system:topolvm-node
+  - system:serviceaccount:topolvm-system:topolvm-discover
+  - system:serviceaccount:topolvm-system:topolvm-preparevg
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: topolvm-operator
+  namespace: topolvm-system
+  labels:
+    operator: topolvm
+spec:
+  selector:
+    matchLabels:
+      app: topolvm-operator
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: topolvm-operator
+    spec:
+      serviceAccountName: topolvm-operator
+      containers:
+        - name: topolvm-operator
+          # set the stable version
+          image: alaudapublic/topolvm-operator:2.1.0
+          command:
+            - /topolvm
+          args:
+            - operator
+          env:
+            - name: TOPOLVM_LOG_LEVEL
+              value: "DEBUG"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: IS_OPERATOR_HUB
+              value: "0"

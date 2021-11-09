@@ -14,8 +14,29 @@ GINKGO := $(BINDIR)/ginkgo
 PACKAGES := unzip lvm2 xfsprogs
 
 
+ifeq ($(TEST_KUBERNETES_TARGET),current)
+TEST_KUBERNETES_VERSION=1.21
+else ifeq ($(TEST_KUBERNETES_TARGET),prev)
+TEST_KUBERNETES_VERSION=1.20
+else ifeq ($(TEST_KUBERNETES_TARGET),prev2)
+TEST_KUBERNETES_VERSION=1.19
+endif
+
+
+export TEST_KUBERNETES_VERSION
+
+
+
+ifeq ($(TEST_KUBERNETES_VERSION),1.21)
 KUBERNETES_VERSION=1.21.2
 KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
+else ifeq ($(TEST_KUBERNETES_VERSION),1.20)
+KUBERNETES_VERSION=1.20.7
+KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
+else ifeq ($(TEST_KUBERNETES_VERSION),1.19)
+KUBERNETES_VERSION=1.19.7
+KUBEADM_APIVERSION=kubeadm.k8s.io/v1beta2
+endif
 
 
 GO_FILES := $(shell find .. -path ../vendor -prune -o -path ../e2e -prune -o -name '*.go' -print)
