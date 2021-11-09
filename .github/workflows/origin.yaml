@@ -1,11 +1,11 @@
-name: Main
+name: Origin
 on:
   pull_request:
     branches:
-      - 'main'
+      - 'origin-topolvm'
 jobs:
-  build:
-    name: build
+  origin-build:
+    name: origin-build
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -17,12 +17,12 @@ jobs:
       - run: make build
       - run: make test
       - run: make image
-  e2e-k8s:
-    name: e2e-k8s
+  origin-e2e-k8s:
+    name: origin-e2e-k8s
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        test_kubernetes_target: [prev, prev2]
+        test_kubernetes_target: [current]
     env:
       TEST_KUBERNETES_TARGET: ${{ matrix.test_kubernetes_target }}
     steps:

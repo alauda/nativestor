@@ -89,7 +89,7 @@ var _ = BeforeSuite(func() {
 	Eventually(waitKindnet).Should(Succeed())
 	time.Sleep(2 * time.Second)
 	Eventually(waitKindnet).Should(Succeed())
-	SetDefaultEventuallyTimeout(30 * time.Minute)
+	SetDefaultEventuallyTimeout(5 * time.Minute)
 
 	podYAML := `apiVersion: v1
 kind: Pod
@@ -138,7 +138,6 @@ var _ = Describe("TopoLVM", func() {
 	Context("preparevg", testPrepareVg)
 	Context("topolvm-controller", testCSIController)
 	Context("topolvm-node", testNode)
-	Context("storagecapacity", testCsiStorageCapacity)
 	Context("scheduler", testScheduler)
 	Context("create-loop", testLoop)
 	Context("discover", testDiscover)
