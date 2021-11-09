@@ -17,9 +17,11 @@ limitations under the License.
 package e2e
 
 import (
+	"encoding/json"
 	"fmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	"strings"
 )
 
@@ -105,6 +107,14 @@ spec:
 			_, _, err = kubectlWithInput([]byte(pod1), "-n", ns, "apply", "-f", "-")
 			Expect(err).ShouldNot(HaveOccurred())
 
+		}
+
+		stdout, _, err := kubectl("get", "node", "-o", "json")
+		Expect(err).ShouldNot(HaveOccurred())
+		var nodes corev1.NodeList
+		json.Unmarshal(stdout, &nodes)
+		for index, ele := range nodes.Items {
+			fmt.Printf("node %d name %s", index, ele.Name)
 		}
 
 		for key, val := range storageClassPodMap {
