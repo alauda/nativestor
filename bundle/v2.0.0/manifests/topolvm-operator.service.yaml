@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: topolvm-node
+  name: topolvm-node-metric
   labels:
     app.kubernetes.io/compose: metrics
 spec:
