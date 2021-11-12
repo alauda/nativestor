@@ -55,7 +55,7 @@ spec:
       containers:
         - name: topolvm-operator
           # set the stable version
-          image: alaudapublic/topolvm-operator:2.1.0
+          image: alaudapublic/topolvm-operator:2.2.0
           command:
             - /topolvm
           args:
