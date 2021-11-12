@@ -1,36 +1,34 @@
-kind: RoleBinding
+kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: topolvm-operator
-  namespace: topolvm-system
+  name: {{ .Release.Namespace }}-global
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: topolvm-operator
+  kind: ClusterRole
+  name: {{ .Release.Namespace }}-global
 subjects:
   - kind: ServiceAccount
     name: topolvm-operator
-    namespace: topolvm-system
+    namespace: {{ .Release.Namespace }}
 
 ---
 
-kind: RoleBinding
+kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: topolvm-preparevg
-  namespace: topolvm-system
+  name: {{ .Release.Namespace }}-preparevg
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: topolvm-preparevg
+  kind: ClusterRole
+  name: {{ .Release.Namespace }}-preparevg
 subjects:
   - kind: ServiceAccount
     name: topolvm-preparevg
-    namespace: topolvm-system
+    namespace: {{ .Release.Namespace }}
   - kind: ServiceAccount
     name: topolvm-discover
-    namespace: topolvm-system
+    namespace: {{ .Release.Namespace }}

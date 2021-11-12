@@ -6,7 +6,7 @@ metadata:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 subjects:
   - kind: ServiceAccount
-    namespace: topolvm-system
+    namespace: {{ .Release.Namespace }}
     name: topolvm-controller
 roleRef:
   apiGroup: rbac.authorization.k8s.io
@@ -21,7 +21,7 @@ metadata:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 subjects:
   - kind: ServiceAccount
-    namespace: topolvm-system
+    namespace: {{ .Release.Namespace }}
     name: topolvm-controller
 roleRef:
   kind: ClusterRole
@@ -38,7 +38,7 @@ metadata:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 subjects:
   - kind: ServiceAccount
-    namespace: topolvm-system
+    namespace: {{ .Release.Namespace }}
     name: topolvm-controller
 roleRef:
   kind: ClusterRole
@@ -55,7 +55,7 @@ metadata:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 subjects:
   - kind: ServiceAccount
-    namespace: topolvm-system
+    namespace: {{ .Release.Namespace }}
     name: topolvm-controller
 roleRef:
   kind: ClusterRole
@@ -71,7 +71,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: topolvm-controller
-    namespace: topolvm-system
+    namespace: {{ .Release.Namespace }}
 roleRef:
   kind: ClusterRole
   name: external-snapshotter-runner
