@@ -2,7 +2,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: topolvm-operator
-  namespace: topolvm-system
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 rules:
@@ -56,7 +55,6 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: topolvm-preparevg
-  namespace: topolvm-system
   labels:
     {{- include "topolvm-operator.labels" . | nindent 4 }}
 rules:
