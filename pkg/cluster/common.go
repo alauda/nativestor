@@ -114,7 +114,7 @@ const (
 	TopolvmPrepareVgCPULimit   = "100m"
 
 	PrepareVgServiceAccount = "topolvm-preparevg"
-	PrePareVgAppName        = "prepareVolumeGroup"
+	PrePareVgAppName        = "prepare-volume-group"
 	PrepareVgJobFmt         = "topolvm-prepare-vg-%s"
 	PrePareVgContainerName  = "preparevg"
 	PrePareVgJobLogLevel    = "DEBUG"

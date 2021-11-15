@@ -136,7 +136,6 @@ func provisionPodTemplateSpec(nodeName string, image string, restart v1.RestartP
 		NodeSelector:  map[string]string{v1.LabelHostname: nodeName},
 		RestartPolicy: restart,
 		Volumes:       volumes,
-		NodeName:      nodeName,
 		HostIPC:       true,
 		HostPID:       true,
 	}
