@@ -148,11 +148,10 @@ func getDeployment(appName string, nodeName string, congfigmap string, ref *meta
 		{Name: "node-plugin-dir", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: fmt.Sprintf("%splugins/topolvm.cybozu.com/node", getAbsoluteKubeletPath(cluster.CSIKubeletRootDir)), Type: &hostPathDirectoryOrCreateType}}},
 		{Name: "csi-plugin-dir", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: fmt.Sprintf("%splugins/kubernetes.io/csi", getAbsoluteKubeletPath(cluster.CSIKubeletRootDir)), Type: &hostPathDirectoryOrCreateType}}},
 		{Name: "pod-volumes-dir", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: fmt.Sprintf("%spods/", getAbsoluteKubeletPath(cluster.CSIKubeletRootDir)), Type: &hostPathDirectoryOrCreateType}}},
-		{Name: "lvmd-config-dir", VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: congfigmap}}}},
 		{Name: "lvmd-socket-dir", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{Medium: storageMedium}}},
 	}
 
-	containers := []corev1.Container{*getLvmdContainer(), *getNodeContainer(), *getCsiRegistrarContainer(), *getLivenessProbeContainer()}
+	containers := []corev1.Container{*getNodeContainer(), *getCsiRegistrarContainer(), *getLivenessProbeContainer()}
 
 	nodeDeployment := &v1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -190,40 +189,6 @@ func getDeployment(appName string, nodeName string, congfigmap string, ref *meta
 	}
 	return nodeDeployment
 
-}
-
-func getLvmdContainer() *corev1.Container {
-
-	command := []string{
-		"/lvmd",
-		"--config=/etc/topolvm/lvmd.yaml",
-		"--container=true",
-	}
-
-	resourceRequirements := corev1.ResourceRequirements{
-		Limits: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(cluster.TopolvmNodeCPULimit),
-			corev1.ResourceMemory: resource.MustParse(cluster.TopolvmNodeMemLimit),
-		},
-		Requests: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(cluster.TopolvmNodeCPURequest),
-			corev1.ResourceMemory: resource.MustParse(cluster.TopolvmNodeMemRequest),
-		},
-	}
-
-	volumeMounts := []corev1.VolumeMount{
-		{Name: "lvmd-socket-dir", MountPath: "/run/topolvm"},
-		{Name: "lvmd-config-dir", MountPath: "/etc/topolvm"}}
-
-	lvmd := &corev1.Container{
-		Name:            cluster.LvmdContainerName,
-		Image:           cluster.TopolvmImage,
-		SecurityContext: getPrivilegeSecurityContext(),
-		Command:         command,
-		Resources:       resourceRequirements,
-		VolumeMounts:    volumeMounts,
-	}
-	return lvmd
 }
 
 func getNodeContainer() *corev1.Container {

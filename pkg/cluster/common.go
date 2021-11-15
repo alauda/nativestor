@@ -54,6 +54,7 @@ const (
 	NodeServiceAccount              = "topolvm-node"
 	TopolvmNodeDeploymentLabelName  = "topolvm-node"
 
+	LvmdAppName             = "topolvm-lvmd"
 	LvmdConfigMapNamePrefix = "lvmdconfig"
 	LvmdConfigMapFmt        = "lvmdconfig-%s"
 	LvmdConfigMapLabelKey   = "topolvm/lvmdconfig"
@@ -107,6 +108,11 @@ const (
 	TopolvmDiscoverDeviceMemLimit   = "50Mi"
 	TopolvmDiscoverDeviceCPURequest = "50m"
 	TopolvmDiscoverDeviceCPULimit   = "50m"
+
+	TopolvmLvmdCPULimit   = "50Mi"
+	TopolvmLvmdMemLimit   = "50Mi"
+	TopolvmLvmdCPURequest = "50m"
+	TopolvmLvmdMemRequest = "50m"
 
 	TopolvmPrepareVgMemRequest = "50Mi"
 	TopolvmPrepareVgMemLimit   = "100Mi"

@@ -23,6 +23,7 @@ import (
 	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
+	"github.com/alauda/topolvm-operator/pkg/operator/lvmd"
 	"github.com/alauda/topolvm-operator/pkg/operator/node"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
@@ -139,7 +140,7 @@ func (c *ConfigMapController) onAdd(obj interface{}) {
 		return
 	}
 
-	createNodeDeployment(c.context, cm.ObjectMeta.Name, nodeName, c.getRef())
+	createNodePods(c.context, cm.ObjectMeta.Name, nodeName, c.getRef())
 }
 
 func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
@@ -202,7 +203,7 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 		}
 		replaceNodePod(c.context, nodeName)
 	} else {
-		createNodeDeployment(c.context, newCm.ObjectMeta.Name, nodeName, c.getRef())
+		createNodePods(c.context, newCm.ObjectMeta.Name, nodeName, c.getRef())
 	}
 }
 
@@ -253,12 +254,17 @@ func replaceNodePod(contextd *cluster.Context, nodeName string) {
 	}
 }
 
-func createNodeDeployment(context *cluster.Context, configmap, nodeName string, ref *metav1.OwnerReference) {
+func createNodePods(context *cluster.Context, configmap, nodeName string, ref *metav1.OwnerReference) {
 
 	deploymentName := k8sutil.TruncateNodeName(cluster.TopolvmNodeDeploymentFmt, nodeName)
 	err := node.CreateReplaceDeployment(context.Clientset, deploymentName, configmap, nodeName, ref)
 	if err != nil {
 		logger.Errorf("create topolvm node deployment %s  failed, err:%v ", deploymentName, err)
+	}
+
+	err = lvmd.MakeLvmdDaemonSet(context.Clientset, configmap)
+	if err != nil {
+		logger.Errorf("create lvmd daemonset failed, err:%v ", err)
 	}
 }
 
