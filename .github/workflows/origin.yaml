@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        test_kubernetes_target: [current]
+        test_kubernetes_target: [current, prev]
     env:
       TEST_KUBERNETES_TARGET: ${{ matrix.test_kubernetes_target }}
     steps:

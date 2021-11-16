@@ -1,6 +1,6 @@
 # Build the manager binaryFROM golang:1.13 as builder
 
-FROM golang:1.15 AS builder
+FROM golang:1.16 AS builder
 ARG TOPOLVM_OPERATOR_VERSION
 COPY . /workdir
 WORKDIR /workdir

@@ -32,11 +32,36 @@ var (
 	logger = capnslog.NewPackageLogger("topolvm/operator", "volume-group")
 )
 
-func makeJob(nodeName string, image string, reference *metav1.OwnerReference) (*batch.Job, error) {
+func makeJob(clientset kubernetes.Interface, nodeName string, image string, reference *metav1.OwnerReference) (*batch.Job, error) {
+
+	const (
+		indexJobMajorNumber = "1"
+		// from k8s v1.21 job spec can have a field name 'completionMode' which is
+		// in alpha and in v1.22 it's in beta
+		indexJobMinorNumber = "21"
+	)
 
 	podSpec, err := provisionPodTemplateSpec(nodeName, image, v1.RestartPolicyNever)
 	if err != nil {
 		return nil, err
+	}
+
+	version, err := clientset.Discovery().ServerVersion()
+	if err != nil {
+		return nil, err
+	}
+
+	jobSpec := batch.JobSpec{
+		Template: *podSpec,
+	}
+
+	if version.Major >= indexJobMajorNumber && version.Minor > indexJobMinorNumber {
+		// workaround for https://github.com/kubernetes/kubernetes/pull/105676
+		// can be removed after merge of above PR, in v1.21 feature gate has to
+		// be enabled so keeping minor number as 22 see below for more info
+		// https://kubernetes.io/blog/2021/04/19/introducing-indexed-jobs/
+		indexed := batch.CompletionMode(batch.IndexedCompletion)
+		jobSpec.CompletionMode = &indexed
 	}
 
 	job := &batch.Job{
@@ -49,9 +74,7 @@ func makeJob(nodeName string, image string, reference *metav1.OwnerReference) (*
 			},
 			OwnerReferences: []metav1.OwnerReference{*reference},
 		},
-		Spec: batch.JobSpec{
-			Template: *podSpec,
-		},
+		Spec: jobSpec,
 	}
 	return job, nil
 
@@ -61,7 +84,7 @@ func MakeAndRunJob(clientset kubernetes.Interface, nodeName string, image string
 	// update the orchestration status of this node to the starting state
 
 	logger.Debugf("start make prepare vg job")
-	job, err := makeJob(nodeName, image, reference)
+	job, err := makeJob(clientset, nodeName, image, reference)
 	if err != nil {
 		logger.Errorf("make job for node:%s failed", nodeName)
 		return err
