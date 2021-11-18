@@ -8,7 +8,6 @@ import (
 	"github.com/alauda/topolvm-operator/pkg/operator/node"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
-	opcontroller "github.com/rook/rook/pkg/operator/ceph/controller"
 	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -131,7 +130,7 @@ func (c *ReconcileConfig) reconcile(request reconcile.Request) (reconcile.Result
 			configLogger.Debug("operator's configmap resource not found. will use default value or env var.")
 		} else {
 			// Error reading the object - requeue the request.
-			return opcontroller.ImmediateRetryResult, errors.Wrap(err, "failed to get operator's configmap")
+			return ImmediateRetryResult, errors.Wrap(err, "failed to get operator's configmap")
 		}
 	} else {
 		// Populate the operator's config
@@ -141,12 +140,12 @@ func (c *ReconcileConfig) reconcile(request reconcile.Request) (reconcile.Result
 	// Reconcile discovery daemon
 	err = c.updateCsiDriver()
 	if err != nil {
-		return opcontroller.ImmediateRetryResult, err
+		return ImmediateRetryResult, err
 	}
 
 	err = c.starDiscoverDaemonset()
 	if err != nil {
-		return opcontroller.ImmediateRetryResult, err
+		return ImmediateRetryResult, err
 	}
 	// Reconcile webhook secret
 	// This is done in the predicate function

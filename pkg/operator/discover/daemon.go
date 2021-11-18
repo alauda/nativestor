@@ -20,7 +20,6 @@ import (
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/pkg/errors"
-	rookutils "github.com/rook/rook/pkg/operator/k8sutil"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -36,7 +35,7 @@ func MakeDiscoverDevicesDaemonset(clientset kubernetes.Interface, appName string
 	if err != nil {
 		logger.Errorf("failed to get operator pod. %+v", err)
 	} else {
-		rookutils.SetOwnerRefsWithoutBlockOwner(&daemon.ObjectMeta, operatorPod.OwnerReferences)
+		k8sutil.SetOwnerRefsWithoutBlockOwner(&daemon.ObjectMeta, operatorPod.OwnerReferences)
 	}
 	if err := k8sutil.CreateDaemonSet(appName, cluster.NameSpace, clientset, daemon); err != nil {
 		return errors.Wrapf(err, "create daemonset  %s failed", appName)

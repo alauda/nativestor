@@ -25,6 +25,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -51,19 +52,6 @@ func makeJob(clientset kubernetes.Interface, nodeName string, image string, refe
 		return nil, err
 	}
 
-	jobSpec := batch.JobSpec{
-		Template: *podSpec,
-	}
-
-	if version.Major >= indexJobMajorNumber && version.Minor > indexJobMinorNumber {
-		// workaround for https://github.com/kubernetes/kubernetes/pull/105676
-		// can be removed after merge of above PR, in v1.21 feature gate has to
-		// be enabled so keeping minor number as 22 see below for more info
-		// https://kubernetes.io/blog/2021/04/19/introducing-indexed-jobs/
-		indexed := batch.CompletionMode(batch.IndexedCompletion)
-		jobSpec.CompletionMode = &indexed
-	}
-
 	job := &batch.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      k8sutil.TruncateNodeName(cluster.PrepareVgJobFmt, nodeName),
@@ -74,10 +62,36 @@ func makeJob(clientset kubernetes.Interface, nodeName string, image string, refe
 			},
 			OwnerReferences: []metav1.OwnerReference{*reference},
 		},
-		Spec: jobSpec,
 	}
-	return job, nil
 
+	jobSpec := batch.JobSpec{
+		Template: *podSpec,
+	}
+
+	if version.Major >= indexJobMajorNumber && version.Minor > indexJobMinorNumber {
+		// workaround for https://github.com/kubernetes/kubernetes/pull/105676
+		// can be removed after merge of above PR, in v1.21 feature gate has to
+		// be enabled so keeping minor number as 22 see below for more info
+		// https://kubernetes.io/blog/2021/04/19/introducing-indexed-jobs/
+		indexed := batch.CompletionMode(batch.IndexedCompletion)
+		completions := int32(1)
+		parallelism := int32(1)
+		jobSpec.CompletionMode = &indexed
+		jobSpec.Completions = &completions
+		jobSpec.Parallelism = &parallelism
+		job.Name = truncateNodeNameForIndexJob(cluster.PrepareVgJobFmt, nodeName)
+	}
+	job.Spec = jobSpec
+	return job, nil
+}
+
+func truncateNodeNameForIndexJob(format, nodeName string) string {
+	if len(nodeName)+len(fmt.Sprintf(format, "")) > validation.DNS1035LabelMaxLength-3 {
+		hashed := k8sutil.Hash(nodeName)
+		logger.Infof("format and nodeName longer than %d chars, nodeName %s will be %s", validation.DNS1035LabelMaxLength-3, nodeName, hashed)
+		nodeName = hashed
+	}
+	return fmt.Sprintf(format, nodeName)
 }
 
 func MakeAndRunJob(clientset kubernetes.Interface, nodeName string, image string, reference *metav1.OwnerReference) error {

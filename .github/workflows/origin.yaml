@@ -13,9 +13,8 @@ jobs:
         with:
           go-version: 1.16
       - run: make setup
-      - run: make check-uncommitted
       - run: make build
-      - run: make test
+      - run: sudo -E env PATH=${PATH}  go test -race -v $(go list ./... | grep -v vendor | grep -v e2e)
       - run: make image
   origin-e2e-k8s:
     name: origin-e2e-k8s
