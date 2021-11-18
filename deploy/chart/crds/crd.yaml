@@ -117,6 +117,9 @@ spec:
                 topolvmVersion:
                   description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run "make" to regenerate code after modifying this file'
                   type: string
+                certsSecret:
+                  description: Secret to store TLS certificate and key used in topolvm-controller webhooks
+                  type: string
               required:
                 - storage
                 - topolvmVersion

@@ -54,7 +54,11 @@ func CreateReplaceTopolvmControllerDeployment(clientset kubernetes.Interface, re
 
 func CreateControllerDeployment(clientset kubernetes.Interface, ref *metav1.OwnerReference) error {
 
-	deployment := getDeployment(ref)
+	deployment, err := getDeployment(clientset, ref)
+	if err != nil {
+		logger.Errorf("create node deployment %s failed err %s", cluster.TopolvmControllerDeploymentName, err)
+		return err
+	}
 
 	if err := k8sutil.CreateDeployment(clientset, cluster.TopolvmControllerDeploymentName, cluster.NameSpace, deployment); err != nil {
 		logger.Errorf("create node deployment %s failed err %s", cluster.TopolvmControllerDeploymentName, err)
@@ -63,13 +67,36 @@ func CreateControllerDeployment(clientset kubernetes.Interface, ref *metav1.Owne
 	return nil
 }
 
-func getDeployment(ref *metav1.OwnerReference) *v1.Deployment {
+func getDeployment(clientset kubernetes.Interface, ref *metav1.OwnerReference) (*v1.Deployment, error) {
 
 	replicas := int32(2)
 
 	volumes := []corev1.Volume{
 		{Name: "socket-dir", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}},
-		{Name: "certs", VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: "mutatingwebhook"}}},
+	}
+	iContainers := []corev1.Container{}
+
+	certsFound := false
+	if cluster.CertsSecret != "" {
+		if _, err := clientset.CoreV1().Secrets(cluster.NameSpace).Get(context.TODO(), cluster.CertsSecret, metav1.GetOptions{}); err != nil {
+			if errors.IsNotFound(err) {
+				logger.Errorf("Secret %s provided in cluster CRD not found", cluster.CertsSecret)
+			} else {
+				logger.Errorf("Unexpected error trying to locate secret %q: %v", cluster.CertsSecret, err)
+			}
+			return nil, err
+		} else {
+			certsFound = true
+		}
+	}
+
+	if certsFound {
+		volumes = append(volumes, corev1.Volume{Name: "certs", VolumeSource: corev1.VolumeSource{Secret: &corev1.SecretVolumeSource{SecretName: cluster.CertsSecret}}})
+		logger.Infof("topolvm-controller will be deployed using the certificate provided in secret %s", cluster.CertsSecret)
+	} else {
+		volumes = append(volumes, corev1.Volume{Name: "certs", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}})
+		iContainers = append(iContainers, *getInitContainer())
+		logger.Info("topolvm-controller will be deployed using an automatically generated self signed certificate")
 	}
 
 	containers := []corev1.Container{*getControllerContainer(), *getCsiProvisionerContainer(), *getCsiResizerContainer(), *getLivenessProbeContainer()}
@@ -105,6 +132,7 @@ func getDeployment(ref *metav1.OwnerReference) *v1.Deployment {
 					},
 				},
 				Spec: corev1.PodSpec{
+					InitContainers:     iContainers,
 					Containers:         containers,
 					ServiceAccountName: cluster.ContollerServiceAccount,
 					Volumes:            volumes,
@@ -126,8 +154,28 @@ func getDeployment(ref *metav1.OwnerReference) *v1.Deployment {
 			},
 		},
 	}
-	return controllerDeployment
+	return controllerDeployment, nil
 
+}
+func getInitContainer() *corev1.Container {
+	command := []string{
+		"sh",
+		"-c",
+		"openssl req -nodes -x509 -newkey rsa:4096 -subj '/DC=self_signed_certificate' -keyout /certs/tls.key -out /certs/tls.crt -days 365",
+	}
+
+	volumeMounts := []corev1.VolumeMount{
+		{Name: "certs", MountPath: "/certs"},
+	}
+
+	ssCertGenerator := &corev1.Container{
+		Name:         "self-signed-cert-generator",
+		Image:        "alpine/openssl",
+		Command:      command,
+		VolumeMounts: volumeMounts,
+	}
+
+	return ssCertGenerator
 }
 
 func getControllerContainer() *corev1.Container {

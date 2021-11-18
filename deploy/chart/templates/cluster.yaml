@@ -9,6 +9,8 @@ metadata:
 spec:
   # Add fields here
   topolvmVersion: {{.Values.cluster.topolvmVersion}}
+  # Certs secret must contain a tls certificate and key which will be used by the topolvm-controller
+  # certsSecret: mutatingwebhook
   storage:
     {{toYaml .Values.cluster.storage | nindent 6}}
 {{ end }}

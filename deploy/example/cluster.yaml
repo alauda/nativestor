@@ -7,6 +7,8 @@ metadata:
 spec:
   # Add fields here
   topolvmVersion: quay.io/topolvm/topolvm-with-sidecar:0.10
+  # Certs secret must contain a tls certificate and key which will be used by the topolvm-controller
+  # certsSecret: mutatingwebhook
   storage:
     useAllNodes: false
     useAllDevices: false

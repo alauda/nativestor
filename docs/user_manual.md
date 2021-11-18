@@ -29,6 +29,7 @@ metadata:
 spec:
   # Add fields here
   topolvmVersion: alaudapublic/topolvm:2.0.0
+  # certsSecret: mutatingwebhook
   storage:
     useAllNodes: true
     useAllDevices: true
@@ -39,6 +40,7 @@ spec:
 `namespace` must be the same with the namespace of operator. one and only one class in a node must set `default` to true.
 a kubernetes cluster only existing a TopolvmCluster , not support multi TopolvmClusters.
 `topolvmVersion` topolvm image version, the image include csi sidecar.
+`certsSecret` optional attribute. Used to provide the name of a [TLS secret](https://kubernetes.io/docs/concepts/configuration/secret/#tls-secrets) which will be used for secure topolvm-controller mutating webhook. If not provided a self-signed certificate will be generated automatically.
 `useAllNodes` use all nodes of kubernetes cluster, default false.
 `useAllDevices` use all available devices of each node, default false.
 `useLoop` use loop devices present in nodes.
@@ -57,6 +59,7 @@ metadata:
 spec:
   # Add fields here
   topolvmVersion: alaudapublic/topolvm:2.0.0
+  # certsSecret: mutatingwebhook
   storage:
     useAllNodes: true
     # if you not want to use all devices of node, you should make it false, and define devices
@@ -83,6 +86,7 @@ metadata:
 spec:
   # Add fields here
   topolvmVersion: alaudapublic/topolvm:2.0.0
+  # certsSecret: mutatingwebhook
   storage:
     useAllNodes: false
     useAllDevices: false
@@ -224,6 +228,7 @@ metadata:
   namespace: topolvm-system
 spec:
   topolvmVersion: alaudapublic/topolvm:2.0.0
+  # certsSecret: mutatingwebhook
   storage:
     useAllNodes: false
     useAllDevices: false
@@ -261,6 +266,7 @@ metadata:
 spec:
   # Add fields here
   topolvmVersion: alaudapublic/topolvm:2.0.0
+  # certsSecret: mutatingwebhook
   storage:
     useAllNodes: false
     useAllDevices: false
@@ -386,4 +392,4 @@ metadata:
 
 How to create pvc snapshot
 ----------
-Firstly, user should deploy snapshot controller, follow the [article](https://kubernetes-csi.github.io/docs/snapshot-controller.html) to deploy. Then, follow the [Volume Snapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) to konw how to use snapshot.  
+Firstly, user should deploy snapshot controller, follow the [article](https://kubernetes-csi.github.io/docs/snapshot-controller.html) to deploy. Then, follow the [Volume Snapshots](https://kubernetes.io/docs/concepts/storage/volume-snapshots/) to know how to use snapshot.  

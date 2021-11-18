@@ -157,6 +157,7 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 	}
 	cluster.ClusterName = request.NamespacedName.Name
 	cluster.TopolvmImage = topolvmCluster.Spec.TopolvmVersion
+	cluster.CertsSecret = topolvmCluster.Spec.CertsSecret
 
 	// Set a finalizer so we can do cleanup before the object goes away
 	err = controller.AddFinalizerIfNotPresent(r.context.Client, topolvmCluster)
