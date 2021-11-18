@@ -25,6 +25,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -32,9 +33,21 @@ var (
 	logger = capnslog.NewPackageLogger("topolvm/operator", "volume-group")
 )
 
-func makeJob(nodeName string, image string, reference *metav1.OwnerReference) (*batch.Job, error) {
+func makeJob(clientset kubernetes.Interface, nodeName string, image string, reference *metav1.OwnerReference) (*batch.Job, error) {
+
+	const (
+		indexJobMajorNumber = "1"
+		// from k8s v1.21 job spec can have a field name 'completionMode' which is
+		// in alpha and in v1.22 it's in beta
+		indexJobMinorNumber = "21"
+	)
 
 	podSpec, err := provisionPodTemplateSpec(nodeName, image, v1.RestartPolicyNever)
+	if err != nil {
+		return nil, err
+	}
+
+	version, err := clientset.Discovery().ServerVersion()
 	if err != nil {
 		return nil, err
 	}
@@ -49,19 +62,43 @@ func makeJob(nodeName string, image string, reference *metav1.OwnerReference) (*
 			},
 			OwnerReferences: []metav1.OwnerReference{*reference},
 		},
-		Spec: batch.JobSpec{
-			Template: *podSpec,
-		},
 	}
-	return job, nil
 
+	jobSpec := batch.JobSpec{
+		Template: *podSpec,
+	}
+
+	if version.Major >= indexJobMajorNumber && version.Minor > indexJobMinorNumber {
+		// workaround for https://github.com/kubernetes/kubernetes/pull/105676
+		// can be removed after merge of above PR, in v1.21 feature gate has to
+		// be enabled so keeping minor number as 22 see below for more info
+		// https://kubernetes.io/blog/2021/04/19/introducing-indexed-jobs/
+		indexed := batch.CompletionMode(batch.IndexedCompletion)
+		completions := int32(1)
+		parallelism := int32(1)
+		jobSpec.CompletionMode = &indexed
+		jobSpec.Completions = &completions
+		jobSpec.Parallelism = &parallelism
+		job.Name = truncateNodeNameForIndexJob(cluster.PrepareVgJobFmt, nodeName)
+	}
+	job.Spec = jobSpec
+	return job, nil
+}
+
+func truncateNodeNameForIndexJob(format, nodeName string) string {
+	if len(nodeName)+len(fmt.Sprintf(format, "")) > validation.DNS1035LabelMaxLength-3 {
+		hashed := k8sutil.Hash(nodeName)
+		logger.Infof("format and nodeName longer than %d chars, nodeName %s will be %s", validation.DNS1035LabelMaxLength-3, nodeName, hashed)
+		nodeName = hashed
+	}
+	return fmt.Sprintf(format, nodeName)
 }
 
 func MakeAndRunJob(clientset kubernetes.Interface, nodeName string, image string, reference *metav1.OwnerReference) error {
 	// update the orchestration status of this node to the starting state
 
 	logger.Debugf("start make prepare vg job")
-	job, err := makeJob(nodeName, image, reference)
+	job, err := makeJob(clientset, nodeName, image, reference)
 	if err != nil {
 		logger.Errorf("make job for node:%s failed", nodeName)
 		return err

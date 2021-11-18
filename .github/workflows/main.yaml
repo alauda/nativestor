@@ -13,16 +13,15 @@ jobs:
         with:
           go-version: 1.16
       - run: make setup
-      - run: make check-uncommitted
       - run: make build
-      - run: make test
+      - run: sudo -E env PATH=${PATH}  go test -race -v $(go list ./... | grep -v vendor | grep -v e2e)
       - run: make image
   e2e-k8s:
     name: e2e-k8s
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        test_kubernetes_target: [prev, prev2]
+        test_kubernetes_target: [current, prev, prev2, prev3]
     env:
       TEST_KUBERNETES_TARGET: ${{ matrix.test_kubernetes_target }}
     steps:
