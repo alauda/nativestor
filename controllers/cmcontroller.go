@@ -58,6 +58,7 @@ func NewConfigMapController(context *cluster.Context, namespace string, ref *met
 
 func (c *ConfigMapController) Start() {
 	go func() {
+		logger.Info("start configmap controller")
 		stopChan := make(chan struct{})
 		sigc := make(chan os.Signal, 1)
 		signal.Notify(sigc, syscall.SIGTERM)

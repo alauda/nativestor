@@ -501,12 +501,12 @@ func (c *ClusterController) onAdd(topolvmCluster *topolvmv1.TopolvmCluster, ref 
 
 		err := csidriver.CheckTopolvmCsiDriverExisting(c.context.Clientset, ref)
 		if err != nil {
-			logger.Errorf("CheckTopolvmCsiDriverExisting failed err %v", err)
+			clusterLogger.Errorf("CheckTopolvmCsiDriverExisting failed err %v", err)
 			return err
 		}
 		err = checkAndCreatePsp(c.context.Clientset, ref)
 		if err != nil {
-			logger.Errorf("checkAndCreatePsp failed err %v", err)
+			clusterLogger.Errorf("checkAndCreatePsp failed err %v", err)
 			return err
 		}
 	}
@@ -539,7 +539,7 @@ func (c *ClusterController) checkUpdateDiscoverDaemonset(topolvmCluster *topolvm
 	ctx := context.TODO()
 	daemonset, err := c.context.Clientset.AppsV1().DaemonSets(cluster.NameSpace).Get(ctx, cluster.DiscoverAppName, metav1.GetOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
-		logger.Errorf("failed to detect daemonset:%s. err:%v", cluster.DiscoverAppName, err)
+		clusterLogger.Errorf("failed to detect daemonset:%s. err:%v", cluster.DiscoverAppName, err)
 		return errors.Wrap(err, "failed to detect daemonset")
 	} else if err == nil {
 		needUpdate := false
@@ -645,7 +645,7 @@ func (c *ClusterController) startPrepareVolumeGroupJob(topolvmCluster *topolvmv1
 	}
 
 	// first should create job anyway
-	logger.Info("start make prepare volume group job")
+	clusterLogger.Info("start make prepare volume group job")
 	go func() {
 		if storage.DeviceClasses != nil {
 			for _, ele := range storage.DeviceClasses {
@@ -746,7 +746,7 @@ func RemoveNodeCapacityAnnotations(clientset kubernetes.Interface) error {
 				}
 				_, err = clientset.CoreV1().Nodes().Patch(ctx, nodes.Items[index].Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
 				if err != nil {
-					logger.Errorf("patch node %s capacity annotations failed err: %v", nodeList.Items[index].Name, err)
+					clusterLogger.Errorf("patch node %s capacity annotations failed err: %v", nodeList.Items[index].Name, err)
 				}
 			}
 		}
@@ -767,7 +767,7 @@ func checkAndCreatePsp(clientset kubernetes.Interface, ref *metav1.OwnerReferenc
 			return errors.Wrapf(err, "create psp %s failed", cluster.TopolvmNodePsp)
 		}
 	} else {
-		logger.Infof("psp %s existing", cluster.TopolvmNodePsp)
+		clusterLogger.Infof("psp %s existing", cluster.TopolvmNodePsp)
 	}
 
 	existing, err = psp.CheckPspExisting(clientset, cluster.TopolvmPrepareVgPsp)
@@ -781,7 +781,7 @@ func checkAndCreatePsp(clientset kubernetes.Interface, ref *metav1.OwnerReferenc
 			return errors.Wrapf(err, "create psp %s failed", cluster.TopolvmPrepareVgPsp)
 		}
 	} else {
-		logger.Infof("psp %s existing", cluster.TopolvmPrepareVgPsp)
+		clusterLogger.Infof("psp %s existing", cluster.TopolvmPrepareVgPsp)
 	}
 
 	return nil
