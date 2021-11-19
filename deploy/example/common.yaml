@@ -389,6 +389,7 @@ rules:
       - pods
       - configmaps
       - services
+      - secrets
     verbs:
       - get
       - list
