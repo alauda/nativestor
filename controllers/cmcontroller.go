@@ -186,11 +186,6 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 	}
 
 	if _, ok := newCm.Data[cluster.LvmdConfigMapKey]; !ok {
-
-		nodeName := getNodeName(newCm)
-		if nodeName == "" {
-			return
-		}
 		logger.Errorf("node %s all volume groups are not available", nodeName)
 		return
 	}
