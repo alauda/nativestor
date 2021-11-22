@@ -58,6 +58,7 @@ func NewConfigMapController(context *cluster.Context, namespace string, ref *met
 
 func (c *ConfigMapController) Start() {
 	go func() {
+		logger.Info("start configmap controller")
 		stopChan := make(chan struct{})
 		sigc := make(chan os.Signal, 1)
 		signal.Notify(sigc, syscall.SIGTERM)
@@ -186,11 +187,6 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 	}
 
 	if _, ok := newCm.Data[cluster.LvmdConfigMapKey]; !ok {
-
-		nodeName := getNodeName(newCm)
-		if nodeName == "" {
-			return
-		}
 		logger.Errorf("node %s all volume groups are not available", nodeName)
 		return
 	}

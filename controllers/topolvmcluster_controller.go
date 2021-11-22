@@ -19,7 +19,6 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/controller"
@@ -45,7 +44,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"strings"
 	"sync"
-	"time"
 )
 
 var (
@@ -60,22 +58,21 @@ type TopolvmClusterReconciler struct {
 	ClusterController   *ClusterController
 	configMapController *ConfigMapController
 	statusLock          sync.Mutex
-	interval            time.Duration
+	statusChecker       *monitor.ClusterStatusChecker
 	stopCh              chan struct{}
-	metric              chan *cluster.Metrics
 	reflock             sync.Mutex
 	clusterRef          *metav1.OwnerReference
 }
 
-func NewTopolvmClusterReconciler(scheme *runtime.Scheme, context *cluster.Context, operatorImage string, checkInterval time.Duration, metricUpdater chan *cluster.Metrics) *TopolvmClusterReconciler {
+func NewTopolvmClusterReconciler(scheme *runtime.Scheme, context *cluster.Context, operatorImage string, metricUpdater chan *cluster.Metrics) *TopolvmClusterReconciler {
 
-	return &TopolvmClusterReconciler{
+	r := &TopolvmClusterReconciler{
 		scheme:            scheme,
 		context:           context,
 		ClusterController: NewClusterContoller(context, operatorImage),
-		interval:          checkInterval,
-		metric:            metricUpdater,
 	}
+	r.statusChecker = monitor.NewCephStatusChecker(context, &r.statusLock, metricUpdater)
+	return r
 }
 
 // +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=topolvmclusters,verbs=get;list;watch;create;update;patch;delete
@@ -207,7 +204,7 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 
 	if r.ClusterController.lastCluster == nil {
 		r.stopCh = make(chan struct{})
-		go r.checkClusterStatus()
+		go r.statusChecker.CheckClusterStatus(r.namespacedName, r.stopCh)
 	}
 
 	// Do reconcile here!
@@ -248,194 +245,6 @@ func (r *TopolvmClusterReconciler) checkStorageConfig(topolvmCluster *topolvmv1.
 	}
 
 	return nil
-}
-
-func (r *TopolvmClusterReconciler) checkClusterStatus() {
-
-	r.checkStatus()
-	for {
-		select {
-		case <-r.stopCh:
-			clusterLogger.Infof("stopping monitoring of ceph status")
-			return
-
-		case <-time.After(r.interval):
-			r.checkStatus()
-			if err := monitor.EnableServiceMonitor(r.getRef()); err != nil {
-				clusterLogger.Errorf("monitor failed err %s", err.Error())
-			}
-
-			if err := monitor.CreateOrUpdatePrometheusRule(r.getRef()); err != nil {
-				clusterLogger.Errorf("create rule failed err %s", err.Error())
-			}
-		}
-	}
-}
-
-func (r *TopolvmClusterReconciler) checkStatus() {
-
-	ctx := context.TODO()
-	pods, err := r.context.Clientset.CoreV1().Pods(cluster.NameSpace).List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", cluster.TopolvmComposeAttr, cluster.TopolvmComposeNode)})
-	if err != nil && !kerrors.IsNotFound(err) {
-		clusterLogger.Errorf("list topolvm node pod  failed %v", err)
-	}
-
-	var clusterMetric cluster.Metrics
-	r.statusLock.Lock()
-	defer r.statusLock.Unlock()
-	topolvmCluster := &topolvmv1.TopolvmCluster{}
-	err = r.context.Client.Get(ctx, *r.namespacedName, topolvmCluster)
-	if err != nil {
-		if kerrors.IsNotFound(err) {
-			clusterLogger.Debug("topolvm cluster resource not found. Ignoring since object must be deleted.")
-			return
-		}
-		clusterLogger.Errorf("failed to get topolvm cluster %v", err)
-		return
-	}
-
-	ready := false
-	nodesStatus := make(map[string]*topolvmv1.NodeStorageState)
-	if len(pods.Items) == 0 {
-		for _, item := range topolvmCluster.Spec.DeviceClasses {
-
-			n := topolvmv1.NodeStorageState{
-				Node:  item.NodeName,
-				Phase: topolvmv1.ConditionFailure,
-			}
-			nodeMetric := cluster.NodeStatusMetrics{
-				Node:   item.NodeName,
-				Status: 1,
-			}
-			nodesStatus[item.NodeName] = &n
-			clusterMetric.NodeStatus = append(clusterMetric.NodeStatus, nodeMetric)
-
-		}
-	} else {
-		for _, deviceclass := range topolvmCluster.Spec.DeviceClasses {
-			found := false
-			for _, item := range pods.Items {
-				if item.Spec.NodeName == deviceclass.NodeName {
-					found = true
-				} else {
-					continue
-				}
-
-				n := topolvmv1.NodeStorageState{
-					Node: item.Spec.NodeName,
-				}
-
-				nodeMetric := cluster.NodeStatusMetrics{
-					Node: item.Spec.NodeName,
-				}
-
-				switch item.Status.Phase {
-				case corev1.PodRunning:
-					n.Phase = topolvmv1.ConditionReady
-					nodeMetric.Status = 0
-					ready = true
-				case corev1.PodUnknown:
-					n.Phase = topolvmv1.ConditionUnknown
-					nodeMetric.Status = 1
-				case corev1.PodFailed:
-					n.Phase = topolvmv1.ConditionFailure
-					nodeMetric.Status = 1
-				case corev1.PodPending:
-					n.Phase = topolvmv1.ConditionPending
-					nodeMetric.Status = 1
-				default:
-					n.Phase = topolvmv1.ConditionUnknown
-					nodeMetric.Status = 1
-				}
-
-				for _, s := range item.Status.ContainerStatuses {
-					if !s.Ready {
-						n.Phase = topolvmv1.ConditionFailure
-						nodeMetric.Status = 1
-						break
-					}
-				}
-
-				nodesStatus[item.Spec.NodeName] = &n
-				clusterMetric.NodeStatus = append(clusterMetric.NodeStatus, nodeMetric)
-			}
-
-			if !found {
-				n := topolvmv1.NodeStorageState{
-					Node:  deviceclass.NodeName,
-					Phase: topolvmv1.ConditionFailure,
-				}
-				nodeMetric := cluster.NodeStatusMetrics{
-					Node:   deviceclass.NodeName,
-					Status: 1,
-				}
-				nodesStatus[deviceclass.NodeName] = &n
-				clusterMetric.NodeStatus = append(clusterMetric.NodeStatus, nodeMetric)
-			}
-
-		}
-
-	}
-
-	for key := range nodesStatus {
-		n, err := r.context.Clientset.CoreV1().Nodes().Get(ctx, key, metav1.GetOptions{})
-		if err != nil {
-			clusterLogger.Errorf("failed to get node  %v", err)
-			continue
-		}
-		for _, ele := range n.Status.Conditions {
-			if ele.Type == corev1.NodeReady && ele.Status == corev1.ConditionUnknown {
-
-				nodesStatus[key].Phase = topolvmv1.ConditionUnknown
-				for index, n := range clusterMetric.NodeStatus {
-					if n.Node == key {
-						clusterMetric.NodeStatus[index].Status = 1
-					}
-				}
-
-			}
-		}
-	}
-	clusterStatus := topolvmCluster.Status.DeepCopy()
-	for key, val := range nodesStatus {
-		found := false
-		for index, item := range clusterStatus.NodeStorageStatus {
-			if item.Node == key {
-				found = true
-			} else {
-				continue
-			}
-			clusterStatus.NodeStorageStatus[index].Phase = val.Phase
-			clusterLogger.Debugf("node %s, phase: %s", item.Node, topolvmCluster.Status.NodeStorageStatus[index].Phase)
-
-		}
-		if !found {
-			clusterStatus.NodeStorageStatus = append(clusterStatus.NodeStorageStatus, *val)
-		}
-	}
-
-	if ready {
-		clusterStatus.Phase = topolvmv1.ConditionReady
-		clusterMetric.ClusterStatus = 0
-	} else {
-		clusterMetric.ClusterStatus = 1
-		clusterStatus.Phase = topolvmv1.ConditionFailure
-	}
-
-	if reflect.DeepEqual(topolvmCluster.Status, *clusterStatus) {
-		clusterLogger.Debugf("no need to update cluster status")
-		return
-	} else {
-		topolvmCluster.Status = *clusterStatus
-	}
-
-	clusterLogger.Debugf("start update cluster status and metric")
-	clusterMetric.Cluster = topolvmCluster.Name
-	r.metric <- &clusterMetric
-	if err := k8sutil.UpdateStatus(r.context.Client, topolvmCluster); err != nil {
-		clusterLogger.Errorf("failed to update cluster %q status. %v", r.namespacedName.Name, err)
-	}
-
 }
 
 func (r *TopolvmClusterReconciler) UpdateStatus(state *topolvmv1.NodeStorageState) error {
@@ -502,12 +311,12 @@ func (c *ClusterController) onAdd(topolvmCluster *topolvmv1.TopolvmCluster, ref 
 
 		err := csidriver.CheckTopolvmCsiDriverExisting(c.context.Clientset, ref)
 		if err != nil {
-			logger.Errorf("CheckTopolvmCsiDriverExisting failed err %v", err)
+			clusterLogger.Errorf("CheckTopolvmCsiDriverExisting failed err %v", err)
 			return err
 		}
 		err = checkAndCreatePsp(c.context.Clientset, ref)
 		if err != nil {
-			logger.Errorf("checkAndCreatePsp failed err %v", err)
+			clusterLogger.Errorf("checkAndCreatePsp failed err %v", err)
 			return err
 		}
 	}
@@ -540,7 +349,7 @@ func (c *ClusterController) checkUpdateDiscoverDaemonset(topolvmCluster *topolvm
 	ctx := context.TODO()
 	daemonset, err := c.context.Clientset.AppsV1().DaemonSets(cluster.NameSpace).Get(ctx, cluster.DiscoverAppName, metav1.GetOptions{})
 	if err != nil && !kerrors.IsNotFound(err) {
-		logger.Errorf("failed to detect daemonset:%s. err:%v", cluster.DiscoverAppName, err)
+		clusterLogger.Errorf("failed to detect daemonset:%s. err:%v", cluster.DiscoverAppName, err)
 		return errors.Wrap(err, "failed to detect daemonset")
 	} else if err == nil {
 		needUpdate := false
@@ -646,7 +455,7 @@ func (c *ClusterController) startPrepareVolumeGroupJob(topolvmCluster *topolvmv1
 	}
 
 	// first should create job anyway
-	logger.Info("start make prepare volume group job")
+	clusterLogger.Info("start make prepare volume group job")
 	go func() {
 		if storage.DeviceClasses != nil {
 			for _, ele := range storage.DeviceClasses {
@@ -747,7 +556,7 @@ func RemoveNodeCapacityAnnotations(clientset kubernetes.Interface) error {
 				}
 				_, err = clientset.CoreV1().Nodes().Patch(ctx, nodes.Items[index].Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
 				if err != nil {
-					logger.Errorf("patch node %s capacity annotations failed err: %v", nodeList.Items[index].Name, err)
+					clusterLogger.Errorf("patch node %s capacity annotations failed err: %v", nodeList.Items[index].Name, err)
 				}
 			}
 		}
@@ -768,7 +577,7 @@ func checkAndCreatePsp(clientset kubernetes.Interface, ref *metav1.OwnerReferenc
 			return errors.Wrapf(err, "create psp %s failed", cluster.TopolvmNodePsp)
 		}
 	} else {
-		logger.Infof("psp %s existing", cluster.TopolvmNodePsp)
+		clusterLogger.Infof("psp %s existing", cluster.TopolvmNodePsp)
 	}
 
 	existing, err = psp.CheckPspExisting(clientset, cluster.TopolvmPrepareVgPsp)
@@ -782,7 +591,7 @@ func checkAndCreatePsp(clientset kubernetes.Interface, ref *metav1.OwnerReferenc
 			return errors.Wrapf(err, "create psp %s failed", cluster.TopolvmPrepareVgPsp)
 		}
 	} else {
-		logger.Infof("psp %s existing", cluster.TopolvmPrepareVgPsp)
+		clusterLogger.Infof("psp %s existing", cluster.TopolvmPrepareVgPsp)
 	}
 
 	return nil
