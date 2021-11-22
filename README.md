@@ -65,6 +65,28 @@ Getting started and Documentation
 [docs](docs/) directory contains documents about installation and specifications
 
 
+Topolvm-operator vs Other local storage Implement
+-------------
+
+
+|            |         nfs                          |     rook ceph              |           longhorn   |  host path       |  topolvm
+| ---------- | ------------------------------|-----------------|-----------------------------------------|----|------------------------|
+| filesystem        | yes            | yes                                        | yes                           | yes         | yes
+| filesystem type   | nfs       | ext4/xfs                                      | driver specific                 | ext4/xfs        | ext4/xfs                                      |
+| block             | no                | yes (rbd)                             | yes                              | no      | yes                                                   |
+| bandwidth         | standard    | high                                       | high                               | high      |high                                                     |
+| IOPS              |   standard       | standard                             | standard                            | high        | high                                                   |
+| latency       | standard      | standard                                       | standard                           | low      | low                                                  |
+| snapshot       | no               | yes                              | yes                                       | no          | yes                                      |
+| clone       | no                   | yes                       | no                                               | no         | no                                           |
+| quota       | no                | yes                                      | yes                                    | no      | yes                                                 |
+| access mod | ReadWriteOnce ReadOnlyMany ReadWriteMany| ReadWriteOnce ReadOnlyMany ReadWriteMany|  ReadWriteOnce ReadOnlyMany |  ReadWriteOnce|  ReadWriteOnce ReadWriteOncePod
+| resizing       | yes            | yes                                       | yes                            | yes          |yes                                               |
+|data redundancy |Hardware RAID  | yes | yes| Hardware RAID| Hardware RAID
+|protocol type | nfs | rados| iscsi | fs | lvm
+|ease of maintainess| driver specific|  high maintainess effort| medium|  medium | ops-free
+|usage scenarios| general storage| extremly scalability| container attach storage|     temporary data       |   high performance block device for cloudnative applications
+
 
 Topolvm
 -------------
@@ -90,3 +112,8 @@ Docker images
 Report a Bug
 ----------
 For filing bugs, suggesting improvements, or requesting new features, please open an [issue](https://github.com/alauda/topolvm-operator/issues).
+
+
+
+
+

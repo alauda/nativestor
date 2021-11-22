@@ -111,7 +111,7 @@ func startOperator(cmd *cobra.Command, args []string) error {
 	}
 
 	operatorImage := topolvm.GetOperatorImage(ctx.Clientset, "")
-	c := controllers.NewTopolvmClusterReconciler(mgr.GetScheme(), ctx, operatorImage, cluster.CheckStatusInterval, metricsCh)
+	c := controllers.NewTopolvmClusterReconciler(mgr.GetScheme(), ctx, operatorImage, metricsCh)
 	if err := c.SetupWithManager(mgr); err != nil {
 		logger.Error(err, "unable to create controller", "controller", "TopolvmCluster")
 		os.Exit(1)
