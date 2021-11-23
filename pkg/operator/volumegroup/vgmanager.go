@@ -18,6 +18,7 @@ package volumegroup
 
 import (
 	"fmt"
+
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/coreos/pkg/capnslog"
@@ -25,7 +26,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -33,14 +33,14 @@ var (
 	logger = capnslog.NewPackageLogger("topolvm/operator", "volume-group")
 )
 
-func makeJob(clientset kubernetes.Interface, nodeName string, image string, reference *metav1.OwnerReference) (*batch.Job, error) {
+const (
+	indexJobMajorNumber = "1"
+	// from k8s v1.21 job spec can have a field name 'completionMode' which is
+	// in alpha and in v1.22 it's in beta
+	indexJobMinorNumber = "22"
+)
 
-	const (
-		indexJobMajorNumber = "1"
-		// from k8s v1.21 job spec can have a field name 'completionMode' which is
-		// in alpha and in v1.22 it's in beta
-		indexJobMinorNumber = "21"
-	)
+func makeJob(clientset kubernetes.Interface, nodeName string, image string, reference *metav1.OwnerReference) (*batch.Job, error) {
 
 	podSpec, err := provisionPodTemplateSpec(nodeName, image, v1.RestartPolicyNever)
 	if err != nil {
@@ -54,7 +54,9 @@ func makeJob(clientset kubernetes.Interface, nodeName string, image string, refe
 
 	job := &batch.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      k8sutil.TruncateNodeName(cluster.PrepareVgJobFmt, nodeName),
+			// job validation introduced in v1.22 uses DNS regex which accepts only
+			// domain name but not subdomains, so truncating the name to always pass hash
+			Name:      truncateNodeNameForIndexJob(cluster.PrepareVgJobFmt, nodeName),
 			Namespace: cluster.NameSpace,
 			Labels: map[string]string{
 				cluster.AppAttr:     cluster.PrePareVgAppName,
@@ -68,7 +70,7 @@ func makeJob(clientset kubernetes.Interface, nodeName string, image string, refe
 		Template: *podSpec,
 	}
 
-	if version.Major >= indexJobMajorNumber && version.Minor > indexJobMinorNumber {
+	if version.Major >= indexJobMajorNumber && version.Minor >= indexJobMinorNumber {
 		// workaround for https://github.com/kubernetes/kubernetes/pull/105676
 		// can be removed after merge of above PR, in v1.21 feature gate has to
 		// be enabled so keeping minor number as 22 see below for more info
@@ -79,19 +81,15 @@ func makeJob(clientset kubernetes.Interface, nodeName string, image string, refe
 		jobSpec.CompletionMode = &indexed
 		jobSpec.Completions = &completions
 		jobSpec.Parallelism = &parallelism
-		job.Name = truncateNodeNameForIndexJob(cluster.PrepareVgJobFmt, nodeName)
 	}
 	job.Spec = jobSpec
 	return job, nil
 }
 
 func truncateNodeNameForIndexJob(format, nodeName string) string {
-	if len(nodeName)+len(fmt.Sprintf(format, "")) > validation.DNS1035LabelMaxLength-3 {
-		hashed := k8sutil.Hash(nodeName)
-		logger.Infof("format and nodeName longer than %d chars, nodeName %s will be %s", validation.DNS1035LabelMaxLength-3, nodeName, hashed)
-		nodeName = hashed
-	}
-	return fmt.Sprintf(format, nodeName)
+	hashed := k8sutil.Hash(nodeName)
+	logger.Infof("nodeName %s will be %s", nodeName, hashed)
+	return fmt.Sprintf(format, hashed)
 }
 
 func MakeAndRunJob(clientset kubernetes.Interface, nodeName string, image string, reference *metav1.OwnerReference) error {
