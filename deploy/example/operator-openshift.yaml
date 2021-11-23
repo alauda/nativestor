@@ -44,12 +44,12 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app: topolvm-operator
+      name: topolvm-operator
   replicas: 1
   template:
     metadata:
       labels:
-        app: topolvm-operator
+        name: topolvm-operator
     spec:
       serviceAccountName: topolvm-operator
       containers:

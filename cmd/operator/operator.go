@@ -20,6 +20,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"os"
+
 	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/cmd/topolvm"
 	"github.com/alauda/topolvm-operator/controllers"
@@ -30,7 +32,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/leaderelection/resourcelock"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
