@@ -134,7 +134,7 @@ const (
 	LoopAnnotationsKey     = "loop"
 	LoopAnnotationsVal     = "true"
 
-	OperatorSettingConfigMapName = "tooplvm-operator-setting"
+	OperatorSettingConfigMapName = "topolvm-operator-setting"
 	KubeletRootPathEnv           = "KUBELET_ROOT_DIR"
 	DiscoverDevicesEnv           = "ENABLE_DISCOVER_DEVICES"
 )

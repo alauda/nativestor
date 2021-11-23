@@ -311,7 +311,7 @@ you could create a configmap to enable feature
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: tooplvm-operator-setting
+  name: topolvm-operator-setting
   namespace: topolvm-system
 data:
   #if user's kubernetes cluster kubelet root dir is not default directory /var/lib/kublet
