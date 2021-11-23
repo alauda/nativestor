@@ -19,6 +19,10 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"reflect"
+	"strings"
+	"sync"
+
 	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/controller"
@@ -38,12 +42,9 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
 	"k8s.io/client-go/kubernetes"
-	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
-	"sync"
 )
 
 var (
@@ -94,12 +95,6 @@ func (r *TopolvmClusterReconciler) updateRef(ref *metav1.OwnerReference) {
 	r.reflock.Lock()
 	defer r.reflock.Unlock()
 	r.clusterRef = ref
-}
-
-func (r *TopolvmClusterReconciler) getRef() *metav1.OwnerReference {
-	r.reflock.Lock()
-	defer r.reflock.Unlock()
-	return r.clusterRef
 }
 
 func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconcile.Result, error) {
