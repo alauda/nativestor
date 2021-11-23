@@ -1,0 +1,24 @@
+# permissions for end users to edit topolvmclusters.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: topolvmcluster-editor-role
+rules:
+- apiGroups:
+  - topolvm.cybozu.com
+  resources:
+  - topolvmclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - topolvm.cybozu.com
+  resources:
+  - topolvmclusters/status
+  verbs:
+  - get

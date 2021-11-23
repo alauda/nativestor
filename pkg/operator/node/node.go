@@ -19,6 +19,8 @@ package node
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/banzaicloud/k8s-objectmatcher/patch"
@@ -30,7 +32,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
-	"strings"
 )
 
 func CheckNodeDeploymentIsExisting(clientset kubernetes.Interface, deploymentName string) (bool, error) {

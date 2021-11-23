@@ -18,13 +18,14 @@ package cluster
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/alauda/topolvm-operator/pkg/util/exec"
 	"github.com/coreos/pkg/capnslog"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

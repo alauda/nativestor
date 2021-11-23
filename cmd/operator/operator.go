@@ -20,7 +20,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
+	"os"
+
+	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/cmd/topolvm"
 	"github.com/alauda/topolvm-operator/controllers"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
@@ -29,9 +31,8 @@ import (
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/tools/leaderelection/resourcelock"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
@@ -53,7 +54,7 @@ func init() {
 
 func addScheme() {
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = topolvmv1.AddToScheme(scheme)
+	_ = topolvmv2.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -66,25 +67,28 @@ func startOperator(cmd *cobra.Command, args []string) error {
 	cluster.SetLogLevel()
 	var metricsAddr string
 	var enableLeaderElection bool
-	var leaderElectionID string
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
-	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
+	var probeAddr string
+	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
+	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&leaderElectionID, "leader-election-id", "topolvm-operator", "ID for leader election by topolvm operator")
+	opts := zap.Options{
+		Development: true,
+	}
+	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                     scheme,
-		MetricsBindAddress:         metricsAddr,
-		Port:                       9443,
-		LeaderElectionResourceLock: resourcelock.LeasesResourceLock,
-		LeaderElection:             true,
-		LeaderElectionID:           leaderElectionID,
+		Scheme:                 scheme,
+		MetricsBindAddress:     metricsAddr,
+		Port:                   9443,
+		HealthProbeBindAddress: probeAddr,
+		LeaderElection:         enableLeaderElection,
+		LeaderElectionID:       "c6b32c27.cybozu.com",
 	})
-
 	if err != nil {
 		logger.Error(err, "unable to start manager")
 		os.Exit(1)
@@ -130,12 +134,21 @@ func startOperator(cmd *cobra.Command, args []string) error {
 		logger.Error(err, "problem running manager")
 		os.Exit(1)
 	}
-	// +kubebuilder:scaffold:builder
+
+	//+kubebuilder:scaffold:builder
+	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		logger.Error(err, "unable to set up health check")
+		os.Exit(1)
+	}
+	if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
+		logger.Error(err, "unable to set up ready check")
+		os.Exit(1)
+	}
+
 	logger.Info("starting manager")
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		logger.Error(err, "problem running manager")
 		os.Exit(1)
 	}
-
 	return nil
 }

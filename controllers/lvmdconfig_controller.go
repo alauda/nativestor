@@ -20,7 +20,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
+	"os"
+	"os/signal"
+	"strings"
+	"sync"
+	"syscall"
+
+	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/alauda/topolvm-operator/pkg/operator/node"
@@ -29,14 +35,9 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
-	"os"
-	"os/signal"
-	"strings"
-	"sync"
-	"syscall"
 )
 
-var logger = capnslog.NewPackageLogger("topolvm/operator", "lvmd-config")
+var lvmdLogger = capnslog.NewPackageLogger("topolvm/operator", "lvmd-config")
 
 type ConfigMapController struct {
 	context    *cluster.Context
@@ -58,13 +59,13 @@ func NewConfigMapController(context *cluster.Context, namespace string, ref *met
 
 func (c *ConfigMapController) Start() {
 	go func() {
-		logger.Info("start configmap controller")
+		lvmdLogger.Info("start configmap controller")
 		stopChan := make(chan struct{})
 		sigc := make(chan os.Signal, 1)
 		signal.Notify(sigc, syscall.SIGTERM)
 		c.StartWatch(stopChan)
 		<-sigc
-		logger.Infof("shutdown signal received, exiting...")
+		lvmdLogger.Infof("shutdown signal received, exiting...")
 		close(stopChan)
 	}()
 
@@ -105,23 +106,23 @@ func (c *ConfigMapController) StartWatch(stopCh <-chan struct{}) {
 
 func (c *ConfigMapController) onAdd(obj interface{}) {
 
-	logger.Debugf("got configmap start process")
+	lvmdLogger.Debugf("got configmap start process")
 
 	cm, err := getClientObject(obj)
 	if err != nil {
-		logger.Errorf("failed to get client object. %v", err)
+		lvmdLogger.Errorf("failed to get client object. %v", err)
 		return
 	}
 
 	if !strings.HasPrefix(cm.ObjectMeta.Name, cluster.LvmdConfigMapNamePrefix) {
-		logger.Debugf("configmap %s is not for lvmd", cm.ObjectMeta.Name)
+		lvmdLogger.Debugf("configmap %s is not for lvmd", cm.ObjectMeta.Name)
 		return
 	}
 
 	cm.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*c.getRef()}
 	_, err = c.context.Clientset.CoreV1().ConfigMaps(c.namespace).Update(context.TODO(), cm, metav1.UpdateOptions{})
 	if err != nil {
-		logger.Errorf("failed update cm:%s  own ref", cm.Name)
+		lvmdLogger.Errorf("failed update cm:%s  own ref", cm.Name)
 	}
 
 	c.updateClusterStatus(cm)
@@ -132,7 +133,7 @@ func (c *ConfigMapController) onAdd(obj interface{}) {
 
 	nodeName := getNodeName(cm)
 	if nodeName == "" {
-		logger.Error("can not get node name")
+		lvmdLogger.Error("can not get node name")
 		return
 	}
 
@@ -147,17 +148,17 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 
 	oldCm, err := getClientObject(oldObj)
 	if err != nil {
-		logger.Errorf("failed to get old client object. %v", err)
+		lvmdLogger.Errorf("failed to get old client object. %v", err)
 		return
 	}
 	if !strings.HasPrefix(oldCm.ObjectMeta.Name, cluster.LvmdConfigMapNamePrefix) {
-		logger.Debugf("configmap %s is not for lvmd", oldCm.ObjectMeta.Name)
+		lvmdLogger.Debugf("configmap %s is not for lvmd", oldCm.ObjectMeta.Name)
 		return
 	}
 
 	newCm, err := getClientObject(newobj)
 	if err != nil {
-		logger.Errorf("failed to get new client object. %v", err)
+		lvmdLogger.Errorf("failed to get new client object. %v", err)
 		return
 	}
 
@@ -165,18 +166,18 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 		newCm.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*c.getRef()}
 		_, err = c.context.Clientset.CoreV1().ConfigMaps(c.namespace).Update(context.TODO(), newCm, metav1.UpdateOptions{})
 		if err != nil {
-			logger.Errorf("failed update cm:%s  own ref", newCm.Name)
+			lvmdLogger.Errorf("failed update cm:%s  own ref", newCm.Name)
 		}
 	}
 
 	err = c.checkUpdateClusterStatus(oldCm, newCm)
 	if err != nil {
-		logger.Errorf("update cluster failed err %v", err)
+		lvmdLogger.Errorf("update cluster failed err %v", err)
 	}
 
 	nodeName := getNodeName(newCm)
 	if nodeName == "" {
-		logger.Error("can not get node name")
+		lvmdLogger.Error("can not get node name")
 		return
 	}
 
@@ -187,13 +188,13 @@ func (c *ConfigMapController) onUpdate(oldObj, newobj interface{}) {
 	}
 
 	if _, ok := newCm.Data[cluster.LvmdConfigMapKey]; !ok {
-		logger.Errorf("node %s all volume groups are not available", nodeName)
+		lvmdLogger.Errorf("node %s all volume groups are not available", nodeName)
 		return
 	}
 
 	if checkingDeploymentExisting(c.context, nodeName) {
 		if oldCm.Data[cluster.LvmdConfigMapKey] == newCm.Data[cluster.LvmdConfigMapKey] {
-			logger.Infof("cm%s  update but data not change no need to update node deployment", oldCm.ObjectMeta.Name)
+			lvmdLogger.Infof("cm%s  update but data not change no need to update node deployment", oldCm.ObjectMeta.Name)
 			return
 		}
 		replaceNodePod(c.context, nodeName)
@@ -206,10 +207,10 @@ func (c *ConfigMapController) checkUpdateClusterStatus(old, new *v1.ConfigMap) e
 
 	if old.Data[cluster.VgStatusConfigMapKey] != new.Data[cluster.VgStatusConfigMapKey] {
 		status := new.Data[cluster.VgStatusConfigMapKey]
-		nodeStatus := &topolvmv1.NodeStorageState{}
+		nodeStatus := &topolvmv2.NodeStorageState{}
 		err := json.Unmarshal([]byte(status), nodeStatus)
 		if err != nil {
-			logger.Errorf("unmarshal node status failed err %v", err)
+			lvmdLogger.Errorf("unmarshal node status failed err %v", err)
 			return err
 		}
 		if err := c.clusterCtr.UpdateStatus(nodeStatus); err != nil {
@@ -240,11 +241,11 @@ func replaceNodePod(contextd *cluster.Context, nodeName string) {
 	ctx := context.TODO()
 	pods, err := contextd.Clientset.CoreV1().Pods(cluster.NameSpace).List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", cluster.AppAttr, deploymentName)})
 	if err != nil {
-		logger.Errorf("list pod with label %s failed %v", deploymentName, err)
+		lvmdLogger.Errorf("list pod with label %s failed %v", deploymentName, err)
 	}
 	for _, val := range pods.Items {
 		if err := contextd.Clientset.CoreV1().Pods(cluster.NameSpace).Delete(ctx, val.ObjectMeta.Name, metav1.DeleteOptions{}); err != nil {
-			logger.Errorf("delete pod %s failed err %v", val.ObjectMeta.Name, err)
+			lvmdLogger.Errorf("delete pod %s failed err %v", val.ObjectMeta.Name, err)
 		}
 	}
 }
@@ -254,7 +255,7 @@ func createNodeDeployment(context *cluster.Context, configmap, nodeName string, 
 	deploymentName := k8sutil.TruncateNodeName(cluster.TopolvmNodeDeploymentFmt, nodeName)
 	err := node.CreateReplaceDeployment(context.Clientset, deploymentName, configmap, nodeName, ref)
 	if err != nil {
-		logger.Errorf("create topolvm node deployment %s  failed, err:%v ", deploymentName, err)
+		lvmdLogger.Errorf("create topolvm node deployment %s  failed, err:%v ", deploymentName, err)
 	}
 }
 
@@ -262,7 +263,7 @@ func getNodeName(cm *v1.ConfigMap) string {
 
 	nodeName, ok := cm.GetAnnotations()[cluster.LvmdAnnotationsNodeKey]
 	if !ok {
-		logger.Error("can not get node name")
+		lvmdLogger.Error("can not get node name")
 		return ""
 	}
 	return nodeName
@@ -282,13 +283,13 @@ func getClientObject(obj interface{}) (cm *v1.ConfigMap, err error) {
 func (c *ConfigMapController) updateClusterStatus(cm *v1.ConfigMap) {
 
 	status := cm.Data[cluster.VgStatusConfigMapKey]
-	nodeStatus := &topolvmv1.NodeStorageState{}
+	nodeStatus := &topolvmv2.NodeStorageState{}
 	err := json.Unmarshal([]byte(status), nodeStatus)
 	if err != nil {
-		logger.Errorf("unmarshal node status failed err %v", err)
+		lvmdLogger.Errorf("unmarshal node status failed err %v", err)
 		return
 	}
 	if err := c.clusterCtr.UpdateStatus(nodeStatus); err != nil {
-		logger.Errorf("update status failed err %v", err)
+		lvmdLogger.Errorf("update status failed err %v", err)
 	}
 }

@@ -1,11 +1,13 @@
 package conversion
 
+// Not being used
 import (
+	"os"
+
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/converter"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 var ConversionCmd = &cobra.Command{

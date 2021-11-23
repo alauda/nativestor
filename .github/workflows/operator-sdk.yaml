@@ -1,11 +1,11 @@
-name: Origin
+name: OperatorSDK
 on:
   pull_request:
     branches:
-      - 'origin-topolvm'
+      - 'operator-sdk-dev'
 jobs:
-  origin-build:
-    name: origin-build
+  build:
+    name: build
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -14,10 +14,10 @@ jobs:
           go-version: 1.16
       - run: make setup
       - run: make build
-      - run: sudo -E env PATH=${PATH}  go test -race -v $(go list ./... | grep -v vendor | grep -v e2e)
+      - run: make test
       - run: make image
-  origin-e2e-k8s:
-    name: origin-e2e-k8s
+  e2e-k8s:
+    name: e2e-k8s
     runs-on: ubuntu-20.04
     strategy:
       matrix:

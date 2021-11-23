@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Topolvm-Operator Authors. All rights reserved.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import (
 type TopolvmClusterSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
 	TopolvmVersion string `json:"topolvmVersion"`
 	CertsSecret    string `json:"certsSecret"`
 	Storage        `json:"storage"`
@@ -76,14 +77,9 @@ type TopolvmClusterStatus struct {
 type ConditionType string
 
 const (
-	// ConditionConnecting represents Connecting state of an object
-	// ConditionReady represents Ready state of an object
-	ConditionReady ConditionType = "Ready"
-	// ConditionFailure represents Failure state of an object
+	ConditionReady   ConditionType = "Ready"
 	ConditionFailure ConditionType = "Failure"
-
 	ConditionUnknown ConditionType = "Unknown"
-
 	ConditionPending ConditionType = "Pending"
 )
 
@@ -116,8 +112,8 @@ type DeviceState struct {
 	Message string `json:"message,omitempty"`
 }
 
-// +kubebuilder:object:root=true
-// +kubebuilder:storageversion
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
 
 // TopolvmCluster is the Schema for the topolvmclusters API
 type TopolvmCluster struct {
@@ -128,7 +124,7 @@ type TopolvmCluster struct {
 	Status TopolvmClusterStatus `json:"status,omitempty"`
 }
 
-// +kubebuilder:object:root=true
+//+kubebuilder:object:root=true
 
 // TopolvmClusterList contains a list of TopolvmCluster
 type TopolvmClusterList struct {

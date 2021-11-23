@@ -16,11 +16,13 @@ limitations under the License.
 
 package converter
 
+// Not being used
 import (
 	"encoding/json"
+
 	"k8s.io/klog"
 
-	"github.com/alauda/topolvm-operator/api/v2"
+	v2 "github.com/alauda/topolvm-operator/api/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )

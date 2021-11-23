@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/discover"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
@@ -158,7 +159,7 @@ func (c *ReconcileConfig) updateCsiDriver() error {
 	kubeletRootDir := k8sutil.GetValue(c.config.Parameters, cluster.KubeletRootPathEnv, cluster.CSIKubeletRootDir)
 	if kubeletRootDir != cluster.CSIKubeletRootDir {
 		if err := node.UpdateNodeDeploymentCSIKubeletRootPath(c.context.Clientset, kubeletRootDir); err != nil {
-			clusterLogger.Errorf("updater csi kubelet path failed err:%s", err.Error())
+			configLogger.Errorf("updater csi kubelet path failed err:%s", err.Error())
 			return err
 		}
 	}

@@ -18,27 +18,28 @@ package controller
 
 import (
 	"fmt"
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
+	"reflect"
+	"testing"
+
+	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"reflect"
-	"testing"
 )
 
 func TestMatch(t *testing.T) {
 	isController := true
 
-	fakeObject := &topolvmv1.TopolvmCluster{
+	fakeObject := &topolvmv2.TopolvmCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "topolvm-system",
 			UID:       "ce6807a0-7270-4874-9e9f-ae493d48b814",
 			Name:      "my-cluster",
 		},
 		TypeMeta: metav1.TypeMeta{
-			Kind:       reflect.TypeOf(topolvmv1.TopolvmCluster{}).Name(),
-			APIVersion: fmt.Sprintf("%s/%s", topolvmv1.GroupVersion.Group, topolvmv1.GroupVersion.Version),
+			Kind:       reflect.TypeOf(topolvmv2.TopolvmCluster{}).Name(),
+			APIVersion: fmt.Sprintf("%s/%s", topolvmv2.GroupVersion.Group, topolvmv2.GroupVersion.Version),
 		},
 	}
 
@@ -65,7 +66,7 @@ func TestMatch(t *testing.T) {
 
 	// Setup scheme
 	scheme := runtime.NewScheme()
-	scheme.AddKnownTypes(topolvmv1.GroupVersion, fakeObject)
+	scheme.AddKnownTypes(topolvmv2.GroupVersion, fakeObject)
 
 	// Wrong Kind
 	ownerMatcher, err := NewOwnerReferenceMatcher(fakeObject, scheme)

@@ -19,10 +19,10 @@ package controller
 import (
 	"context"
 	"fmt"
-	"github.com/alauda/topolvm-operator/pkg/apis"
-	"github.com/coreos/pkg/capnslog"
 	"strings"
 
+	"github.com/alauda/topolvm-operator/pkg/apis"
+	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"sigs.k8s.io/controller-runtime/pkg/client"

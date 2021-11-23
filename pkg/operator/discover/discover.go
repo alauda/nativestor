@@ -21,7 +21,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
+	"os"
+	"os/exec"
+	"os/signal"
+	"regexp"
+	"strings"
+	"syscall"
+	"time"
+
+	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/alauda/topolvm-operator/pkg/util/sys"
@@ -32,13 +40,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/strategicpatch"
-	"os"
-	"os/exec"
-	"os/signal"
-	"regexp"
-	"strings"
-	"syscall"
-	"time"
 )
 
 const (
@@ -172,7 +173,7 @@ func checkLoopDevice(clusterdContext *cluster.Context) error {
 	if err == nil {
 		if loopDevices, ok := cmTemp.Data[cluster.VgStatusConfigMapKey]; ok {
 
-			nodeStatus := topolvmv1.NodeStorageState{}
+			nodeStatus := topolvmv2.NodeStorageState{}
 			err := json.Unmarshal([]byte(loopDevices), &nodeStatus)
 			if err != nil {
 				logger.Errorf("unmarshal confimap status data failed %+v ", err)

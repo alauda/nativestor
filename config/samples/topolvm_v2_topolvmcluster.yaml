@@ -1,0 +1,6 @@
+apiVersion: topolvm.cybozu.com/v2
+kind: TopolvmCluster
+metadata:
+  name: topolvmcluster-sample
+spec: {}
+  # Add fields here
