@@ -5,7 +5,7 @@ metadata:
   name: topolvmcluster-sample
   labels:
   {{- include "topolvm-operator.labels" . | nindent 4 }}
-  namespace: topolvm-system
+  namespace: {{ .Release.Namespace }}
 spec:
   # Add fields here
   topolvmVersion: {{.Values.cluster.topolvmVersion}}
