@@ -38,7 +38,7 @@ func NewStatusChecker(context *cluster.Context, statusLock *sync.Mutex, metric c
 	}
 }
 
-func (c *ClusterStatusChecker) CheckClusterStatus(namespacedName *types.NamespacedName, stopCh chan struct{}) {
+func (c *ClusterStatusChecker) CheckClusterStatus(namespacedName *types.NamespacedName, stopCh chan struct{}, ref *metav1.OwnerReference) {
 	// check the status immediately before starting the loop
 	c.checkStatus(namespacedName)
 	for {
@@ -49,6 +49,13 @@ func (c *ClusterStatusChecker) CheckClusterStatus(namespacedName *types.Namespac
 
 		case <-time.After(c.interval):
 			c.checkStatus(namespacedName)
+			if err := EnableServiceMonitor(ref); err != nil {
+				logger.Errorf("monitor failed err %s", err.Error())
+			}
+
+			if err := CreateOrUpdatePrometheusRule(ref); err != nil {
+				logger.Errorf("create rule failed err %s", err.Error())
+			}
 		}
 	}
 }

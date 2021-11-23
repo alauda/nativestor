@@ -217,7 +217,7 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 
 	if r.ClusterController.lastCluster == nil {
 		r.stopCh = make(chan struct{})
-		go r.statusChecker.CheckClusterStatus(r.namespacedName, r.stopCh)
+		go r.statusChecker.CheckClusterStatus(r.namespacedName, r.stopCh, ref)
 	}
 
 	// Do reconcile here!
