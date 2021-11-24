@@ -55,6 +55,12 @@ type Partition struct {
 	Filesystem string
 }
 
+type LocalDiskAppendInfo struct {
+	LocalDisk
+	Available bool   `json:"available"`
+	Message   string `json:"message"`
+}
+
 // LocalDisk contains information about an unformatted block device
 type LocalDisk struct {
 	// Name is the device name

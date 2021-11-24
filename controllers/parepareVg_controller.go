@@ -40,6 +40,8 @@ import (
 const (
 	ClassExpandWaring     = "expand warning"
 	ClassExpandError      = "expand error"
+	ClassShrinkError      = "shrink error"
+	ClassDeleteError      = "delete error"
 	ClassCreateSuccessful = "create successful"
 	ClassCreateFail       = "create failed"
 	DeviceStateError      = "error"
@@ -313,6 +315,10 @@ func (c *PrePareVg) provisionWithNodeStatus(cm *v1.ConfigMap, vgStatus string, d
 			if err != nil {
 				logger.Errorf("checkVgIfExpand vg:%s failed err %v", dev.VgName, err)
 			}
+			err = c.checkVgIfShrink(&dev, sucClassMap)
+			if err != nil {
+				logger.Errorf("checkVgIfShrink vg:%s failed err %v", dev.VgName, err)
+			}
 			continue
 		}
 
@@ -330,10 +336,11 @@ func (c *PrePareVg) provisionWithNodeStatus(cm *v1.ConfigMap, vgStatus string, d
 		if suc {
 			sucVgs = append(sucVgs, dev)
 		}
-
 	}
 
-	err = c.updateLvmdConf(newCm, sucVgs)
+	c.checkVgIfDelete(sucClassMap, failClassMap)
+
+	err = c.updateLvmdConf(newCm, sucVgs, sucClassMap)
 	if err != nil {
 		return errors.Wrap(err, "update lvmd conf failed")
 	}
@@ -351,8 +358,43 @@ func (c *PrePareVg) provisionWithNodeStatus(cm *v1.ConfigMap, vgStatus string, d
 
 }
 
+func (c *PrePareVg) checkVgIfDelete(sucClass map[string]*topolvmv1.ClassState, failClass map[string]*topolvmv1.ClassState) {
+	for key := range sucClass {
+		found := false
+		for _, d := range c.nodeDevices.DeviceClasses {
+			if d.VgName == key {
+				found = true
+				break
+			}
+		}
+		if !found {
+			if err := sys.RemoveVolumeGroup(c.context.Executor, key); err != nil {
+				vgLogger.Errorf("remove vg %s failed err %s", key, err.Error())
+				sucClass[key].State = ClassDeleteError
+			}
+			delete(sucClass, key)
+		}
+
+	}
+
+	for key := range failClass {
+		found := false
+		for _, d := range c.nodeDevices.DeviceClasses {
+			if d.VgName == key {
+				found = true
+				break
+			}
+		}
+		if !found {
+			delete(failClass, key)
+		}
+	}
+
+}
+
 func (c *PrePareVg) checkVgIfExpand(class *topolvmv1.DeviceClass, sucClass map[string]*topolvmv1.ClassState) error {
 
+	vgLogger.Info("check vg need expand or not")
 	pv, err := sys.GetPhysicalVolume(c.context.Executor, class.VgName)
 	if err != nil {
 		vgLogger.Errorf("list pv for vg %s failed err:%+v", class.VgName, err)
@@ -389,6 +431,64 @@ func (c *PrePareVg) checkVgIfExpand(class *topolvmv1.DeviceClass, sucClass map[s
 		if err != nil {
 			sucClass[class.VgName].State = ClassExpandError
 			return err
+		}
+		for _, d := range newPvs {
+			devStatus := topolvmv1.DeviceState{Name: d, State: topolvmv1.DeviceStateOnline}
+			sucClass[class.VgName].DeviceStates = append(sucClass[class.VgName].DeviceStates, devStatus)
+		}
+
+	}
+
+	return err
+}
+
+func (c *PrePareVg) checkVgIfShrink(class *topolvmv1.DeviceClass, sucClass map[string]*topolvmv1.ClassState) error {
+
+	vgLogger.Info("check vg need shrink or not")
+	pvs, err := sys.GetPhysicalVolume(c.context.Executor, class.VgName)
+	if err != nil {
+		vgLogger.Errorf("list pv for vg %s failed err:%+v", class.VgName, err)
+		return err
+	}
+
+	deletePvs := make([]string, 0)
+
+	for pv := range pvs {
+		found := false
+		for _, d := range class.Device {
+			if pv == d.Name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			deletePvs = append(deletePvs, pv)
+		}
+	}
+
+	if len(deletePvs) == len(pvs) && len(pvs) > 0 {
+		err = sys.RemoveVolumeGroup(c.context.Executor, class.VgName)
+		if err != nil {
+			sucClass[class.VgName].State = ClassDeleteError
+			return err
+		}
+		delete(sucClass, class.VgName)
+		return nil
+	}
+
+	if len(deletePvs) > 0 {
+		err := sys.ShrinkVolumeGroup(c.context.Executor, class.VgName, deletePvs)
+		if err != nil {
+			sucClass[class.VgName].State = ClassShrinkError
+			return err
+		}
+		for _, d := range deletePvs {
+			for index := 0; index < len(sucClass[class.VgName].DeviceStates); index++ {
+				if sucClass[class.VgName].DeviceStates[index].Name == d {
+					sucClass[class.VgName].DeviceStates = append(sucClass[class.VgName].DeviceStates[:index], sucClass[class.VgName].DeviceStates[index+1:]...)
+					index--
+				}
+			}
 		}
 	}
 
@@ -465,7 +565,7 @@ func (c *PrePareVg) createVg(availaDisks map[string]*sys.LocalDisk, class *topol
 
 		if _, ok := availaDisks[disk.Name]; !ok {
 			message := "disk may has filesystem or is not raw disk please check"
-			devStatus := topolvmv1.DeviceState{Name: disk.Name, Message: message}
+			devStatus := topolvmv1.DeviceState{Name: disk.Name, State: topolvmv1.DeviceStateOffline, Message: message}
 			classState.DeviceStates = append(classState.DeviceStates, devStatus)
 			vgLogger.Errorf("device:%s is not available", disk.Name)
 			available = false
@@ -481,6 +581,10 @@ func (c *PrePareVg) createVg(availaDisks map[string]*sys.LocalDisk, class *topol
 		} else {
 			classState.State = ClassCreateSuccessful
 			sucClass[class.VgName] = classState
+			for _, d := range class.Device {
+				devStatus := topolvmv1.DeviceState{Name: d.Name, State: topolvmv1.DeviceStateOnline}
+				classState.DeviceStates = append(classState.DeviceStates, devStatus)
+			}
 			logger.Infof("create vg %s retry successful", class.VgName)
 			return true
 		}
@@ -491,7 +595,7 @@ func (c *PrePareVg) createVg(availaDisks map[string]*sys.LocalDisk, class *topol
 
 }
 
-func (c *PrePareVg) updateLvmdConf(cm *v1.ConfigMap, newVgs []topolvmv1.DeviceClass) error {
+func (c *PrePareVg) updateLvmdConf(cm *v1.ConfigMap, newVgs []topolvmv1.DeviceClass, sucClass map[string]*topolvmv1.ClassState) error {
 
 	lvmdConf := cluster.LmvdConf{}
 	dataLvmd, ok := cm.Data[cluster.LvmdConfigMapKey]
@@ -519,6 +623,20 @@ func (c *PrePareVg) updateLvmdConf(cm *v1.ConfigMap, newVgs []topolvmv1.DeviceCl
 			return err
 		}
 		lvmdConf.DeviceClasses = append(lvmdConf.DeviceClasses, *devClass)
+	}
+
+	// delete vgs
+	for index := 0; index < len(lvmdConf.DeviceClasses); index++ {
+		found := false
+		for _, c := range sucClass {
+			if lvmdConf.DeviceClasses[index].Name == c.Name {
+				found = true
+			}
+		}
+		if !found {
+			lvmdConf.DeviceClasses = append(lvmdConf.DeviceClasses[:index], lvmdConf.DeviceClasses[index+1:]...)
+			index--
+		}
 	}
 
 	value, err := yaml.Marshal(lvmdConf)

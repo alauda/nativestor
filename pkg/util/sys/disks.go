@@ -29,6 +29,53 @@ const (
 	diskPrefix = "/dev/"
 )
 
+func GetAllDevices(dcontext *cluster.Context) ([]*LocalDiskAppendInfo, error) {
+
+	res := make([]*LocalDiskAppendInfo, 0)
+
+	var disks []*LocalDisk
+
+	var err error
+
+	if disks, err = DiscoverDevices(dcontext.Executor); err != nil {
+		return nil, err
+	}
+
+	for _, device := range disks {
+		// Ignore device with filesystem signature since c-v inventory
+		// cannot detect that correctly
+		if device.Size < uint64(2*(1<<30)) {
+			logger.Infof("skipping device %q because it size less than 2G", device.Name)
+			res = append(res, &LocalDiskAppendInfo{
+				LocalDisk: *device,
+				Available: false,
+				Message:   "size less than 2G",
+			})
+			continue
+		}
+
+		if device.Filesystem != "" {
+			res = append(res, &LocalDiskAppendInfo{
+				LocalDisk: *device,
+				Available: false,
+				Message:   fmt.Sprintf("containe a filesystem %s", device.Filesystem),
+			})
+			logger.Infof("skipping device %q because it contains a filesystem %q", device.Name, device.Filesystem)
+			continue
+		}
+
+		logger.Debugf("device:%s is available", device.Name)
+		res = append(res, &LocalDiskAppendInfo{
+			LocalDisk: *device,
+			Available: true,
+		})
+
+	}
+
+	return res, nil
+
+}
+
 func GetAvailableDevices(dcontext *cluster.Context) (map[string]*LocalDisk, error) {
 
 	availableDevices := make(map[string]*LocalDisk)
