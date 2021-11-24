@@ -3,6 +3,10 @@ package monitor
 import (
 	"context"
 	"fmt"
+	"reflect"
+	"sync"
+	"time"
+
 	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
@@ -11,10 +15,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sync"
-	"time"
 )
 
 var logger = capnslog.NewPackageLogger("topolvm/operator", "status")
@@ -37,7 +38,7 @@ func NewCephStatusChecker(context *cluster.Context, statusLock *sync.Mutex, metr
 	}
 }
 
-func (c *ClusterStatusChecker) CheckClusterStatus(namespacedName *types.NamespacedName, stopCh chan struct{}) {
+func (c *ClusterStatusChecker) CheckClusterStatus(namespacedName *types.NamespacedName, stopCh chan struct{}, ref *metav1.OwnerReference) {
 	// check the status immediately before starting the loop
 	c.checkStatus(namespacedName)
 	for {
@@ -48,6 +49,13 @@ func (c *ClusterStatusChecker) CheckClusterStatus(namespacedName *types.Namespac
 
 		case <-time.After(c.interval):
 			c.checkStatus(namespacedName)
+			if err := EnableServiceMonitor(ref); err != nil {
+				logger.Errorf("monitor failed err %s", err.Error())
+			}
+
+			if err := CreateOrUpdatePrometheusRule(ref); err != nil {
+				logger.Errorf("create rule failed err %s", err.Error())
+			}
 		}
 	}
 }
