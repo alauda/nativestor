@@ -29,8 +29,9 @@ type TopolvmClusterSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	TopolvmVersion string `json:"topolvmVersion"`
-	CertsSecret    string `json:"certsSecret"`
-	Storage        `json:"storage"`
+	//+optional
+	CertsSecret string `json:"certsSecret"`
+	Storage     `json:"storage"`
 }
 
 type Storage struct {

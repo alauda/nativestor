@@ -129,7 +129,6 @@ spec:
               topolvmVersion:
                 type: string
             required:
-            - certsSecret
             - storage
             - topolvmVersion
             type: object

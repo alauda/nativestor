@@ -29,10 +29,10 @@ endif
 BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
 REGISTRY_PREFIX ?= docker.io
-
+IMAGE_PREFIX ?= alaudapublic/
 IMAGE_TAG_BASE ?= $(IMAGE_PREFIX)topolvm-operator
-BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:v$(TOPOLVM_OPERATOR_VERSION)
-
+BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:$(TOPOLVM_OPERATOR_VERSION)
+IMAGE ?= $(REGISTRY_PREFIX)/$(IMAGE_TAG_BASE):$(TOPOLVM_OPERATOR_VERSION)
 IMG ?= $(REGISTRY_PREFIX)/$(BUNDLE_IMG)
 
 # ENVTEST_K8S_VERSION refers to the version of kubebuilder assets to be downloaded by envtest binary.
@@ -93,6 +93,11 @@ test: manifests generate fmt vet envtest ## Run tests.
 	$(INEFFASSIGN) ./...
 	$(SUDO) go test -race -v $$(go list ./... | grep -v vendor | grep -v e2e)
 
+example: manifests generate ## Generate yaml manifests for operator deployment
+	mkdir -p deploy/example
+	$(KUSTOMIZE) build config/default > deploy/example/operator.yaml
+	$(KUSTOMIZE) build config/overlays/ocp > deploy/example/operator-ocp.yaml
+
 setup: tools controller-gen ## Install controller-tools.
 
 tools: ## Install tools required for testing.
@@ -132,11 +137,11 @@ install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~
 uninstall: manifests kustomize ## Uninstall CRDs from the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl delete -f -
 
-deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config. (Not Applicable)
+	@cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
 	$(KUSTOMIZE) build config/default | kubectl apply -f -
 
-undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config.
+undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. (Not Applicable)
 	$(KUSTOMIZE) build config/default | kubectl delete -f -
 
 CONTROLLER_GEN = $(shell pwd)/bin/controller-gen
@@ -202,7 +207,7 @@ endif
 BUNDLE_IMGS ?= $(BUNDLE_IMG)
 
 # The image tag given to the resulting catalog image (e.g. make catalog-build CATALOG_IMG=example.com/operator-catalog:v0.2.0).
-CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:v$(TOPOLVM_OPERATOR_VERSION)
+CATALOG_IMG ?= $(IMAGE_TAG_BASE)-catalog:$(TOPOLVM_OPERATOR_VERSION)
 
 # Set CATALOG_BASE_IMG to an existing catalog image tag to add $BUNDLE_IMGS to that image.
 ifneq ($(origin CATALOG_BASE_IMG), undefined)

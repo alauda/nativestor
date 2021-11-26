@@ -1,0 +1,108 @@
+# Default values for topolvm-operator.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+global:
+  registry:
+    address: docker.io
+  images:
+    topolvmOperator:
+      repository: alaudapublic/topolvm-operator
+      tag: 2.2.0
+      pullPolicy: IfNotPresent
+      support_arm: true
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+logLevel: "DEBUG"
+isOperatorHub: "0"
+
+podAnnotations: {}
+
+podSecurityContext: {}
+# fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+# runAsUser: 1000
+
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+#   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations:
+  - operator: Exists
+
+affinity: {}
+
+podSecurityPolicy:
+  create: true
+
+cluster:
+  create: false
+  name: topolvmcluster-sample
+  topolvmVersion:  quay.io/topolvm/topolvm-with-sidecar:0.10
+  storage:
+    useAllNodes: true
+    useAllDevices: false
+    useLoop: true
+    volumeGroupName: "hdd-test"
+    className: "hdd-test"
+    devices: []
+#    deviceClasses:
+#      # kubernetes node name
+#      - nodeName: "192.168.16.98"
+#        # node classes
+#        classes:
+#          # node class name
+#          - className: "hdd"
+#            # user should specific volume group name , operator will create it
+#            volumeGroup: "test"
+#            # a node must a class should set default, when StorageClass not specific device class name , the default class will be used
+#            default: true
+#            # available devices used for creating volume group
+#            devices:
+#              - name: "/dev/sdb"
+#                type: "disk"
+#              - name: "/dev/loop2"
+#                type: "loop"
+#                auto: false
+#              - name: "loop1"
+#                type: "loop"
+#                auto: true
+#                path: "/data"
+#                size: 100  #unit G
+storageClasses:
+  - name: topolvm-provisioner # Defines name of storage classe.
+    storageClass:
+      # Supported filesystems are: ext4, xfs, and btrfs.
+      fsType: xfs
+      # Additional annotations
+      annotations: {}
+      # Default storage class for dynamic volume provisioning
+      # ref: https://kubernetes.io/docs/concepts/storage/dynamic-provisioning
+      isDefaultClass: false
+      # volumeBindingMode can be either WaitForFirstConsumer or Immediate. WaitForFirstConsumer is recommended because TopoLVM cannot schedule pods wisely if volumeBindingMode is Immediate.
+      volumeBindingMode: WaitForFirstConsumer
+      # enables CSI drivers to expand volumes. This feature is available for Kubernetes 1.16 and later releases.
+      allowVolumeExpansion: true
+      additionalParameters: {}
+      #    "topolvm.cybozu.com/device-class": "ssd"

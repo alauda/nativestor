@@ -3,6 +3,7 @@
 # It should be run by config/default
 resources:
 - bases/topolvm.cybozu.com_topolvmclusters.yaml
+- bases/topolvm.cybozu.com_logicalvolumes.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

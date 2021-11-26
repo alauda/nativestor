@@ -1,4 +1,5 @@
 ## Append samples you want in your CSV to this file as resources ##
 resources:
 - topolvm_v2_topolvmcluster.yaml
+- topolvm_v1_logicalvolume.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

@@ -13,10 +13,6 @@ Chart package file see [deploy/chart](../deploy/chart). Follow the [documentatio
 Yaml file deploy
 ------------
 file exists in [deploy/example/](../deploy/example)
-1. kubectl apply -f [crds.yaml](../deploy/example/crds.yaml)
-2. kubectl apply -f [common.yaml](../deploy/example/common.yaml)
-3. kubectl apply -f [controller_certs.yaml](../deploy/example/controller_certs.yaml)
-4. kubectl apply -f [operator.yaml](../deploy/example/operator.yaml)
-5. kubectl apply -f [setting.yaml](../deploy/example/setting.yaml)
-
+1. kubectl apply -f [operator.yaml](../deploy/example/operator.yaml)
+2. kubectl apply -f [setting.yaml](../deploy/example/setting.yaml)
 
