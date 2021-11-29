@@ -38,8 +38,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/strategicpatch"
 )
 
 const (
@@ -142,6 +140,7 @@ func Run(context *cluster.Context, probeInterval time.Duration) error {
 			if err := updateDeviceCM(context); err != nil {
 				logger.Errorf("failed to update device configmap during probe interval. %v", err)
 			}
+			checkDeviceClass(context)
 		case _, ok := <-udevEvents:
 			if ok {
 				logger.Info("trigger probe from udev event")
@@ -213,17 +212,12 @@ func checkLoopDevice(clusterdContext *cluster.Context) error {
 func updateDeviceCM(clusterdContext *cluster.Context) error {
 	ctx := context.TODO()
 	logger.Infof("updating device configmap")
-	devices, err := sys.GetAvailableDevices(clusterdContext)
+	devices, err := sys.GetAllDevices(clusterdContext)
 	if err != nil {
 		logger.Errorf("can not list disk err:%s", err)
 		return err
 	}
-	disks := make([]sys.LocalDisk, 0)
-	for _, value := range devices {
-		disks = append(disks, *value)
-	}
-
-	deviceJSON, err := json.Marshal(disks)
+	deviceJSON, err := json.Marshal(devices)
 	if err != nil {
 		logger.Infof("failed to marshal: %v", err)
 		return err
@@ -236,21 +230,9 @@ func updateDeviceCM(clusterdContext *cluster.Context) error {
 		if lastDevice != deviceStr {
 			newcm := cm.DeepCopy()
 			newcm.Data[cluster.LocalDiskCMData] = deviceStr
-			newJSON, err := json.Marshal(*newcm)
+			err = k8sutil.PatchConfigMap(clusterdContext.Clientset, newcm.Namespace, cm, newcm)
 			if err != nil {
-				return err
-			}
-			oldJSON, err := json.Marshal(*cm)
-			if err != nil {
-				return err
-			}
-			patchBytes, err := strategicpatch.CreateTwoWayMergePatch(oldJSON, newJSON, v1.ConfigMap{})
-			if err != nil {
-				return err
-			}
-			_, err = clusterdContext.Clientset.CoreV1().ConfigMaps(namespace).Patch(ctx, cm.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
-			if err != nil {
-				logger.Infof("failed to update configmap %s: %v", cmName, err)
+				logger.Errorf("failed to update configmap %s: %v", cmName, err)
 				return err
 			}
 		}
@@ -285,6 +267,55 @@ func updateDeviceCM(clusterdContext *cluster.Context) error {
 		}
 		return nil
 	}
+	return nil
+}
+
+func checkDeviceClass(clusterdContext *cluster.Context) error {
+	logger.Info("check device status")
+	ctx := context.TODO()
+	cm, err := clusterdContext.Clientset.CoreV1().ConfigMaps(namespace).Get(ctx, cmName, metav1.GetOptions{})
+	if err == nil {
+		newcm := cm.DeepCopy()
+		status := newcm.Data[cluster.VgStatusConfigMapKey]
+		if status == "" {
+			return nil
+		}
+
+		nodeStatus := &topolvmv2.NodeStorageState{}
+		err = json.Unmarshal([]byte(status), nodeStatus)
+		if err != nil {
+			logger.Errorf("unmarshal node status failed err %v", err)
+			return err
+		}
+
+		for index1, ele := range nodeStatus.SuccessClasses {
+			pvs, err := sys.GetPhysicalVolume(clusterdContext.Executor, ele.VgName)
+			if err != nil {
+				logger.Errorf("list pvs of vg %s failed err %v", ele.VgName, err)
+				return err
+			}
+			for index2, d := range nodeStatus.SuccessClasses[index1].DeviceStates {
+				if _, ok := pvs[d.Name]; ok {
+					continue
+				} else {
+					nodeStatus.SuccessClasses[index1].DeviceStates[index2].State = topolvmv2.DeviceStateOffline
+				}
+			}
+		}
+
+		res, err := json.Marshal(nodeStatus)
+		if err != nil {
+			logger.Errorf("marshal node status failed %v", err)
+			return err
+		}
+		newcm.Data[cluster.VgStatusConfigMapKey] = string(res)
+		err = k8sutil.PatchConfigMap(clusterdContext.Clientset, newcm.Namespace, cm, newcm)
+		if err != nil {
+			logger.Errorf("failed to update configmap %s: %v", cmName, err)
+			return err
+		}
+	}
+
 	return nil
 }
 

@@ -18,6 +18,7 @@ package sys
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -86,6 +87,99 @@ func GetPhysicalVolume(executor exec.Executor, vgname string) (LVInfo, error) {
 		lvInfo[pvName] = pvName
 	}
 	return lvInfo, nil
+
+}
+
+func CheckPVHasLogicalVolume(executor exec.Executor, pvname string) (bool, error) {
+
+	field := "+lv_name"
+	infoList, err := parseOutput(executor, "pvs", field, pvname, "--segments")
+	if err != nil {
+		return false, perrors.Wrapf(err, "parse out failed cmd:%s %s %s", "pvs", field, pvname)
+	}
+	for _, info := range infoList {
+		if info["lv_name"] != "" {
+			return true, nil
+		}
+
+	}
+	return false, nil
+}
+
+func CheckVgHasLogicalVolume(executor exec.Executor, vgname string) (bool, error) {
+
+	field := "lv_name"
+	infoList, err := parseOutput(executor, "vgs", field, vgname)
+	if err != nil {
+		return false, perrors.Wrapf(err, "parse out failed cmd:%s %s %s", "vgs", field, vgname)
+	}
+	for _, info := range infoList {
+		if info[field] != "" {
+			return true, nil
+		}
+
+	}
+	return false, nil
+}
+
+func RemoveVolumeGroup(executor exec.Executor, vgName string) error {
+
+	ok, err := CheckVgHasLogicalVolume(executor, vgName)
+	if err != nil {
+		return err
+	}
+	if ok {
+		return fmt.Errorf("vg %s has some lv can not remove", vgName)
+	}
+
+	infoList, err := GetPhysicalVolume(executor, vgName)
+	if err != nil {
+		return err
+	}
+	args := []string{"vgremove", vgName}
+	err = wrapExecCommand(executor, lvm, args...)
+	if err != nil {
+		return err
+	}
+
+	for key := range infoList {
+		args := []string{"pvremove", key}
+		err = wrapExecCommand(executor, lvm, args...)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+
+}
+
+func ShrinkVolumeGroup(executor exec.Executor, vgName string, pvs []string) error {
+
+	for _, dev := range pvs {
+		ok, err := CheckPVHasLogicalVolume(executor, dev)
+		if err != nil {
+			return err
+		}
+		if ok {
+			return fmt.Errorf("pv %s has some lv can not remove", dev)
+		}
+	}
+	args := []string{"vgreduce", vgName}
+
+	args = append(args, pvs...)
+
+	err := wrapExecCommand(executor, lvm, args...)
+	if err != nil {
+		return err
+	}
+
+	args = []string{"pvremove"}
+	args = append(args, pvs...)
+	err = wrapExecCommand(executor, lvm, args...)
+	if err != nil {
+		return err
+	}
+	return nil
 
 }
 
