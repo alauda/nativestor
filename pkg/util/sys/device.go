@@ -99,6 +99,8 @@ type LocalDisk struct {
 	Empty bool `json:"empty"`
 	// RealPath is the device pathname behind the PVC, behind /mnt/<pvc>/name
 	RealPath string `json:"real-path,omitempty"`
+	// mount point
+	MountPoint string `json:"mount-point,omitempty"`
 	// KernelName is the kernel name of the device
 	KernelName string `json:"kernel-name,omitempty"`
 	// Whether this device should be encrypted
@@ -193,7 +195,7 @@ func GetDeviceProperties(device string, executor exec.Executor) (map[string]stri
 // GetDevicePropertiesFromPath gets a device property from a path
 func GetDevicePropertiesFromPath(devicePath string, executor exec.Executor) (map[string]string, error) {
 	output, err := executor.ExecuteCommandWithOutput("lsblk", devicePath,
-		"--bytes", "--nodeps", "--pairs", "--paths", "--output", "SIZE,ROTA,RO,TYPE,PKNAME,NAME,KNAME")
+		"--bytes", "--nodeps", "--pairs", "--paths", "--output", "SIZE,ROTA,RO,TYPE,PKNAME,NAME,KNAME,MOUNTPOINT")
 	if err != nil {
 		// The "not a block device" error also returns code 32 so the ExitStatus() check hides this error
 		if strings.Contains(output, "not a block device") {

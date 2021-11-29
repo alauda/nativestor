@@ -63,6 +63,15 @@ func GetAllDevices(dcontext *cluster.Context) ([]*LocalDiskAppendInfo, error) {
 			logger.Infof("skipping device %q because it contains a filesystem %q", device.Name, device.Filesystem)
 			continue
 		}
+		if device.MountPoint != "" {
+			res = append(res, &LocalDiskAppendInfo{
+				LocalDisk: *device,
+				Available: false,
+				Message:   fmt.Sprintf("has a mount point %s", device.MountPoint),
+			})
+			logger.Infof("skipping device %q because it has a mount point %q", device.Name, device.MountPoint)
+			continue
+		}
 
 		logger.Debugf("device:%s is available", device.Name)
 		res = append(res, &LocalDiskAppendInfo{
@@ -98,6 +107,11 @@ func GetAvailableDevices(dcontext *cluster.Context) (map[string]*LocalDisk, erro
 
 		if device.Filesystem != "" {
 			logger.Infof("skipping device %q because it contains a filesystem %q", device.Name, device.Filesystem)
+			continue
+		}
+
+		if device.MountPoint != "" {
+			logger.Infof("skipping device %q because it has a mount point %q", device.Name, device.MountPoint)
 			continue
 		}
 
@@ -213,6 +227,9 @@ func populateDeviceInfo(d string, executor exec.Executor) (*LocalDisk, error) {
 	}
 	if val, ok := diskProps["KNAME"]; ok {
 		disk.KernelName = path.Base(val)
+	}
+	if val, ok := diskProps["MOUNTPOINT"]; ok {
+		disk.MountPoint = path.Base(val)
 	}
 
 	return disk, nil
