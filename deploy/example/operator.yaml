@@ -1,39 +1,1259 @@
-apiVersion: apps/v1
-kind: Deployment
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/name: topolvm-system
+    topolvm.cybozu.com/webhook: ignore
+  name: topolvm-system
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
+  name: logicalvolumes.topolvm.cybozu.com
+spec:
+  group: topolvm.cybozu.com
+  names:
+    kind: LogicalVolume
+    listKind: LogicalVolumeList
+    plural: logicalvolumes
+    singular: logicalvolume
+  scope: Cluster
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: LogicalVolume is the Schema for the logicalvolumes API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: LogicalVolumeSpec defines the desired state of LogicalVolume
+            properties:
+              deviceClass:
+                type: string
+              name:
+                type: string
+              nodeName:
+                type: string
+              size:
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+            required:
+            - name
+            - nodeName
+            - size
+            type: object
+          status:
+            description: LogicalVolumeStatus defines the observed state of LogicalVolume
+            properties:
+              code:
+                description: A Code is an unsigned 32-bit error code as defined in the gRPC spec.
+                format: int32
+                type: integer
+              currentSize:
+                anyOf:
+                - type: integer
+                - type: string
+                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                x-kubernetes-int-or-string: true
+              message:
+                type: string
+              volumeID:
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run "make" to regenerate code after modifying this file'
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.7.0
+  creationTimestamp: null
+  name: topolvmclusters.topolvm.cybozu.com
+spec:
+  group: topolvm.cybozu.com
+  names:
+    kind: TopolvmCluster
+    listKind: TopolvmClusterList
+    plural: topolvmclusters
+    singular: topolvmcluster
+  scope: Namespaced
+  versions:
+  - name: v2
+    schema:
+      openAPIV3Schema:
+        description: TopolvmCluster is the Schema for the topolvmclusters API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: TopolvmClusterSpec defines the desired state of TopolvmCluster
+            properties:
+              certsSecret:
+                type: string
+              storage:
+                properties:
+                  className:
+                    type: string
+                  deviceClasses:
+                    items:
+                      properties:
+                        classes:
+                          items:
+                            properties:
+                              className:
+                                type: string
+                              default:
+                                type: boolean
+                              devices:
+                                items:
+                                  properties:
+                                    auto:
+                                      type: boolean
+                                    name:
+                                      type: string
+                                    path:
+                                      type: string
+                                    size:
+                                      format: int64
+                                      type: integer
+                                    type:
+                                      type: string
+                                  required:
+                                  - name
+                                  - type
+                                  type: object
+                                type: array
+                              spareGb:
+                                format: int64
+                                type: integer
+                              stripe:
+                                type: integer
+                              stripeSize:
+                                type: string
+                              volumeGroup:
+                                type: string
+                            required:
+                            - className
+                            - devices
+                            - volumeGroup
+                            type: object
+                          type: array
+                        nodeName:
+                          type: string
+                      required:
+                      - classes
+                      - nodeName
+                      type: object
+                    type: array
+                  devices:
+                    items:
+                      properties:
+                        auto:
+                          type: boolean
+                        name:
+                          type: string
+                        path:
+                          type: string
+                        size:
+                          format: int64
+                          type: integer
+                        type:
+                          type: string
+                      required:
+                      - name
+                      - type
+                      type: object
+                    type: array
+                  useAllDevices:
+                    type: boolean
+                  useAllNodes:
+                    type: boolean
+                  useLoop:
+                    type: boolean
+                  volumeGroupName:
+                    type: string
+                required:
+                - useAllDevices
+                - useAllNodes
+                - useLoop
+                type: object
+              topolvmVersion:
+                type: string
+            required:
+            - storage
+            - topolvmVersion
+            type: object
+          status:
+            description: TopolvmClusterStatus defines the observed state of TopolvmCluster
+            properties:
+              nodeStorageState:
+                items:
+                  properties:
+                    failClasses:
+                      items:
+                        properties:
+                          className:
+                            type: string
+                          deviceStates:
+                            items:
+                              properties:
+                                message:
+                                  type: string
+                                name:
+                                  type: string
+                                state:
+                                  type: string
+                              type: object
+                            type: array
+                          state:
+                            type: string
+                          vgName:
+                            type: string
+                        type: object
+                      type: array
+                    loops:
+                      items:
+                        properties:
+                          deviceName:
+                            type: string
+                          file:
+                            type: string
+                          message:
+                            type: string
+                          name:
+                            type: string
+                          status:
+                            type: string
+                        required:
+                        - deviceName
+                        - file
+                        - message
+                        - name
+                        - status
+                        type: object
+                      type: array
+                    node:
+                      type: string
+                    phase:
+                      type: string
+                    successClasses:
+                      items:
+                        properties:
+                          className:
+                            type: string
+                          deviceStates:
+                            items:
+                              properties:
+                                message:
+                                  type: string
+                                name:
+                                  type: string
+                                state:
+                                  type: string
+                              type: object
+                            type: array
+                          state:
+                            type: string
+                          vgName:
+                            type: string
+                        type: object
+                      type: array
+                  required:
+                  - node
+                  - phase
+                  type: object
+                type: array
+              phase:
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run "make" to regenerate code after modifying this file'
+                type: string
+            required:
+            - nodeStorageState
+            - phase
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: topolvm-controller
+  namespace: topolvm-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: topolvm-discover
+  namespace: topolvm-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: topolvm-node
+  namespace: topolvm-system
+---
+apiVersion: v1
+kind: ServiceAccount
 metadata:
   name: topolvm-operator
   namespace: topolvm-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: topolvm-preparevg
+  namespace: topolvm-system
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: topolvm-node
+spec:
+  allowPrivilegeEscalation: true
+  allowedHostPaths:
+  - pathPrefix: /var/lib/kubelet
+    readOnly: false
+  - pathPrefix: /run/topolvm
+    readOnly: false
+  - pathPrefix: /etc/topolvm
+    readOnly: false
+  fsGroup:
+    rule: RunAsAny
+  hostNetwork: false
+  hostPID: true
+  privileged: true
+  readOnlyRootFilesystem: true
+  runAsUser:
+    rule: RunAsAny
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+  volumes:
+  - configMap
+  - emptyDir
+  - secret
+  - hostPath
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: topolvm-preparevg
+spec:
+  allowPrivilegeEscalation: true
+  allowedHostPaths:
+  - pathPrefix: /dev/
+    readOnly: false
+  - pathPrefix: /run/udev
+    readOnly: false
+  - pathPrefix: /sys
+    readOnly: false
+  fsGroup:
+    rule: RunAsAny
+  hostIPC: true
+  hostNetwork: true
+  hostPID: true
+  privileged: true
+  readOnlyRootFilesystem: true
+  runAsUser:
+    rule: RunAsAny
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: RunAsAny
+  volumes:
+  - configMap
+  - emptyDir
+  - secret
+  - hostPath
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: topolvm-external-provisioner-cfg
+  namespace: topolvm-system
+rules:
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - watch
+  - list
+  - delete
+  - update
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: topolvm-external-resizer-cfg
+  namespace: topolvm-system
+rules:
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - watch
+  - list
+  - delete
+  - update
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: topolvm-leader-election
+  namespace: topolvm-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - watch
+  - list
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - configmaps/status
+  verbs:
+  - get
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: topolvm-leader-election-role
+  namespace: topolvm-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: topolvm-operator
+  namespace: topolvm-system
+rules:
+- apiGroups:
+  - coordination.k8s.io
+  resources:
+  - leases
+  verbs:
+  - get
+  - watch
+  - list
+  - delete
+  - update
+  - create
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - configmaps
+  - services
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - apps
+  - extensions
+  resources:
+  - daemonsets
+  - statefulsets
+  - deployments
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  verbs:
+  - delete
+- apiGroups:
+  - monitoring.coreos.com
+  resources:
+  - '*'
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: topolvm-preparevg
+  namespace: topolvm-system
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+  - create
+  - update
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: topolvm-external-provisioner-runner
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumes
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - list
+  - watch
+  - create
+  - update
+  - patch
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshots
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshotcontents
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - csinodes
+  - csidrivers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - csistoragecapacities
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: topolvm-external-resizer-runner
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumes
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims/status
+  verbs:
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - list
+  - watch
+  - create
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: topolvm-global
+rules:
+- apiGroups:
+  - policy
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - create
+  - get
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - nodes/proxy
+  - services
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - events
+  - persistentvolumes
+  - persistentvolumeclaims
+  - endpoints
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  - cronjobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - topolvm.cybozu.com
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - cybozu.com
+  resources:
+  - '*'
+  verbs:
+  - '*'
+- apiGroups:
+  - policy
+  - apps
+  - extensions
+  resources:
+  - poddisruptionbudgets
+  - deployments
+  - replicasets
+  verbs:
+  - '*'
+- apiGroups:
+  - healthchecking.openshift.io
+  resources:
+  - machinedisruptionbudgets
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - machine.openshift.io
+  resources:
+  - machines
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - csidrivers
+  verbs:
+  - create
+  - delete
+  - get
+  - update
+- apiGroups:
+  - k8s.cni.cncf.io
+  resources:
+  - network-attachment-definitions
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: topolvm-node
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - patch
+- apiGroups:
+  - topolvm.cybozu.com
+  resources:
+  - logicalvolumes
+  - logicalvolumes/status
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+  - patch
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - csidrivers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - policy
+  resourceNames:
+  - topolvm-node
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: topolvm-preparevg
+rules:
+- apiGroups:
+  - policy
+  resourceNames:
+  - topolvm-preparevg
+  resources:
+  - podsecuritypolicies
+  verbs:
+  - use
+- apiGroups:
+  - topolvm.cybozu.com
+  resources:
+  - '*'
+  verbs:
+  - '*'
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: topolvm-system-controller
+rules:
+- apiGroups:
+  - policy
+  - apps
+  - extensions
+  resources:
+  - poddisruptionbudgets
+  - deployments
+  - replicasets
+  verbs:
+  - '*'
+- apiGroups:
+  - ""
+  resources:
+  - nodes
+  verbs:
+  - get
+  - list
+  - watch
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+  - watch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - get
+  - list
+  - watch
+  - update
+  - delete
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  - csidrivers
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - topolvm.cybozu.com
+  resources:
+  - logicalvolumes
+  - logicalvolumes/status
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - patch
+  - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: topolvm-csi-provisioner-role-cfg
+  namespace: topolvm-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: topolvm-external-provisioner-cfg
+subjects:
+- kind: ServiceAccount
+  name: topolvm-controller
+  namespace: topolvm-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: topolvm-csi-resizer-role-cfg
+  namespace: topolvm-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: topolvm-external-resizer-cfg
+subjects:
+- kind: ServiceAccount
+  name: topolvm-controller
+  namespace: topolvm-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: topolvm-leader-election
+  namespace: topolvm-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: topolvm-leader-election
+subjects:
+- kind: ServiceAccount
+  name: topolvm-controller
+  namespace: topolvm-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: topolvm-leader-election-rolebinding
+  namespace: topolvm-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: topolvm-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: controller-manager
+  namespace: system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: topolvm-operator
+  namespace: topolvm-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: topolvm-operator
+subjects:
+- kind: ServiceAccount
+  name: topolvm-operator
+  namespace: topolvm-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: topolvm-preparevg
+  namespace: topolvm-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: topolvm-preparevg
+subjects:
+- kind: ServiceAccount
+  name: topolvm-preparevg
+  namespace: topolvm-system
+- kind: ServiceAccount
+  name: topolvm-discover
+  namespace: topolvm-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: topolvm-csi-resizer-role
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: topolvm-external-resizer-runner
+subjects:
+- kind: ServiceAccount
+  name: topolvm-controller
+  namespace: topolvm-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: topolvm-external-provisioner-runner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: topolvm-external-provisioner-runner
+subjects:
+- kind: ServiceAccount
+  name: topolvm-controller
+  namespace: topolvm-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: topolvm-global
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: topolvm-global
+subjects:
+- kind: ServiceAccount
+  name: topolvm-operator
+  namespace: topolvm-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: topolvm-node
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: topolvm-node
+subjects:
+- kind: ServiceAccount
+  name: topolvm-node
+  namespace: topolvm-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: topolvm-preparevg
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: topolvm-preparevg
+subjects:
+- kind: ServiceAccount
+  name: topolvm-preparevg
+  namespace: topolvm-system
+- kind: ServiceAccount
+  name: topolvm-discover
+  namespace: topolvm-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: topolvm-system-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: topolvm-system-controller
+subjects:
+- kind: ServiceAccount
+  name: topolvm-controller
+  namespace: topolvm-system
+---
+apiVersion: v1
+data:
+  controller_manager_config.yaml: |
+    apiVersion: controller-runtime.sigs.k8s.io/v1alpha1
+    kind: ControllerManagerConfig
+    health:
+      healthProbeBindAddress: :8081
+    metrics:
+      bindAddress: 127.0.0.1:8080
+    webhook:
+      port: 9443
+    leaderElection:
+      leaderElect: true
+      resourceName: c6b32c27.cybozu.com
+kind: ConfigMap
+metadata:
+  name: topolvm-manager-config
+  namespace: topolvm-system
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/compose: metrics
+  name: topolvm-cluster-metric
+  namespace: topolvm-system
+spec:
+  ports:
+  - name: metrics
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    name: topolvm-operator
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: topolvm-controller
+  namespace: topolvm-system
+spec:
+  ports:
+  - port: 443
+    protocol: TCP
+    targetPort: 8443
+  selector:
+    app.kubernetes.io/name: topolvm-controller
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/compose: metrics
+  name: topolvm-node-metric
+  namespace: topolvm-system
+spec:
+  ports:
+  - name: metrics
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/compose: node
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   labels:
     operator: topolvm
+  name: topolvm-operator
+  namespace: topolvm-system
 spec:
+  replicas: 1
   selector:
     matchLabels:
       app: topolvm-operator
-  replicas: 1
   template:
     metadata:
       labels:
         app: topolvm-operator
     spec:
-      serviceAccountName: topolvm-operator
       containers:
-        - name: topolvm-operator
-          # set the stable version
-          image: alaudapublic/topolvm-operator:2.1.0
-          command:
-            - /topolvm
-          args:
-            - operator
-          env:
-            - name: TOPOLVM_LOG_LEVEL
-              value: "DEBUG"
-            - name: POD_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.name
-            - name: POD_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
-            - name: IS_OPERATOR_HUB
-              value: "0"
+      - args:
+        - operator
+        command:
+        - /topolvm
+        env:
+        - name: TOPOLVM_LOG_LEVEL
+          value: DEBUG
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: IS_OPERATOR_HUB
+          value: "0"
+        image: docker.io/alaudapublic/topolvm-operator:2.2.0
+        name: topolvm-operator
+      serviceAccountName: topolvm-operator

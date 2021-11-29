@@ -3,7 +3,8 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
+
+	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -119,7 +120,7 @@ spec:
 				if cm.GetAnnotations()[cluster.LvmdAnnotationsNodeKey] == "topolvm-e2e-control-plane" {
 					continue
 				}
-				nodeStatus := &topolvmv1.NodeStorageState{}
+				nodeStatus := &topolvmv2.NodeStorageState{}
 				err = json.Unmarshal([]byte(cm.Data[cluster.VgStatusConfigMapKey]), nodeStatus)
 				if err != nil {
 					return err

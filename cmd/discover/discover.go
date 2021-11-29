@@ -17,7 +17,9 @@ limitations under the License.
 package discovercmd
 
 import (
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
+	"time"
+
+	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/cmd/topolvm"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	opediscover "github.com/alauda/topolvm-operator/pkg/operator/discover"
@@ -25,7 +27,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"time"
 )
 
 var (
@@ -40,7 +41,7 @@ var DiscoverCmd = &cobra.Command{
 
 func init() {
 	DiscoverCmd.Flags().DurationVar(&discoverDevicesInterval, "discover-interval", 60*time.Second, "interval between discovering devices (default 60m)")
-	utilruntime.Must(topolvmv1.AddToScheme(scheme))
+	utilruntime.Must(topolvmv2.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	DiscoverCmd.RunE = discover
 }

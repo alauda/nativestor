@@ -18,7 +18,9 @@ package preparevg
 
 import (
 	"fmt"
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
+	"os"
+
+	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/controllers"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/coreos/pkg/capnslog"
@@ -26,7 +28,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 )
 
@@ -41,7 +42,7 @@ var PrepareVgCmd = &cobra.Command{
 }
 
 func init() {
-	utilruntime.Must(topolvmv1.AddToScheme(scheme))
+	utilruntime.Must(topolvmv2.AddToScheme(scheme))
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	PrepareVgCmd.RunE = prepareVg
 }

@@ -18,11 +18,12 @@ package sys
 
 import (
 	"fmt"
-	"github.com/alauda/topolvm-operator/pkg/util/exec"
 	osexec "os/exec"
 	"path"
 	"strconv"
 	"strings"
+
+	"github.com/alauda/topolvm-operator/pkg/util/exec"
 
 	"github.com/google/uuid"
 )

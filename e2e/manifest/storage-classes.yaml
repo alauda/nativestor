@@ -1,0 +1,26 @@
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner1
+provisioner: topolvm.cybozu.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  "topolvm.cybozu.com/device-class": "hdd1"
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner2
+provisioner: topolvm.cybozu.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  "topolvm.cybozu.com/device-class": "hdd2"
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: topolvm-provisioner3
+provisioner: topolvm.cybozu.com
+volumeBindingMode: WaitForFirstConsumer
+parameters:
+  "topolvm.cybozu.com/device-class": "hdd3"

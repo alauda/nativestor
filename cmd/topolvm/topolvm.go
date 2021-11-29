@@ -18,14 +18,15 @@ package topolvm
 
 import (
 	"fmt"
+	"os"
+	"time"
+
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/alauda/topolvm-operator/pkg/util/flags"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"
-	"os"
-	"time"
 )
 
 var (
