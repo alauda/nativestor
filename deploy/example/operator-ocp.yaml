@@ -1290,3 +1290,16 @@ volumes:
 - emptyDir
 - hostPath
 - secret
+---
+apiVersion: storage.k8s.io/v1
+kind: CSIDriver
+metadata:
+  name: topolvm-topolvm.cybozu.com
+  namespace: topolvm-system
+spec:
+  attachRequired: false
+  podInfoOnMount: true
+  storageCapacity: true
+  volumeLifecycleModes:
+  - Persistent
+  - Ephemeral

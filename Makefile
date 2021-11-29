@@ -95,7 +95,7 @@ test: manifests generate fmt vet envtest ## Run tests.
 
 example: manifests generate ## Generate yaml manifests for operator deployment
 	mkdir -p deploy/example
-	# Change value of operator-hub in manager manifest
+	@echo Change value of operator-hub in manager manifest
 	$(KUSTOMIZE) build config/default | sed -e 's,value: "1",value: "0",' > deploy/example/operator.yaml
 	$(KUSTOMIZE) build config/overlays/ocp | sed -e 's,value: "1",value: "0",' > deploy/example/operator-ocp.yaml
 

@@ -29,8 +29,9 @@ type TopolvmClusterSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	TopolvmVersion string `json:"topolvmVersion"`
-	CertsSecret    string `json:"certsSecret,omitempty"`
-	Storage        `json:"storage"`
+	//+optional
+	CertsSecret string `json:"certsSecret"`
+	Storage     `json:"storage"`
 }
 
 type Storage struct {
@@ -84,11 +85,14 @@ const (
 )
 
 type NodeStorageState struct {
-	Node           string        `json:"node"`
-	Phase          ConditionType `json:"phase"`
-	FailClasses    []ClassState  `json:"failClasses,omitempty"`
-	SuccessClasses []ClassState  `json:"successClasses,omitempty"`
-	Loops          []LoopState   `json:"loops,omitempty"`
+	Node  string        `json:"node"`
+	Phase ConditionType `json:"phase"`
+	//+optional
+	FailClasses []ClassState `json:"failClasses"`
+	//+optional
+	SuccessClasses []ClassState `json:"successClasses"`
+	//+optional
+	Loops []LoopState `json:"loops"`
 }
 
 type LoopState struct {
