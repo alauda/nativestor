@@ -9,5 +9,5 @@ RUN make build TOPOLVM_OPERATOR_VERSION=${TOPOLVM_OPERATOR_VERSION}
 
 FROM ubuntu:18.04
 RUN apt-get update && apt-get -y install gdisk udev
-COPY --from=builder /workdir/build/topolvm /topolvm
+COPY --from=builder /workdir/bin/topolvm /topolvm
 ENTRYPOINT ["/topolvm"]

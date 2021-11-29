@@ -1,0 +1,24 @@
+domain: cybozu.com
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: topolvm-operator
+repo: github.com/alauda/topolvm-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cybozu.com
+  group: topolvm
+  kind: TopolvmCluster
+  path: github.com/alauda/topolvm-operator/api/v2
+  version: v2
+- controller: true
+  domain: cybozu.com
+  group: topolvm
+  kind: Config
+  version: v2
+version: "3"

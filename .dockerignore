@@ -1,0 +1,9 @@
+# More info: https://docs.docker.com/engine/reference/builder/#dockerignore-file
+# Ignore build and test binaries.
+bin/
+testbin/
+
+e2e/build/*
+e2e/tmpbin/*
+e2e/certs/*
+e2e/topolvm-operator.img

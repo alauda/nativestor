@@ -3,7 +3,11 @@ package monitor
 import (
 	"context"
 	"fmt"
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
+	"reflect"
+	"sync"
+	"time"
+
+	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/coreos/pkg/capnslog"
@@ -11,10 +15,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"reflect"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sync"
-	"time"
 )
 
 var logger = capnslog.NewPackageLogger("topolvm/operator", "status")
@@ -27,7 +28,7 @@ type ClusterStatusChecker struct {
 	metric     chan *cluster.Metrics
 }
 
-func NewCephStatusChecker(context *cluster.Context, statusLock *sync.Mutex, metric chan *cluster.Metrics) *ClusterStatusChecker {
+func NewStatusChecker(context *cluster.Context, statusLock *sync.Mutex, metric chan *cluster.Metrics) *ClusterStatusChecker {
 	return &ClusterStatusChecker{
 		context:    context,
 		client:     context.Client,
@@ -37,7 +38,7 @@ func NewCephStatusChecker(context *cluster.Context, statusLock *sync.Mutex, metr
 	}
 }
 
-func (c *ClusterStatusChecker) CheckClusterStatus(namespacedName *types.NamespacedName, stopCh chan struct{}) {
+func (c *ClusterStatusChecker) CheckClusterStatus(namespacedName *types.NamespacedName, stopCh chan struct{}, ref *metav1.OwnerReference) {
 	// check the status immediately before starting the loop
 	c.checkStatus(namespacedName)
 	for {
@@ -48,6 +49,13 @@ func (c *ClusterStatusChecker) CheckClusterStatus(namespacedName *types.Namespac
 
 		case <-time.After(c.interval):
 			c.checkStatus(namespacedName)
+			if err := EnableServiceMonitor(ref); err != nil {
+				logger.Errorf("monitor failed err %s", err.Error())
+			}
+
+			if err := CreateOrUpdatePrometheusRule(ref); err != nil {
+				logger.Errorf("create rule failed err %s", err.Error())
+			}
 		}
 	}
 }
@@ -63,7 +71,7 @@ func (c *ClusterStatusChecker) checkStatus(namespacedName *types.NamespacedName)
 	var clusterMetric cluster.Metrics
 	c.statusLock.Lock()
 	defer c.statusLock.Unlock()
-	topolvmCluster := &topolvmv1.TopolvmCluster{}
+	topolvmCluster := &topolvmv2.TopolvmCluster{}
 	err = c.context.Client.Get(ctx, *namespacedName, topolvmCluster)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
@@ -75,7 +83,7 @@ func (c *ClusterStatusChecker) checkStatus(namespacedName *types.NamespacedName)
 	}
 
 	ready := false
-	nodesStatus := make(map[string]*topolvmv1.NodeStorageState)
+	nodesStatus := make(map[string]*topolvmv2.NodeStorageState)
 	nodes := make([]string, 0)
 
 	if topolvmCluster.Spec.UseAllNodes {
@@ -104,7 +112,7 @@ func (c *ClusterStatusChecker) checkStatus(namespacedName *types.NamespacedName)
 				continue
 			}
 
-			n := topolvmv1.NodeStorageState{
+			n := topolvmv2.NodeStorageState{
 				Node: item.Spec.NodeName,
 			}
 
@@ -114,26 +122,26 @@ func (c *ClusterStatusChecker) checkStatus(namespacedName *types.NamespacedName)
 
 			switch item.Status.Phase {
 			case corev1.PodRunning:
-				n.Phase = topolvmv1.ConditionReady
+				n.Phase = topolvmv2.ConditionReady
 				nodeMetric.Status = 0
 				ready = true
 			case corev1.PodUnknown:
-				n.Phase = topolvmv1.ConditionUnknown
+				n.Phase = topolvmv2.ConditionUnknown
 				nodeMetric.Status = 1
 			case corev1.PodFailed:
-				n.Phase = topolvmv1.ConditionFailure
+				n.Phase = topolvmv2.ConditionFailure
 				nodeMetric.Status = 1
 			case corev1.PodPending:
-				n.Phase = topolvmv1.ConditionPending
+				n.Phase = topolvmv2.ConditionPending
 				nodeMetric.Status = 1
 			default:
-				n.Phase = topolvmv1.ConditionUnknown
+				n.Phase = topolvmv2.ConditionUnknown
 				nodeMetric.Status = 1
 			}
 
 			for _, s := range item.Status.ContainerStatuses {
 				if !s.Ready {
-					n.Phase = topolvmv1.ConditionFailure
+					n.Phase = topolvmv2.ConditionFailure
 					nodeMetric.Status = 1
 					break
 				}
@@ -144,9 +152,9 @@ func (c *ClusterStatusChecker) checkStatus(namespacedName *types.NamespacedName)
 		}
 
 		if !found {
-			n := topolvmv1.NodeStorageState{
+			n := topolvmv2.NodeStorageState{
 				Node:  node,
-				Phase: topolvmv1.ConditionFailure,
+				Phase: topolvmv2.ConditionFailure,
 			}
 			nodeMetric := cluster.NodeStatusMetrics{
 				Node:   node,
@@ -167,7 +175,7 @@ func (c *ClusterStatusChecker) checkStatus(namespacedName *types.NamespacedName)
 		for _, ele := range n.Status.Conditions {
 			if ele.Type == corev1.NodeReady && ele.Status == corev1.ConditionUnknown {
 
-				nodesStatus[key].Phase = topolvmv1.ConditionUnknown
+				nodesStatus[key].Phase = topolvmv2.ConditionUnknown
 				for index, n := range clusterMetric.NodeStatus {
 					if n.Node == key {
 						clusterMetric.NodeStatus[index].Status = 1
@@ -196,11 +204,11 @@ func (c *ClusterStatusChecker) checkStatus(namespacedName *types.NamespacedName)
 	}
 
 	if ready {
-		clusterStatus.Phase = topolvmv1.ConditionReady
+		clusterStatus.Phase = topolvmv2.ConditionReady
 		clusterMetric.ClusterStatus = 0
 	} else {
 		clusterMetric.ClusterStatus = 1
-		clusterStatus.Phase = topolvmv1.ConditionFailure
+		clusterStatus.Phase = topolvmv2.ConditionFailure
 	}
 
 	if reflect.DeepEqual(topolvmCluster.Status, *clusterStatus) {

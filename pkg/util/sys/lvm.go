@@ -18,12 +18,12 @@ package sys
 
 import (
 	"errors"
-	"fmt"
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
-	"github.com/alauda/topolvm-operator/pkg/util/exec"
-	perrors "github.com/pkg/errors"
 	"strconv"
 	"strings"
+
+	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
+	"github.com/alauda/topolvm-operator/pkg/util/exec"
+	perrors "github.com/pkg/errors"
 )
 
 const (
@@ -216,7 +216,7 @@ func GetVolumeGroupSize(executor exec.Executor, vgname string) (uint64, error) {
 	return vgSize, nil
 }
 
-func CreateVolumeGroup(executor exec.Executor, disks []topolvmv1.Disk, volumeGroupName string) error {
+func CreateVolumeGroup(executor exec.Executor, disks []topolvmv2.Disk, volumeGroupName string) error {
 
 	diskList := make([]string, 0)
 	for _, dev := range disks {

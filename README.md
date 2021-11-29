@@ -18,8 +18,7 @@ Features
 --------
 
 - Orchestrate topolvm
-- Prepare volume group
-- Volume group dynamic expand
+- Storage capacity expand dynamically
 - Perception of storage topology
 - Volume capacity limit
 - PVC snapshot
@@ -36,6 +35,8 @@ OperatorHub.io
 
 - Raid of volume group
 - Manage volume group that user created
+
+see our [roadmap](./ROADMAP.md)
 
 
 Components

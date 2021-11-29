@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Topolvm-Operator Authors. All rights reserved.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -15,8 +15,8 @@ limitations under the License.
 */
 
 // Package v2 contains API Schema definitions for the topolvm v2 API group
-// +kubebuilder:object:generate=true
-// +groupName=topolvm.cybozu.com
+//+kubebuilder:object:generate=true
+//+groupName=topolvm.cybozu.com
 package v2
 
 import (

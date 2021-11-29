@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Topolvm-Operator Authors. All rights reserved.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +19,23 @@ package controllers
 import (
 	"context"
 	"encoding/json"
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
+	"reflect"
+	"strings"
+	"sync"
+
+	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
+	"k8s.io/client-go/kubernetes"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/controller"
 	"github.com/alauda/topolvm-operator/pkg/operator/csidriver"
@@ -30,25 +46,27 @@ import (
 	"github.com/alauda/topolvm-operator/pkg/operator/volumectr"
 	"github.com/alauda/topolvm-operator/pkg/operator/volumegroup"
 	"github.com/coreos/pkg/capnslog"
-	"github.com/pkg/errors"
-	corev1 "k8s.io/api/core/v1"
-	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/strategicpatch"
-	"k8s.io/client-go/kubernetes"
-	"reflect"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
-	"sync"
 )
 
 var (
 	clusterLogger = capnslog.NewPackageLogger("topolvm/operator", "topolvm-cluster-reconciler")
 )
+
+// ClusterController controls an instance of a topolvm cluster
+type ClusterController struct {
+	context       *cluster.Context
+	lastCluster   *topolvmv2.TopolvmCluster
+	operatorImage string
+}
+
+func NewClusterContoller(ctx *cluster.Context, operatorImage string) *ClusterController {
+
+	return &ClusterController{
+		context:       ctx,
+		operatorImage: operatorImage,
+	}
+
+}
 
 // TopolvmClusterReconciler reconciles a TopolvmCluster object
 type TopolvmClusterReconciler struct {
@@ -71,22 +89,23 @@ func NewTopolvmClusterReconciler(scheme *runtime.Scheme, context *cluster.Contex
 		context:           context,
 		ClusterController: NewClusterContoller(context, operatorImage),
 	}
-	r.statusChecker = monitor.NewCephStatusChecker(context, &r.statusLock, metricUpdater)
+	r.statusChecker = monitor.NewStatusChecker(context, &r.statusLock, metricUpdater)
 	return r
 }
 
-// +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=topolvmclusters,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=topolvm.cybozu.com,resources=topolvmclusters/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=topolvm.cybozu.com,resources=topolvmclusters,verbs=get;list;watch;create;update;patch;delete
+//+kubebuilder:rbac:groups=topolvm.cybozu.com,resources=topolvmclusters/status,verbs=get;update;patch
+//+kubebuilder:rbac:groups=topolvm.cybozu.com,resources=topolvmclusters/finalizers,verbs=update
 
 func (r *TopolvmClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	// your logic here
 	clusterLogger.Debugf("start reconcile")
 	return r.reconcile(req)
 }
 
+// SetupWithManager sets up the controller with the Manager.
 func (r *TopolvmClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&topolvmv1.TopolvmCluster{}).
+		For(&topolvmv2.TopolvmCluster{}).
 		Complete(r)
 }
 
@@ -94,12 +113,6 @@ func (r *TopolvmClusterReconciler) updateRef(ref *metav1.OwnerReference) {
 	r.reflock.Lock()
 	defer r.reflock.Unlock()
 	r.clusterRef = ref
-}
-
-func (r *TopolvmClusterReconciler) getRef() *metav1.OwnerReference {
-	r.reflock.Lock()
-	defer r.reflock.Unlock()
-	return r.clusterRef
 }
 
 func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconcile.Result, error) {
@@ -110,7 +123,7 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, nil
 	}
 
-	topolvmClusters := &topolvmv1.TopolvmClusterList{}
+	topolvmClusters := &topolvmv2.TopolvmClusterList{}
 	err := r.context.Client.List(context.TODO(), topolvmClusters, &client.ListOptions{})
 	if err != nil {
 		return reconcile.Result{}, errors.Wrap(err, "failed to list topolvm cluster")
@@ -120,7 +133,7 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 		return reconcile.Result{}, errors.New("no topolvm cluster instance existing")
 	}
 
-	oldest := topolvmv1.TopolvmCluster{}
+	oldest := topolvmv2.TopolvmCluster{}
 	if len(topolvmClusters.Items) > 1 {
 		for index, c := range topolvmClusters.Items {
 			if index == 0 {
@@ -138,7 +151,7 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 	}
 
 	// Fetch the topolvmCluster instance
-	topolvmCluster := &topolvmv1.TopolvmCluster{}
+	topolvmCluster := &topolvmv2.TopolvmCluster{}
 	err = r.context.Client.Get(context.TODO(), request.NamespacedName, topolvmCluster)
 	if err != nil {
 		if kerrors.IsNotFound(err) {
@@ -204,7 +217,7 @@ func (r *TopolvmClusterReconciler) reconcile(request reconcile.Request) (reconci
 
 	if r.ClusterController.lastCluster == nil {
 		r.stopCh = make(chan struct{})
-		go r.statusChecker.CheckClusterStatus(r.namespacedName, r.stopCh)
+		go r.statusChecker.CheckClusterStatus(r.namespacedName, r.stopCh, ref)
 	}
 
 	// Do reconcile here!
@@ -224,7 +237,7 @@ func (r *TopolvmClusterReconciler) cleanCluster() error {
 	return nil
 }
 
-func (r *TopolvmClusterReconciler) checkStorageConfig(topolvmCluster *topolvmv1.TopolvmCluster) error {
+func (r *TopolvmClusterReconciler) checkStorageConfig(topolvmCluster *topolvmv2.TopolvmCluster) error {
 
 	if topolvmCluster.Spec.Storage.UseAllNodes && topolvmCluster.Spec.Storage.DeviceClasses != nil {
 		return errors.New("should not both config use all node and deviceclasses ")
@@ -247,10 +260,10 @@ func (r *TopolvmClusterReconciler) checkStorageConfig(topolvmCluster *topolvmv1.
 	return nil
 }
 
-func (r *TopolvmClusterReconciler) UpdateStatus(state *topolvmv1.NodeStorageState) error {
+func (r *TopolvmClusterReconciler) UpdateStatus(state *topolvmv2.NodeStorageState) error {
 	r.statusLock.Lock()
 	defer r.statusLock.Unlock()
-	topolvmCluster := &topolvmv1.TopolvmCluster{}
+	topolvmCluster := &topolvmv2.TopolvmCluster{}
 
 	err := r.context.Client.Get(context.TODO(), *r.namespacedName, topolvmCluster)
 	if err != nil {
@@ -285,27 +298,11 @@ func (r *TopolvmClusterReconciler) UpdateStatus(state *topolvmv1.NodeStorageStat
 
 }
 
-// ClusterController controls an instance of a topolvm cluster
-type ClusterController struct {
-	context       *cluster.Context
-	lastCluster   *topolvmv1.TopolvmCluster
-	operatorImage string
-}
-
-func NewClusterContoller(ctx *cluster.Context, operatorImage string) *ClusterController {
-
-	return &ClusterController{
-		context:       ctx,
-		operatorImage: operatorImage,
-	}
-
-}
-
 func (c *ClusterController) UseAllNodeAndDevices() bool {
 	return c.lastCluster.Spec.UseAllNodes
 }
 
-func (c *ClusterController) onAdd(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference) error {
+func (c *ClusterController) onAdd(topolvmCluster *topolvmv2.TopolvmCluster, ref *metav1.OwnerReference) error {
 
 	if cluster.IsOperatorHub {
 
@@ -344,7 +341,7 @@ func (c *ClusterController) onAdd(topolvmCluster *topolvmv1.TopolvmCluster, ref 
 
 }
 
-func (c *ClusterController) checkUpdateDiscoverDaemonset(topolvmCluster *topolvmv1.TopolvmCluster) error {
+func (c *ClusterController) checkUpdateDiscoverDaemonset(topolvmCluster *topolvmv2.TopolvmCluster) error {
 
 	ctx := context.TODO()
 	daemonset, err := c.context.Clientset.AppsV1().DaemonSets(cluster.NameSpace).Get(ctx, cluster.DiscoverAppName, metav1.GetOptions{})
@@ -387,7 +384,7 @@ func (c *ClusterController) checkUpdateDiscoverDaemonset(topolvmCluster *topolvm
 
 }
 
-func (c *ClusterController) startReplaceNodeDeployment(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference) error {
+func (c *ClusterController) startReplaceNodeDeployment(topolvmCluster *topolvmv2.TopolvmCluster, ref *metav1.OwnerReference) error {
 
 	ctx := context.TODO()
 	deploys, err := c.context.Clientset.AppsV1().Deployments(cluster.NameSpace).List(ctx, metav1.ListOptions{})
@@ -419,7 +416,7 @@ func (c *ClusterController) startReplaceNodeDeployment(topolvmCluster *topolvmv1
 	return nil
 }
 
-func (c *ClusterController) startPrepareVolumeGroupJob(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference) error {
+func (c *ClusterController) startPrepareVolumeGroupJob(topolvmCluster *topolvmv2.TopolvmCluster, ref *metav1.OwnerReference) error {
 
 	storage := topolvmCluster.Spec.Storage
 
@@ -474,7 +471,7 @@ func (c *ClusterController) RestartJob(node string, ref *metav1.OwnerReference) 
 	return volumegroup.MakeAndRunJob(c.context.Clientset, node, c.operatorImage, ref)
 }
 
-func (c *ClusterController) startTopolvmControllerDeployment(topolvmCluster *topolvmv1.TopolvmCluster, ref *metav1.OwnerReference) error {
+func (c *ClusterController) startTopolvmControllerDeployment(topolvmCluster *topolvmv2.TopolvmCluster, ref *metav1.OwnerReference) error {
 
 	ctx := context.TODO()
 	deployment, err := c.context.Clientset.AppsV1().Deployments(cluster.NameSpace).Get(ctx, cluster.TopolvmControllerDeploymentName, metav1.GetOptions{})
@@ -512,7 +509,7 @@ func (c *ClusterController) startTopolvmControllerDeployment(topolvmCluster *top
 
 // removeFinalizer removes a finalizer
 func removeFinalizer(client client.Client, name types.NamespacedName) error {
-	topolvmCluster := &topolvmv1.TopolvmCluster{}
+	topolvmCluster := &topolvmv2.TopolvmCluster{}
 	err := client.Get(context.TODO(), name, topolvmCluster)
 	if err != nil {
 		if kerrors.IsNotFound(err) {

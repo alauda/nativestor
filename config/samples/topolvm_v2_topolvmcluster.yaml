@@ -1,0 +1,26 @@
+apiVersion: topolvm.cybozu.com/v2
+kind: TopolvmCluster
+metadata:
+  name: topolvmcluster-sample
+spec:
+  topolvmVersion: "quay.io/topolvm/topolvm-with-sidecar:0.10.2"
+  storage:
+    useAllNodes: false
+    useAllDevices: false
+    useLoop: false
+    deviceClasses:
+      - nodeName: node-a
+        classes:
+          - volumeGroup: test-master
+            className: hdd
+            default: true
+            devices: 
+              - name: "/dev/sda1"
+                type: "disk"
+              - name: "/dev/sda2"
+                type: "disk"
+          - volumeGroup: test-master-1
+            className: ssd
+            devices: 
+              - name: "/dev/sda3"
+                type: "disk"

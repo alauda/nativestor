@@ -2,6 +2,7 @@
 TEST_KUBERNETES_TARGET ?= current
 ## Dependency versions
 KIND_VERSION=0.11.0
+KUSTOMIZE_VERSION=3.8.7
 BINDIR=$(PWD)/bin
 
 SUDO=sudo
@@ -9,6 +10,7 @@ KIND_CLUSTER_NAME=topolvm-e2e
 KIND := $(BINDIR)/kind
 KUBECTL := $(BINDIR)/kubectl
 GINKGO := $(BINDIR)/ginkgo
+KUSTOMIZE := $(BINDIR)/kustomize
 
 
 PACKAGES := unzip lvm2 xfsprogs
@@ -102,7 +104,9 @@ test: topolvm-operator.img $(SERVER_CERT_FILES)
 	$(MAKE) shutdown-kind
 	$(MAKE) launch-kind
 	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) topolvm-operator.img
-	$(KUBECTL) apply -f ./manifest/all.yaml
+	@cd ../config/manager && $(KUSTOMIZE) edit set image controller=topolvm-operator:dev
+	$(KUSTOMIZE) build ../config/default | sed -e 's,value: "1",value: "0",' | $(KUBECTL) apply -f -
+	$(KUBECTL) apply -f ./manifest/storage-classes.yaml
 	$(KUBECTL) apply -f /tmp/cluster.yaml
 	$(SUDO) -E env PATH=${PATH} E2ETEST=1 $(GINKGO) --failFast -v .
 
@@ -119,8 +123,9 @@ setup:
 	mkdir -p $(BINDIR)
 	curl -o $(BINDIR)/kind -sfL https://kind.sigs.k8s.io/dl/v$(KIND_VERSION)/kind-linux-amd64
 	curl -o $(BINDIR)/kubectl -sfL https://storage.googleapis.com/kubernetes-release/release/v$(KUBERNETES_VERSION)/bin/linux/amd64/kubectl
+	curl -sfL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v$(KUSTOMIZE_VERSION)/kustomize_v$(KUSTOMIZE_VERSION)_linux_amd64.tar.gz | tar -xz -C $(BINDIR)
 	GOBIN=$(BINDIR) go install github.com/onsi/ginkgo/ginkgo@latest
-	chmod a+x $(BINDIR)/kubectl $(BINDIR)/kind
+	chmod a+x $(BINDIR)/kubectl $(BINDIR)/kind $(BINDIR)/kustomize
 
 .PHONY: launch-kind shutdown-kind start-create-dev delete-dev test clean setup
 

@@ -31,12 +31,10 @@ var (
 
 const (
 	// AppAttr app label
-	K8sClusterNamespace = "kube-public"
-	K8sClusterConfigmap = "global-info"
-	AppAttr             = "app.kubernetes.io/name"
-	TopolvmComposeAttr  = "app.kubernetes.io/compose"
-	TopolvmComposeNode  = "node"
-	TopologKey          = "kubernetes.io/hostname"
+	AppAttr            = "app.kubernetes.io/name"
+	TopolvmComposeAttr = "app.kubernetes.io/compose"
+	TopolvmComposeNode = "node"
+	TopologKey         = "kubernetes.io/hostname"
 
 	// ClusterAttr cluster label
 	ClusterAttr = "topolvm_cluster"
@@ -134,7 +132,7 @@ const (
 	LoopAnnotationsKey     = "loop"
 	LoopAnnotationsVal     = "true"
 
-	OperatorSettingConfigMapName = "tooplvm-operator-setting"
+	OperatorSettingConfigMapName = "topolvm-operator-setting"
 	KubeletRootPathEnv           = "KUBELET_ROOT_DIR"
 	DiscoverDevicesEnv           = "ENABLE_DISCOVER_DEVICES"
 )

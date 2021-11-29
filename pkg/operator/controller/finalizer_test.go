@@ -17,17 +17,18 @@ limitations under the License.
 package controller
 
 import (
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
+	"testing"
+
+	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 func TestAddFinalizerIfNotPresent(t *testing.T) {
-	fakeObject := &topolvmv1.TopolvmCluster{
+	fakeObject := &topolvmv2.TopolvmCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "test",
 			Namespace:  "topolvm-system",
@@ -40,7 +41,7 @@ func TestAddFinalizerIfNotPresent(t *testing.T) {
 		fakeObject,
 	}
 	s := runtime.NewScheme()
-	s.AddKnownTypes(topolvmv1.GroupVersion, fakeObject)
+	s.AddKnownTypes(topolvmv2.GroupVersion, fakeObject)
 	cl := fake.NewClientBuilder().WithObjects(object...).WithScheme(s).Build()
 	assert.Empty(t, fakeObject.Finalizers)
 	err := AddFinalizerIfNotPresent(cl, fakeObject)
@@ -49,7 +50,7 @@ func TestAddFinalizerIfNotPresent(t *testing.T) {
 }
 
 func TestRemoveFinalizer(t *testing.T) {
-	fakeObject := &topolvmv1.TopolvmCluster{
+	fakeObject := &topolvmv2.TopolvmCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test",
 			Namespace: "rook-ceph",
@@ -66,7 +67,7 @@ func TestRemoveFinalizer(t *testing.T) {
 		fakeObject,
 	}
 	s := runtime.NewScheme()
-	s.AddKnownTypes(topolvmv1.GroupVersion, fakeObject)
+	s.AddKnownTypes(topolvmv2.GroupVersion, fakeObject)
 	cl := fake.NewClientBuilder().WithObjects(object...).WithScheme(s).Build()
 	assert.NotEmpty(t, fakeObject.Finalizers)
 	err := RemoveFinalizer(cl, fakeObject)

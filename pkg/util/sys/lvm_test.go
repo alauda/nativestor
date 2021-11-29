@@ -17,11 +17,12 @@ limitations under the License.
 package sys
 
 import (
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
-	"github.com/alauda/topolvm-operator/pkg/util/exec"
-	"github.com/stretchr/testify/assert"
 	osexec "os/exec"
 	"testing"
+
+	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
+	"github.com/alauda/topolvm-operator/pkg/util/exec"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestCreatePhysicalVolume(t *testing.T) {
@@ -68,7 +69,7 @@ func TestCreateVolumeGroup(t *testing.T) {
 		t.Fatal(err)
 	}
 	executor := &exec.CommandExecutor{}
-	err = CreateVolumeGroup(executor, []topolvmv1.Disk{{Name: loop}}, vgName)
+	err = CreateVolumeGroup(executor, []topolvmv2.Disk{{Name: loop}}, vgName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -100,7 +101,7 @@ func TestExpandVolumeGroup(t *testing.T) {
 	defer CleanLoopbackVG(vgName, []string{loop1, loop2}, []string{loop1, loop2}, []string{file1, file2})
 
 	executor := &exec.CommandExecutor{}
-	err = CreateVolumeGroup(executor, []topolvmv1.Disk{{Name: loop1}}, vgName)
+	err = CreateVolumeGroup(executor, []topolvmv2.Disk{{Name: loop1}}, vgName)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,7 +145,7 @@ func TestGetPhysicalVolume(t *testing.T) {
 		t.Fatal(err)
 	}
 	executor := &exec.CommandExecutor{}
-	err = CreateVolumeGroup(executor, []topolvmv1.Disk{{Name: loop}}, vgName)
+	err = CreateVolumeGroup(executor, []topolvmv2.Disk{{Name: loop}}, vgName)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -21,7 +21,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	topolvmv1 "github.com/alauda/topolvm-operator/api/v2"
+	"os"
+	"os/exec"
+	"os/signal"
+	"regexp"
+	"strings"
+	"syscall"
+	"time"
+
+	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/alauda/topolvm-operator/pkg/util/sys"
@@ -30,13 +38,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
-	"os/exec"
-	"os/signal"
-	"regexp"
-	"strings"
-	"syscall"
-	"time"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/strategicpatch"
 )
 
 const (

@@ -1,5 +1,5 @@
 /*
-Copyright 2021 The Topolvm-Operator Authors. All rights reserved.
+Copyright 2021.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -27,8 +27,9 @@ import (
 type TopolvmClusterSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+
 	TopolvmVersion string `json:"topolvmVersion"`
-	CertsSecret    string `json:"certsSecret"`
+	CertsSecret    string `json:"certsSecret,omitempty"`
 	Storage        `json:"storage"`
 }
 
@@ -51,7 +52,7 @@ type DeviceClass struct {
 	ClassName  string `json:"className" yaml:"name"`
 	VgName     string `json:"volumeGroup" yaml:"volume-group"`
 	Device     []Disk `json:"devices" yaml:"devices,omitempty"`
-	Default    bool   `json:"default" yaml:"default"`
+	Default    bool   `json:"default,omitempty" yaml:"default,omitempty"`
 	SpareGb    uint64 `json:"spareGb,omitempty" yaml:"spare-gb,omitempty"`
 	Stripe     uint   `json:"stripe,omitempty" yaml:"stripe,omitempty"`
 	StripeSize string `json:"stripeSize,omitempty" yaml:"stripe-size,omitempty"`
@@ -76,23 +77,18 @@ type TopolvmClusterStatus struct {
 type ConditionType string
 
 const (
-	// ConditionConnecting represents Connecting state of an object
-	// ConditionReady represents Ready state of an object
-	ConditionReady ConditionType = "Ready"
-	// ConditionFailure represents Failure state of an object
+	ConditionReady   ConditionType = "Ready"
 	ConditionFailure ConditionType = "Failure"
-
 	ConditionUnknown ConditionType = "Unknown"
-
 	ConditionPending ConditionType = "Pending"
 )
 
 type NodeStorageState struct {
 	Node           string        `json:"node"`
 	Phase          ConditionType `json:"phase"`
-	FailClasses    []ClassState  `json:"failClasses"`
-	SuccessClasses []ClassState  `json:"successClasses"`
-	Loops          []LoopState   `json:"loops"`
+	FailClasses    []ClassState  `json:"failClasses,omitempty"`
+	SuccessClasses []ClassState  `json:"successClasses,omitempty"`
+	Loops          []LoopState   `json:"loops,omitempty"`
 }
 
 type LoopState struct {
@@ -124,8 +120,8 @@ type DeviceState struct {
 	Message string          `json:"message,omitempty"`
 }
 
-// +kubebuilder:object:root=true
-// +kubebuilder:storageversion
+//+kubebuilder:object:root=true
+//+kubebuilder:subresource:status
 
 // TopolvmCluster is the Schema for the topolvmclusters API
 type TopolvmCluster struct {
@@ -136,7 +132,7 @@ type TopolvmCluster struct {
 	Status TopolvmClusterStatus `json:"status,omitempty"`
 }
 
-// +kubebuilder:object:root=true
+//+kubebuilder:object:root=true
 
 // TopolvmClusterList contains a list of TopolvmCluster
 type TopolvmClusterList struct {

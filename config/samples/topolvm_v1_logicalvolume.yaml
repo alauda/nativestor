@@ -1,0 +1,5 @@
+apiVersion: topolvm.cybozu.com/v2
+kind: LogicalVolume
+metadata:
+  name: example-logicalvolume
+spec: {}

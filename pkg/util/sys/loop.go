@@ -19,9 +19,10 @@ package sys
 import (
 	"errors"
 	"fmt"
-	"github.com/alauda/topolvm-operator/pkg/util/exec"
 	"strconv"
 	"strings"
+
+	"github.com/alauda/topolvm-operator/pkg/util/exec"
 )
 
 const (

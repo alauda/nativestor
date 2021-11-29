@@ -1,8 +1,9 @@
 package controllers
 
 import (
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"time"
+
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var (
@@ -13,8 +14,8 @@ var (
 	// Override the exponential backoff behavior by setting the RequeueAfter time explicitly.
 	ImmediateRetryResultNoBackoff = reconcile.Result{Requeue: true, RequeueAfter: time.Second}
 
-	// WaitForRequeueIfCephClusterNotReady waits for the CephCluster to be ready
-	WaitForRequeueIfCephClusterNotReady = reconcile.Result{Requeue: true, RequeueAfter: 10 * time.Second}
+	// WaitForRequeueIfClusterNotReady waits for the Cluster to be ready
+	WaitForRequeueIfClusterNotReady = reconcile.Result{Requeue: true, RequeueAfter: 10 * time.Second}
 
 	// WaitForRequeueIfFinalizerBlocked waits for resources to be cleaned up before the finalizer can be removed
 	WaitForRequeueIfFinalizerBlocked = reconcile.Result{Requeue: true, RequeueAfter: 10 * time.Second}
@@ -22,6 +23,6 @@ var (
 	// WaitForRequeueIfOperatorNotInitialized waits for resources to be cleaned up before the finalizer can be removed
 	WaitForRequeueIfOperatorNotInitialized = reconcile.Result{Requeue: true, RequeueAfter: 10 * time.Second}
 
-	// OperatorCephBaseImageVersion is the ceph version in the operator image
-	OperatorCephBaseImageVersion string
+	// OperatorBaseImageVersion is the version in the operator image
+	OperatorBaseImageVersion string
 )
