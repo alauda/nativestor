@@ -35,4 +35,4 @@ spec:
                 fieldRef:
                   fieldPath: metadata.namespace
             - name: IS_OPERATOR_HUB
-              value: "0"
+              value: "1"

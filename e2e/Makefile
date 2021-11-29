@@ -105,7 +105,7 @@ test: topolvm-operator.img $(SERVER_CERT_FILES)
 	$(MAKE) launch-kind
 	$(KIND) load image-archive --name=$(KIND_CLUSTER_NAME) topolvm-operator.img
 	@cd ../config/manager && $(KUSTOMIZE) edit set image controller=topolvm-operator:dev
-	$(KUSTOMIZE) build ../config/default | $(KUBECTL) apply -f -
+	$(KUSTOMIZE) build ../config/default | sed -e 's,value: "1",value: "0",' | $(KUBECTL) apply -f -
 	$(KUBECTL) apply -f ./manifest/storage-classes.yaml
 	$(KUBECTL) apply -f /tmp/cluster.yaml
 	$(SUDO) -E env PATH=${PATH} E2ETEST=1 $(GINKGO) --failFast -v .
