@@ -82,7 +82,6 @@ spec:
                                 type: string
                             required:
                             - className
-                            - default
                             - devices
                             - volumeGroup
                             type: object
@@ -208,11 +207,8 @@ spec:
                         type: object
                       type: array
                   required:
-                  - failClasses
-                  - loops
                   - node
                   - phase
-                  - successClasses
                   type: object
                 type: array
               phase:

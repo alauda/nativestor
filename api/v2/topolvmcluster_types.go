@@ -29,9 +29,8 @@ type TopolvmClusterSpec struct {
 	// Important: Run "make" to regenerate code after modifying this file
 
 	TopolvmVersion string `json:"topolvmVersion"`
-	//+optional
-	CertsSecret string `json:"certsSecret"`
-	Storage     `json:"storage"`
+	CertsSecret    string `json:"certsSecret,omitempty"`
+	Storage        `json:"storage"`
 }
 
 type Storage struct {
@@ -53,7 +52,7 @@ type DeviceClass struct {
 	ClassName  string `json:"className" yaml:"name"`
 	VgName     string `json:"volumeGroup" yaml:"volume-group"`
 	Device     []Disk `json:"devices" yaml:"devices,omitempty"`
-	Default    bool   `json:"default" yaml:"default"`
+	Default    bool   `json:"default,omitempty" yaml:"default,omitempty"`
 	SpareGb    uint64 `json:"spareGb,omitempty" yaml:"spare-gb,omitempty"`
 	Stripe     uint   `json:"stripe,omitempty" yaml:"stripe,omitempty"`
 	StripeSize string `json:"stripeSize,omitempty" yaml:"stripe-size,omitempty"`
@@ -87,9 +86,9 @@ const (
 type NodeStorageState struct {
 	Node           string        `json:"node"`
 	Phase          ConditionType `json:"phase"`
-	FailClasses    []ClassState  `json:"failClasses"`
-	SuccessClasses []ClassState  `json:"successClasses"`
-	Loops          []LoopState   `json:"loops"`
+	FailClasses    []ClassState  `json:"failClasses,omitempty"`
+	SuccessClasses []ClassState  `json:"successClasses,omitempty"`
+	Loops          []LoopState   `json:"loops,omitempty"`
 }
 
 type LoopState struct {
