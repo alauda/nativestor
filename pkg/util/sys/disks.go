@@ -30,6 +30,62 @@ const (
 	diskPrefix = "/dev/"
 )
 
+func GetAllDevices(dcontext *cluster.Context) ([]*LocalDiskAppendInfo, error) {
+
+	res := make([]*LocalDiskAppendInfo, 0)
+
+	var disks []*LocalDisk
+
+	var err error
+
+	if disks, err = DiscoverDevices(dcontext.Executor); err != nil {
+		return nil, err
+	}
+
+	for _, device := range disks {
+		// Ignore device with filesystem signature since c-v inventory
+		// cannot detect that correctly
+		if device.Size < uint64(2*(1<<30)) {
+			logger.Infof("skipping device %q because it size less than 2G", device.Name)
+			res = append(res, &LocalDiskAppendInfo{
+				LocalDisk: *device,
+				Available: false,
+				Message:   "size less than 2G",
+			})
+			continue
+		}
+
+		if device.Filesystem != "" {
+			res = append(res, &LocalDiskAppendInfo{
+				LocalDisk: *device,
+				Available: false,
+				Message:   fmt.Sprintf("containe a filesystem %s", device.Filesystem),
+			})
+			logger.Infof("skipping device %q because it contains a filesystem %q", device.Name, device.Filesystem)
+			continue
+		}
+		if device.MountPoint != "" {
+			res = append(res, &LocalDiskAppendInfo{
+				LocalDisk: *device,
+				Available: false,
+				Message:   fmt.Sprintf("has a mount point %s", device.MountPoint),
+			})
+			logger.Infof("skipping device %q because it has a mount point %q", device.Name, device.MountPoint)
+			continue
+		}
+
+		logger.Debugf("device:%s is available", device.Name)
+		res = append(res, &LocalDiskAppendInfo{
+			LocalDisk: *device,
+			Available: true,
+		})
+
+	}
+
+	return res, nil
+
+}
+
 func GetAvailableDevices(dcontext *cluster.Context) (map[string]*LocalDisk, error) {
 
 	availableDevices := make(map[string]*LocalDisk)
@@ -52,6 +108,11 @@ func GetAvailableDevices(dcontext *cluster.Context) (map[string]*LocalDisk, erro
 
 		if device.Filesystem != "" {
 			logger.Infof("skipping device %q because it contains a filesystem %q", device.Name, device.Filesystem)
+			continue
+		}
+
+		if device.MountPoint != "" {
+			logger.Infof("skipping device %q because it has a mount point %q", device.Name, device.MountPoint)
 			continue
 		}
 
@@ -167,6 +228,11 @@ func populateDeviceInfo(d string, executor exec.Executor) (*LocalDisk, error) {
 	}
 	if val, ok := diskProps["KNAME"]; ok {
 		disk.KernelName = path.Base(val)
+	}
+	if val, ok := diskProps["MOUNTPOINT"]; ok {
+		if val != "" {
+			disk.MountPoint = path.Base(val)
+		}
 	}
 
 	return disk, nil

@@ -106,10 +106,17 @@ type ClassState struct {
 	DeviceStates []DeviceState `json:"deviceStates,omitempty"`
 }
 
+type DeviceStateType string
+
+const (
+	DeviceStateOnline  DeviceStateType = "Online"
+	DeviceStateOffline DeviceStateType = "Offline"
+)
+
 type DeviceState struct {
-	Name    string `json:"name,omitempty"`
-	State   string `json:"state,omitempty"`
-	Message string `json:"message,omitempty"`
+	Name    string          `json:"name,omitempty"`
+	State   DeviceStateType `json:"state,omitempty"`
+	Message string          `json:"message,omitempty"`
 }
 
 //+kubebuilder:object:root=true
