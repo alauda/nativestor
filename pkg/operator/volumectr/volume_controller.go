@@ -70,7 +70,15 @@ func CreateControllerDeployment(clientset kubernetes.Interface, ref *metav1.Owne
 
 func getDeployment(clientset kubernetes.Interface, ref *metav1.OwnerReference) (*v1.Deployment, error) {
 
-	replicas := int32(2)
+	replicas := int32(1)
+
+	if nodes, err := clientset.CoreV1().Nodes().List(context.Background(), metav1.ListOptions{Limit: 2}); err == nil {
+		if len(nodes.Items) > 1 {
+			replicas = int32(2)
+		}
+	} else {
+		logger.Errorf("unable to list nodes and deploying single csi controller")
+	}
 
 	volumes := []corev1.Volume{
 		{Name: "socket-dir", VolumeSource: corev1.VolumeSource{EmptyDir: &corev1.EmptyDirVolumeSource{}}},
