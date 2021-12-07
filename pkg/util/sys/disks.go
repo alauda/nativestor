@@ -73,6 +73,23 @@ func GetAllDevices(dcontext *cluster.Context) ([]*LocalDiskAppendInfo, error) {
 			logger.Infof("skipping device %q because it has a mount point %q", device.Name, device.MountPoint)
 			continue
 		}
+		if device.Type == DiskType {
+			deviceChild, err := ListDevicesChild(dcontext.Executor, device.KernelName)
+			if err != nil {
+				logger.Warningf("failed to detect child devices for device %q, assuming they are none. %v", device.RealPath, err)
+			}
+			// lsblk will output at least 2 lines if they are partitions, one for the parent
+			// and N for the child
+			if len(deviceChild) > 1 {
+				logger.Infof("skipping device %q because it has child, considering the child instead.", device.RealPath)
+				res = append(res, &LocalDiskAppendInfo{
+					LocalDisk: *device,
+					Available: false,
+					Message:   "has child",
+				})
+				continue
+			}
+		}
 
 		logger.Debugf("device:%s is available", device.Name)
 		res = append(res, &LocalDiskAppendInfo{
