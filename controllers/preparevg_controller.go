@@ -235,7 +235,7 @@ func (c *PrePareVg) provisionFirst(disks map[string]*sys.LocalDisk, cm *v1.Confi
 
 		if _, ok := vgs[dev.VgName]; ok {
 
-			failClassMap[dev.VgName] = &topolvmv2.ClassState{Name: dev.ClassName, State: ClassCreateFail + " vg existing"}
+			failClassMap[dev.VgName] = &topolvmv2.ClassState{Name: dev.ClassName, State: topolvmv2.ClassUnReady, Message: ClassCreateFail + " vg existing"}
 
 		} else {
 			suc := c.createVg(disks, &dev, sucClassMap, failClassMap)
@@ -371,7 +371,7 @@ func (c *PrePareVg) checkVgIfDelete(sucClass map[string]*topolvmv2.ClassState, f
 		if !found {
 			if err := sys.RemoveVolumeGroup(c.context.Executor, key); err != nil {
 				vgLogger.Errorf("remove vg %s failed err %s", key, err.Error())
-				sucClass[key].State = ClassDeleteError
+				sucClass[key].Message = ClassDeleteError
 			}
 			delete(sucClass, key)
 		}
@@ -416,7 +416,7 @@ func (c *PrePareVg) checkVgIfExpand(class *topolvmv2.DeviceClass, sucClass map[s
 		if _, ok := pv[d.Name]; !ok {
 
 			if err = sys.CreatePhysicalVolume(c.context.Executor, d.Name); err != nil {
-				sucClass[class.VgName].State = ClassExpandWaring
+				sucClass[class.VgName].Message = ClassExpandWaring
 				deviceStatus := topolvmv2.DeviceState{Name: d.Name, State: DeviceStateError, Message: err.Error()}
 				sucClass[class.VgName].DeviceStates = append(sucClass[class.VgName].DeviceStates, deviceStatus)
 				vgLogger.Errorf("create pv:%s for vg:%s failed err:%+v", d.Name, class.VgName, err)
@@ -430,11 +430,11 @@ func (c *PrePareVg) checkVgIfExpand(class *topolvmv2.DeviceClass, sucClass map[s
 	if len(newPvs) > 0 {
 		err := sys.ExpandVolumeGroup(c.context.Executor, class.VgName, newPvs)
 		if err != nil {
-			sucClass[class.VgName].State = ClassExpandError
+			sucClass[class.VgName].Message = ClassExpandError
 			return err
 		}
 		for _, d := range newPvs {
-			devStatus := topolvmv2.DeviceState{Name: d, State: topolvmv2.DeviceStateOnline}
+			devStatus := topolvmv2.DeviceState{Name: d, State: topolvmv2.DeviceOnline}
 			sucClass[class.VgName].DeviceStates = append(sucClass[class.VgName].DeviceStates, devStatus)
 		}
 
@@ -470,7 +470,7 @@ func (c *PrePareVg) checkVgIfShrink(class *topolvmv2.DeviceClass, sucClass map[s
 	if len(deletePvs) == len(pvs) && len(pvs) > 0 {
 		err = sys.RemoveVolumeGroup(c.context.Executor, class.VgName)
 		if err != nil {
-			sucClass[class.VgName].State = ClassDeleteError
+			sucClass[class.VgName].Message = ClassDeleteError
 			return err
 		}
 		delete(sucClass, class.VgName)
@@ -480,7 +480,7 @@ func (c *PrePareVg) checkVgIfShrink(class *topolvmv2.DeviceClass, sucClass map[s
 	if len(deletePvs) > 0 {
 		err := sys.ShrinkVolumeGroup(c.context.Executor, class.VgName, deletePvs)
 		if err != nil {
-			sucClass[class.VgName].State = ClassShrinkError
+			sucClass[class.VgName].Message = ClassShrinkError
 			return err
 		}
 		for _, d := range deletePvs {
@@ -529,7 +529,7 @@ func (c *PrePareVg) createVgRetry(availaDisks map[string]*sys.LocalDisk, class *
 			return false
 		}
 		vgLogger.Infof("create vg %s retry successful", class.VgName)
-		sucClass[class.VgName] = &topolvmv2.ClassState{Name: class.ClassName, VgName: class.VgName, State: ClassCreateSuccessful}
+		sucClass[class.VgName] = &topolvmv2.ClassState{Name: class.ClassName, VgName: class.VgName, State: topolvmv2.ClassReady, Message: ClassCreateSuccessful}
 		delete(failClass, class.VgName)
 		return true
 	}
@@ -566,7 +566,7 @@ func (c *PrePareVg) createVg(availaDisks map[string]*sys.LocalDisk, class *topol
 
 		if _, ok := availaDisks[disk.Name]; !ok {
 			message := "disk may has filesystem or is not raw disk please check"
-			devStatus := topolvmv2.DeviceState{Name: disk.Name, State: topolvmv2.DeviceStateOffline, Message: message}
+			devStatus := topolvmv2.DeviceState{Name: disk.Name, State: topolvmv2.DeviceOffline, Message: message}
 			classState.DeviceStates = append(classState.DeviceStates, devStatus)
 			vgLogger.Errorf("device:%s is not available", disk.Name)
 			available = false
@@ -574,17 +574,19 @@ func (c *PrePareVg) createVg(availaDisks map[string]*sys.LocalDisk, class *topol
 	}
 	if available {
 		if err := sys.CreateVolumeGroup(c.context.Executor, class.Device, class.VgName); err != nil {
-			classState.State = ClassCreateFail
+			classState.Message = ClassCreateFail
+			classState.State = topolvmv2.ClassUnReady
 			failClass[class.VgName] = classState
 			vgLogger.Errorf("create vg %s retry failed err:%v", class.VgName, err)
 			return false
 
 		} else {
-			classState.State = ClassCreateSuccessful
+			classState.State = topolvmv2.ClassReady
+			classState.Message = ClassCreateSuccessful
 			sucClass[class.VgName] = classState
 			vgLogger.Infof("create vg %s retry successful", class.VgName)
 			for _, d := range class.Device {
-				devStatus := topolvmv2.DeviceState{Name: d.Name, State: topolvmv2.DeviceStateOnline}
+				devStatus := topolvmv2.DeviceState{Name: d.Name, State: topolvmv2.DeviceOnline}
 				classState.DeviceStates = append(classState.DeviceStates, devStatus)
 			}
 			return true

@@ -294,12 +294,18 @@ func checkDeviceClass(clusterdContext *cluster.Context) error {
 				logger.Errorf("list pvs of vg %s failed err %v", ele.VgName, err)
 				return err
 			}
+			ready := true
 			for index2, d := range nodeStatus.SuccessClasses[index1].DeviceStates {
 				if _, ok := pvs[d.Name]; ok {
 					continue
 				} else {
-					nodeStatus.SuccessClasses[index1].DeviceStates[index2].State = topolvmv2.DeviceStateOffline
+					ready = false
+					nodeStatus.SuccessClasses[index1].DeviceStates[index2].State = topolvmv2.DeviceOffline
+					nodeStatus.SuccessClasses[index1].State = topolvmv2.ClassUnReady
 				}
+			}
+			if ready {
+				nodeStatus.SuccessClasses[index1].State = topolvmv2.ClassReady
 			}
 		}
 

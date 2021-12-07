@@ -38,7 +38,7 @@ func GetAllDevices(dcontext *cluster.Context) ([]*LocalDiskAppendInfo, error) {
 
 	var err error
 
-	if disks, err = DiscoverDevices(dcontext.Executor); err != nil {
+	if disks, err = DiscoverDevices(dcontext.Executor, true); err != nil {
 		return nil, err
 	}
 
@@ -94,7 +94,7 @@ func GetAvailableDevices(dcontext *cluster.Context) (map[string]*LocalDisk, erro
 
 	var err error
 
-	if disks, err = DiscoverDevices(dcontext.Executor); err != nil {
+	if disks, err = DiscoverDevices(dcontext.Executor, false); err != nil {
 		return nil, err
 	}
 
@@ -126,7 +126,7 @@ func GetAvailableDevices(dcontext *cluster.Context) (map[string]*LocalDisk, erro
 }
 
 // DiscoverDevices returns all the details of devices available on the local node
-func DiscoverDevices(executor exec.Executor) ([]*LocalDisk, error) {
+func DiscoverDevices(executor exec.Executor, listParent bool) ([]*LocalDisk, error) {
 	var disks []*LocalDisk
 	devices, err := ListDevices(executor)
 	if err != nil {
@@ -161,7 +161,7 @@ func DiscoverDevices(executor exec.Executor) ([]*LocalDisk, error) {
 			}
 			// lsblk will output at least 2 lines if they are partitions, one for the parent
 			// and N for the child
-			if len(deviceChild) > 1 {
+			if !listParent && len(deviceChild) > 1 {
 				logger.Infof("skipping device %q because it has child, considering the child instead.", d)
 				continue
 			}

@@ -103,18 +103,26 @@ type LoopState struct {
 	Message    string `json:"message"`
 }
 
+type ClassStateType string
+
+const (
+	ClassReady   ClassStateType = "Ready"
+	ClassUnReady ClassStateType = "UnReady"
+)
+
 type ClassState struct {
-	Name         string        `json:"className,omitempty"`
-	VgName       string        `json:"vgName,omitempty"`
-	State        string        `json:"state,omitempty"`
-	DeviceStates []DeviceState `json:"deviceStates,omitempty"`
+	Name         string         `json:"className,omitempty"`
+	VgName       string         `json:"vgName,omitempty"`
+	State        ClassStateType `json:"state,omitempty"`
+	Message      string         `json:"message,omitempty"`
+	DeviceStates []DeviceState  `json:"deviceStates,omitempty"`
 }
 
 type DeviceStateType string
 
 const (
-	DeviceStateOnline  DeviceStateType = "Online"
-	DeviceStateOffline DeviceStateType = "Offline"
+	DeviceOnline  DeviceStateType = "Online"
+	DeviceOffline DeviceStateType = "Offline"
 )
 
 type DeviceState struct {

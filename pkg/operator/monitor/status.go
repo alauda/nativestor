@@ -82,7 +82,6 @@ func (c *ClusterStatusChecker) checkStatus(namespacedName *types.NamespacedName)
 		return
 	}
 
-	ready := false
 	nodesStatus := make(map[string]*topolvmv2.NodeStorageState)
 	nodes := make([]string, 0)
 
@@ -124,7 +123,6 @@ func (c *ClusterStatusChecker) checkStatus(namespacedName *types.NamespacedName)
 			case corev1.PodRunning:
 				n.Phase = topolvmv2.ConditionReady
 				nodeMetric.Status = 0
-				ready = true
 			case corev1.PodUnknown:
 				n.Phase = topolvmv2.ConditionUnknown
 				nodeMetric.Status = 1
@@ -163,7 +161,6 @@ func (c *ClusterStatusChecker) checkStatus(namespacedName *types.NamespacedName)
 			nodesStatus[node] = &n
 			clusterMetric.NodeStatus = append(clusterMetric.NodeStatus, nodeMetric)
 		}
-
 	}
 
 	for key := range nodesStatus {
@@ -185,6 +182,7 @@ func (c *ClusterStatusChecker) checkStatus(namespacedName *types.NamespacedName)
 			}
 		}
 	}
+
 	clusterStatus := topolvmCluster.Status.DeepCopy()
 	for key, val := range nodesStatus {
 		found := false
@@ -195,7 +193,7 @@ func (c *ClusterStatusChecker) checkStatus(namespacedName *types.NamespacedName)
 				continue
 			}
 			clusterStatus.NodeStorageStatus[index].Phase = val.Phase
-			logger.Debugf("node %s, phase: %s", item.Node, topolvmCluster.Status.NodeStorageStatus[index].Phase)
+			logger.Debugf("node %s, phase: %s", item.Node, clusterStatus.NodeStorageStatus[index].Phase)
 
 		}
 		if !found {
@@ -203,7 +201,35 @@ func (c *ClusterStatusChecker) checkStatus(namespacedName *types.NamespacedName)
 		}
 	}
 
-	if ready {
+	clusterReady := false
+	for index, n := range clusterStatus.NodeStorageStatus {
+
+		nodeReady := false
+		for _, ele := range n.SuccessClasses {
+			if ele.State == topolvmv2.ClassReady {
+				nodeReady = true
+			}
+		}
+
+		if !nodeReady {
+			clusterStatus.NodeStorageStatus[index].Phase = topolvmv2.ConditionFailure
+		}
+
+		for index1, n1 := range clusterMetric.NodeStatus {
+			if n1.Node == n.Node {
+				if !nodeReady {
+					clusterMetric.NodeStatus[index1].Status = 1
+				}
+			}
+		}
+
+		if n.Phase == topolvmv2.ConditionReady {
+			clusterReady = true
+		}
+
+	}
+
+	if clusterReady {
 		clusterStatus.Phase = topolvmv2.ConditionReady
 		clusterMetric.ClusterStatus = 0
 	} else {
