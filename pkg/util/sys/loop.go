@@ -71,7 +71,7 @@ func GetLoopBackFile(executor exec.Executor, loop string) (string, error) {
 
 func ReSetupLoop(executor exec.Executor, filename string, loop string) error {
 
-	devices, err := DiscoverDevices(executor)
+	devices, err := DiscoverDevices(executor, false)
 	if err != nil {
 		return err
 	}

@@ -38,7 +38,7 @@ func GetAllDevices(dcontext *cluster.Context) ([]*LocalDiskAppendInfo, error) {
 
 	var err error
 
-	if disks, err = DiscoverDevices(dcontext.Executor); err != nil {
+	if disks, err = DiscoverDevices(dcontext.Executor, true); err != nil {
 		return nil, err
 	}
 
@@ -73,6 +73,23 @@ func GetAllDevices(dcontext *cluster.Context) ([]*LocalDiskAppendInfo, error) {
 			logger.Infof("skipping device %q because it has a mount point %q", device.Name, device.MountPoint)
 			continue
 		}
+		if device.Type == DiskType {
+			deviceChild, err := ListDevicesChild(dcontext.Executor, device.KernelName)
+			if err != nil {
+				logger.Warningf("failed to detect child devices for device %q, assuming they are none. %v", device.RealPath, err)
+			}
+			// lsblk will output at least 2 lines if they are partitions, one for the parent
+			// and N for the child
+			if len(deviceChild) > 1 {
+				logger.Infof("skipping device %q because it has child, considering the child instead.", device.RealPath)
+				res = append(res, &LocalDiskAppendInfo{
+					LocalDisk: *device,
+					Available: false,
+					Message:   "has child",
+				})
+				continue
+			}
+		}
 
 		logger.Debugf("device:%s is available", device.Name)
 		res = append(res, &LocalDiskAppendInfo{
@@ -94,7 +111,7 @@ func GetAvailableDevices(dcontext *cluster.Context) (map[string]*LocalDisk, erro
 
 	var err error
 
-	if disks, err = DiscoverDevices(dcontext.Executor); err != nil {
+	if disks, err = DiscoverDevices(dcontext.Executor, false); err != nil {
 		return nil, err
 	}
 
@@ -126,7 +143,7 @@ func GetAvailableDevices(dcontext *cluster.Context) (map[string]*LocalDisk, erro
 }
 
 // DiscoverDevices returns all the details of devices available on the local node
-func DiscoverDevices(executor exec.Executor) ([]*LocalDisk, error) {
+func DiscoverDevices(executor exec.Executor, listParent bool) ([]*LocalDisk, error) {
 	var disks []*LocalDisk
 	devices, err := ListDevices(executor)
 	if err != nil {
@@ -161,7 +178,7 @@ func DiscoverDevices(executor exec.Executor) ([]*LocalDisk, error) {
 			}
 			// lsblk will output at least 2 lines if they are partitions, one for the parent
 			// and N for the child
-			if len(deviceChild) > 1 {
+			if !listParent && len(deviceChild) > 1 {
 				logger.Infof("skipping device %q because it has child, considering the child instead.", d)
 				continue
 			}
