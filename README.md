@@ -8,11 +8,11 @@ Topolvm-Operator is an open source **cloud-native local storage** orchestrator f
 Supported environments
 ----------------------
 
-- Kubernetes: 1.20, 1.19
+- Kubernetes: >= 1.19
 - Node OS: Linux with LVM2
 - Filesystems: ext4, xfs
 
-The [CSIStorageCapacity](https://kubernetes.io/docs/concepts/storage/storage-capacity/) feature gate should be turned on
+if kubernetes < 1.21 The [CSIStorageCapacity](https://kubernetes.io/docs/concepts/storage/storage-capacity/) feature gate should be turned on
 
 Features
 --------
