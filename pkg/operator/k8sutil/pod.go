@@ -19,7 +19,7 @@ package k8sutil
 import (
 	"context"
 	"fmt"
-	"github.com/alauda/topolvm-operator/pkg/cluster"
+	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -45,11 +45,11 @@ func NodeEnvVar() v1.EnvVar {
 // environment, and returns the pod (if it exists).
 func GetRunningPod(clientset kubernetes.Interface) (*v1.Pod, error) {
 
-	podName := os.Getenv(cluster.PodNameEnv)
+	podName := os.Getenv(topolvm.PodNameEnv)
 	if podName == "" {
 		return nil, fmt.Errorf("cannot detect the pod name. Please provide it using the downward API in the manifest file")
 	}
-	podNamespace := os.Getenv(cluster.PodNameSpaceEnv)
+	podNamespace := os.Getenv(topolvm.PodNameSpaceEnv)
 	if podName == "" {
 		return nil, fmt.Errorf("cannot detect the pod namespace. Please provide it using the downward API in the manifest file")
 	}

@@ -24,3 +24,11 @@ provisioner: topolvm.cybozu.com
 volumeBindingMode: WaitForFirstConsumer
 parameters:
   "topolvm.cybozu.com/device-class": "hdd3"
+
+---
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: rawdevice-provisioner
+provisioner: rawdevice.nativestor.io
+volumeBindingMode: WaitForFirstConsumer

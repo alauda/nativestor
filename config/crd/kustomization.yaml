@@ -4,6 +4,7 @@
 resources:
 - bases/topolvm.cybozu.com_topolvmclusters.yaml
 - bases/topolvm.cybozu.com_logicalvolumes.yaml
+- bases/rawdevice.nativestor.io_rawdevices.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

@@ -27,8 +27,7 @@ import (
 )
 
 // CreateDaemonSet creates
-func CreateDaemonSet(name, namespace string, clientset kubernetes.Interface, ds *apps.DaemonSet) error {
-	ctx := context.TODO()
+func CreateDaemonSet(ctx context.Context, name, namespace string, clientset kubernetes.Interface, ds *apps.DaemonSet) error {
 	_, err := clientset.AppsV1().DaemonSets(namespace).Create(ctx, ds, metav1.CreateOptions{})
 	if err != nil {
 		if k8serrors.IsAlreadyExists(err) {
@@ -42,8 +41,7 @@ func CreateDaemonSet(name, namespace string, clientset kubernetes.Interface, ds 
 }
 
 // DeleteDaemonset makes a best effort at deleting a daemonset and its pods, then waits for them to be deleted
-func DeleteDaemonset(clientset kubernetes.Interface, namespace, name string) error {
-	ctx := context.TODO()
+func DeleteDaemonset(ctx context.Context, clientset kubernetes.Interface, namespace, name string) error {
 	deleteAction := func(options *metav1.DeleteOptions) error {
 		return clientset.AppsV1().DaemonSets(namespace).Delete(ctx, name, *options)
 	}

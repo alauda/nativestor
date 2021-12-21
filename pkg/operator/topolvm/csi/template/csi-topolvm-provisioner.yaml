@@ -1,0 +1,99 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: topolvm-controller
+  namespace: {{ .Namespace }}
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: topolvm-controller
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: topolvm-controller
+    spec:
+      containers:
+        - name: csi-topolvm-plugin
+          command:
+            - /topolvm-controller
+            - --cert-dir=/certs
+          image: {{ .TopolvmImage }}
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: healthz
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 60
+            successThreshold: 1
+            timeoutSeconds: 3
+          ports:
+            - containerPort: 9808
+              name: healthz
+              protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /metrics
+              port: 8080
+              scheme: HTTP
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          volumeMounts:
+            - mountPath: /run/topolvm
+              name: socket-dir
+        - name: csi-provisioner
+          args:
+            - --csi-address=/run/topolvm/csi-topolvm.sock
+            - --enable-capacity
+            - --capacity-ownerref-level=2
+            - --capacity-poll-interval=30s
+            - --feature-gates=Topology=true
+            - --leader-election
+            - "--leader-election-namespace={{ .Namespace }}"
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+          image: {{ .ProvisionerImage }}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /run/topolvm
+              name: socket-dir
+        - name: csi-resizer
+          args:
+            - --csi-address=/run/topolvm/csi-topolvm.sock
+            - --leader-election
+            - "--leader-election-namespace={{ .Namespace }}"
+          image: {{ .ResizerImage }}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /run/topolvm
+              name: socket-dir
+        - name: liveness-prometheus
+          args:
+            - --csi-address=/run/topolvm/csi-topolvm.sock
+          image: {{ .LivenessImage }}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /run/topolvm
+              name: socket-dir
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      serviceAccountName: topolvm-controller
+      tolerations:
+        - operator: Exists
+      volumes:
+        - emptyDir: {}
+          name: socket-dir

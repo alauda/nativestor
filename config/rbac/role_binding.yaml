@@ -7,6 +7,9 @@ subjects:
   - kind: ServiceAccount
     namespace: topolvm-system
     name: topolvm-controller
+  - kind: ServiceAccount
+    namespace: topolvm-system
+    name: topolvm-raw-device-provisioner
 roleRef:
   kind: Role
   name: leader-election
@@ -20,6 +23,9 @@ subjects:
   - kind: ServiceAccount
     namespace: topolvm-system
     name: topolvm-controller
+  - kind: ServiceAccount
+    namespace: topolvm-system
+    name: topolvm-raw-device-provisioner
 roleRef:
   kind: Role
   name: external-provisioner-cfg
@@ -33,6 +39,9 @@ subjects:
   - kind: ServiceAccount
     name: topolvm-controller
     namespace: topolvm-system
+  - kind: ServiceAccount
+    namespace: topolvm-system
+    name: topolvm-raw-device-provisioner
 roleRef:
   kind: Role
   name: external-resizer-cfg
@@ -75,6 +84,9 @@ subjects:
   - kind: ServiceAccount
     namespace: topolvm-system
     name: topolvm-controller
+  - kind: ServiceAccount
+    namespace: topolvm-system
+    name: topolvm-raw-device-provisioner
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -88,6 +100,9 @@ subjects:
   - kind: ServiceAccount
     namespace: topolvm-system
     name: topolvm-controller
+  - kind: ServiceAccount
+    namespace: topolvm-system
+    name: topolvm-raw-device-provisioner
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
@@ -118,6 +133,9 @@ subjects:
   - kind: ServiceAccount
     name: topolvm-operator
     namespace: topolvm-system
+  - kind: ServiceAccount
+    name: topolvm-discover
+    namespace: topolvm-system
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -142,6 +160,9 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: topolvm-node
+    namespace: topolvm-system
+  - kind: ServiceAccount
+    name: topolvm-raw-device-plugin
     namespace: topolvm-system
 roleRef:
   apiGroup: rbac.authorization.k8s.io

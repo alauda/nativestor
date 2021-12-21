@@ -7,6 +7,26 @@ metadata:
   name: topolvm-global
 rules:
 - apiGroups:
+  - rawdevice.nativestor.io
+  resources:
+  - rawdevices
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - rawdevice.nativestor.io
+  resources:
+  - rawdevices/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
   - topolvm.cybozu.com
   resources:
   - topolvmclusters
@@ -18,12 +38,6 @@ rules:
   - patch
   - update
   - watch
-- apiGroups:
-  - topolvm.cybozu.com
-  resources:
-  - topolvmclusters/finalizers
-  verbs:
-  - update
 - apiGroups:
   - topolvm.cybozu.com
   resources:

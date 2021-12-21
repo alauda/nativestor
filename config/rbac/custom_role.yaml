@@ -44,6 +44,9 @@ rules:
       - create
       - update
       - delete
+  - apiGroups: [ "rawdevice.nativestor.io" ]
+    resources: [ "rawdevices", "rawdevices/status" ]
+    verbs: [ "get", "list", "watch", "create", "update", "delete", "patch" ]
   - apiGroups:
       - storage.k8s.io
     resources:
@@ -137,6 +140,9 @@ rules:
   - apiGroups: ["topolvm.cybozu.com"]
     resources: ["logicalvolumes", "logicalvolumes/status"]
     verbs: ["get", "list", "watch", "create", "update", "delete", "patch"]
+  - apiGroups: [ "rawdevice.nativestor.io" ]
+    resources: [ "rawdevices", "rawdevices/status" ]
+    verbs: [ "get", "list", "watch", "create", "update", "delete", "patch" ]
   - apiGroups: ["storage.k8s.io"]
     resources: ["csidrivers"]
     verbs: ["get", "list", "watch"]
@@ -168,6 +174,9 @@ rules:
   - apiGroups: ["topolvm.cybozu.com"]
     resources: ["logicalvolumes", "logicalvolumes/status"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [ "rawdevice.nativestor.io" ]
+    resources: [ "rawdevices", "rawdevices/status" ]
+    verbs: [ "get", "list", "watch", "create", "update", "delete", "patch" ]
 ---
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1

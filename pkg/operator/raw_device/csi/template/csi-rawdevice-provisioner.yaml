@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: raw-device-provisioner
+  namespace: {{ .Namespace }}
+spec:
+  replicas: {{ .ProvisionerReplicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: raw-device-provisioner
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: raw-device-provisioner
+    spec:
+      containers:
+        - name: csi-raw-device-provisioner
+          command:
+            - /raw-device-provisioner
+          image: {{ .RawDeviceImage }}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /run/raw-device
+              name: socket-dir
+        - name: csi-provisioner
+          args:
+            - "--v={{ .LogLevel }}"
+            - --csi-address=/run/raw-device/csi-rawdevice.sock
+            - --enable-capacity
+            - --capacity-ownerref-level=2
+            - --capacity-poll-interval=30s
+            - --feature-gates=Topology=true
+            - --leader-election
+            - "--leader-election-namespace={{ .Namespace }}"
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+          image: {{ .ProvisionerImage }}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /run/raw-device
+              name: socket-dir
+        - name: liveness-prometheus
+          args:
+            - --csi-address=/run/raw-device/csi-rawdevice.sock
+          image: {{ .LivenessImage }}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /run/raw-device
+              name: socket-dir
+      restartPolicy: Always
+      serviceAccountName: topolvm-raw-device-provisioner
+      volumes:
+        - emptyDir: {}
+          name: socket-dir

@@ -7,42 +7,34 @@ Topolvm-Operator is an open source **cloud-native local storage** orchestrator f
 
 Supported environments
 ----------------------
-
-- Kubernetes: 1.20, 1.19
+- Kubernetes: >= 1.19
 - Node OS: Linux with LVM2
-- Filesystems: ext4, xfs
-
-The [CSIStorageCapacity](https://kubernetes.io/docs/concepts/storage/storage-capacity/) feature gate should be turned on
+- Filesystems: ext4, xfs  
+If kubernetes < 1.21, The [CSIStorageCapacity](https://kubernetes.io/docs/concepts/storage/storage-capacity/) feature gate should be turned on
 
 Features
 --------
 
-- Orchestrate topolvm
 - Storage capacity expand dynamically
-- Perception of storage topology
 - Volume capacity limit
 - PVC snapshot
 - Prometheus metric and alarm
 - Auto discover available devices
+- Raw device
 
 OperatorHub.io
 --------
-
 [Topolvm Operator](https://operatorhub.io/operator/topolvm-operator) had been shared in operatorhub.io home.  
 
 
-### Planned features
-
-- Raid of volume group
-- Manage volume group that user created
-
+### RoadMap
 see our [roadmap](./ROADMAP.md)
 
 
 Components
 -------
-- `operator`: orchestrate topolvm include `TopolvmCluster controller` and `ConfigMap controller`
-- `preparevg`: prepare volume group on each node
+- `topolvm csi`: 
+- `raw device csi`:
 
 
 ### Diagram

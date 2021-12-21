@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"path"
 	"strconv"
+	"strings"
 
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/alauda/topolvm-operator/pkg/util/exec"
@@ -249,6 +250,23 @@ func populateDeviceInfo(d string, executor exec.Executor) (*LocalDisk, error) {
 	if val, ok := diskProps["MOUNTPOINT"]; ok {
 		if val != "" {
 			disk.MountPoint = path.Base(val)
+		}
+	}
+	if val, ok := diskProps["MAJ:MIN"]; ok {
+		if val != "" {
+			res := strings.Split(val, ":")
+			if len(res) == 2 {
+				major, err := strconv.Atoi(res[0])
+				if err != nil {
+					return nil, err
+				}
+				minor, err := strconv.Atoi(res[1])
+				if err != nil {
+					return nil, err
+				}
+				disk.Major = uint32(major)
+				disk.Minor = uint32(minor)
+			}
 		}
 	}
 

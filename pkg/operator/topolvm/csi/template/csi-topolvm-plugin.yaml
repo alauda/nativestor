@@ -1,0 +1,126 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: topolvm-node
+  namespace: {{ .Namespace }}
+  labels:
+    app.kubernetes.io/name: "topolvm-node"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: "topolvm-node"
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/compose: node
+        app.kubernetes.io/name: "topolvm-node"
+    spec:
+      containers:
+        - name: lvmd
+          command:
+            - /lvmd
+            - --config=/etc/topolvm/lvmd.yaml
+            - --container=true
+          image: {{ .TopolvmImage }}
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /run/topolvm
+              name: lvmd-socket-dir
+            - mountPath: /etc/topolvm
+              name: lvmd-config-dir
+        - name: csi-topolvm-plugin
+          command:
+            - /topolvm-node
+            - --lvmd-socket=/run/lvmd/lvmd.sock
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          image: {{ .TopolvmImage }}
+          imagePullPolicy: IfNotPresent
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /healthz
+              port: healthz
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 60
+            successThreshold: 1
+            timeoutSeconds: 3
+          ports:
+            - containerPort: 9808
+              name: healthz
+              protocol: TCP
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          volumeMounts:
+            - mountPath: /run/topolvm
+              name: node-plugin-dir
+            - mountPath: /run/lvmd
+              name: lvmd-socket-dir
+            - mountPath: "{{ .KubeletDirPath }}/pods"
+              mountPropagation: Bidirectional
+              name: pod-volumes-dir
+            - mountPath: "{{ .KubeletDirPath }}/plugins/kubernetes.io/csi"
+              mountPropagation: Bidirectional
+              name: csi-plugin-dir
+        - name: driver-registrar
+          args:
+            - --csi-address=/run/topolvm/csi-topolvm.sock
+            - "--kubelet-registration-path={{ .KubeletDirPath }}/plugins/topolvm.cybozu.com/node/csi-topolvm.sock"
+          image: {{ .RegistrarImage }}
+          imagePullPolicy: IfNotPresent
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - rm -rf /registration/topolvm.cybozu.com /registration/topolvm.cybozu.com-reg.sock
+          volumeMounts:
+            - mountPath: /run/topolvm
+              name: node-plugin-dir
+            - mountPath: /registration
+              name: registration-dir
+        - name: liveness-prometheus
+          args:
+            - --csi-address=/run/topolvm/csi-topolvm.sock
+          image: {{ .LivenessImage }}
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - mountPath: /run/topolvm
+              name: node-plugin-dir
+      dnsPolicy: ClusterFirst
+      hostPID: true
+      restartPolicy: Always
+      serviceAccountName: topolvm-node
+      tolerations:
+        - operator: Exists
+      volumes:
+        - hostPath:
+            path: "{{ .KubeletDirPath }}/plugins_registry/"
+            type: Directory
+          name: registration-dir
+        - hostPath:
+            path: "{{ .KubeletDirPath }}/plugins/topolvm.cybozu.com/node"
+            type: DirectoryOrCreate
+          name: node-plugin-dir
+        - hostPath:
+            path: "{{ .KubeletDirPath }}/plugins/kubernetes.io/csi"
+            type: DirectoryOrCreate
+          name: csi-plugin-dir
+        - hostPath:
+            path: "{{ .KubeletDirPath }}/pods/"
+            type: DirectoryOrCreate
+          name: pod-volumes-dir
+        - emptyDir:
+            medium: Memory
+          name: lvmd-socket-dir

@@ -17,7 +17,9 @@ limitations under the License.
 package discover
 
 import (
-	"github.com/alauda/topolvm-operator/pkg/cluster"
+	"context"
+	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
+	"github.com/alauda/topolvm-operator/pkg/operator"
 	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/apps/v1"
@@ -27,9 +29,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-func MakeDiscoverDevicesDaemonset(clientset kubernetes.Interface, appName string, image string, useLoop bool) error {
+func MakeDiscoverDevicesDaemonset(clientset kubernetes.Interface, appName string, image string, useLoop bool, enableRawDevice bool) error {
 
-	daemon := getDaemonset(appName, image, useLoop)
+	daemon := getDaemonset(appName, image, useLoop, enableRawDevice)
 
 	operatorPod, err := k8sutil.GetRunningPod(clientset)
 	if err != nil {
@@ -37,13 +39,13 @@ func MakeDiscoverDevicesDaemonset(clientset kubernetes.Interface, appName string
 	} else {
 		k8sutil.SetOwnerRefsWithoutBlockOwner(&daemon.ObjectMeta, operatorPod.OwnerReferences)
 	}
-	if err := k8sutil.CreateDaemonSet(appName, cluster.NameSpace, clientset, daemon); err != nil {
+	if err := k8sutil.CreateDaemonSet(context.TODO(), appName, topolvm.NameSpace, clientset, daemon); err != nil {
 		return errors.Wrapf(err, "create daemonset  %s failed", appName)
 	}
 	return nil
 }
 
-func getDaemonset(appName string, image string, useLoop bool) *v1.DaemonSet {
+func getDaemonset(appName string, image string, useLoop bool, enableRawDevice bool) *v1.DaemonSet {
 
 	var volumes []corev1.Volume
 	devVolume := corev1.Volume{Name: "devices", VolumeSource: corev1.VolumeSource{HostPath: &corev1.HostPathVolumeSource{Path: "/dev"}}}
@@ -65,12 +67,12 @@ func getDaemonset(appName string, image string, useLoop bool) *v1.DaemonSet {
 
 	resourceRequirements := corev1.ResourceRequirements{
 		Limits: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(cluster.TopolvmDiscoverDeviceCPULimit),
-			corev1.ResourceMemory: resource.MustParse(cluster.TopolvmDiscoverDeviceMemLimit),
+			corev1.ResourceCPU:    resource.MustParse(topolvm.TopolvmDiscoverDeviceCPULimit),
+			corev1.ResourceMemory: resource.MustParse(topolvm.TopolvmDiscoverDeviceMemLimit),
 		},
 		Requests: corev1.ResourceList{
-			corev1.ResourceCPU:    resource.MustParse(cluster.TopolvmDiscoverDeviceCPURequest),
-			corev1.ResourceMemory: resource.MustParse(cluster.TopolvmDiscoverDeviceMemRequest),
+			corev1.ResourceCPU:    resource.MustParse(topolvm.TopolvmDiscoverDeviceCPURequest),
+			corev1.ResourceMemory: resource.MustParse(topolvm.TopolvmDiscoverDeviceMemRequest),
 		},
 	}
 	env := []corev1.EnvVar{
@@ -81,20 +83,24 @@ func getDaemonset(appName string, image string, useLoop bool) *v1.DaemonSet {
 	annotate := make(map[string]string)
 
 	if useLoop {
-		env = append(env, corev1.EnvVar{Name: cluster.UseLoopEnv, Value: cluster.UseLoop})
-		annotate[cluster.LoopAnnotationsKey] = cluster.LoopAnnotationsVal
+		env = append(env, corev1.EnvVar{Name: topolvm.UseLoopEnv, Value: topolvm.UseLoop})
+		annotate[topolvm.LoopAnnotationsKey] = topolvm.LoopAnnotationsVal
+	}
+
+	if enableRawDevice {
+		env = append(env, corev1.EnvVar{Name: operator.EnableRawDeviceEnv, Value: "true"})
 	}
 
 	daemonset := &v1.DaemonSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        appName,
-			Namespace:   cluster.NameSpace,
+			Namespace:   topolvm.NameSpace,
 			Annotations: annotate,
 		},
 		Spec: v1.DaemonSetSpec{
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					cluster.AppAttr: appName,
+					topolvm.AppAttr: appName,
 				},
 			},
 			UpdateStrategy: v1.DaemonSetUpdateStrategy{
@@ -104,14 +110,14 @@ func getDaemonset(appName string, image string, useLoop bool) *v1.DaemonSet {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: appName,
 					Labels: map[string]string{
-						cluster.AppAttr: appName,
+						topolvm.AppAttr: appName,
 					},
 				},
 				Spec: corev1.PodSpec{
-					ServiceAccountName: cluster.DiscoverDevicesAccount,
+					ServiceAccountName: topolvm.DiscoverDevicesAccount,
 					Containers: []corev1.Container{
 						{
-							Name:      cluster.DiscoverContainerName,
+							Name:      topolvm.DiscoverContainerName,
 							Image:     image,
 							Command:   command,
 							Resources: resourceRequirements,

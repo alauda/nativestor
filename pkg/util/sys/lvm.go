@@ -22,7 +22,7 @@ import (
 	"strconv"
 	"strings"
 
-	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
+	topolvmv2 "github.com/alauda/topolvm-operator/apis/topolvm/v2"
 	"github.com/alauda/topolvm-operator/pkg/util/exec"
 	perrors "github.com/pkg/errors"
 )

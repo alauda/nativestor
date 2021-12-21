@@ -1,0 +1,32 @@
+name: RawDevice
+on:
+  pull_request:
+    branches:
+      - 'main'
+defaults:
+  run:
+    shell: bash --noprofile --norc -eo pipefail -x {0}
+
+jobs:
+  e2e-k8s:
+    name: e2e-k8s
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.16
+      - run: make -C e2e setup
+      - run: make -C e2e test
+      - name: collect common logs
+        if: always()
+        run: |
+          export LOG_DIR="/home/runner/work/nativestor/tests/integration/_output/tests/"
+          export CLUSTER_NAMESPACE="topolvm-system"
+          e2e/scripts/collect-logs.sh
+      - name: Artifact
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: nativestor-e2e
+          path: /home/runner/work/nativestor/tests/integration/_output/tests/

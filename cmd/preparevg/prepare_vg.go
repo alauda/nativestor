@@ -18,17 +18,18 @@ package preparevg
 
 import (
 	"fmt"
+	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
+	"github.com/alauda/topolvm-operator/pkg/operator/topolvm/volumegroup"
 	"os"
 
-	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
-	"github.com/alauda/topolvm-operator/controllers"
+	topolvmv2 "github.com/alauda/topolvm-operator/apis/topolvm/v2"
+	topolvmclient "github.com/alauda/topolvm-operator/generated/nativestore/topolvm/clientset/versioned"
 	"github.com/alauda/topolvm-operator/pkg/cluster"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (
@@ -49,52 +50,33 @@ func init() {
 
 func prepareVg(cmd *cobra.Command, args []string) error {
 
-	cluster.SetLogLevel()
+	topolvm.SetLogLevel()
 
-	nodeName := os.Getenv(cluster.NodeNameEnv)
+	nodeName := os.Getenv(topolvm.NodeNameEnv)
 	if nodeName == "" {
-		logger.Errorf("get env:%s failed", cluster.NodeNameEnv)
-		return fmt.Errorf("get env %s failed", cluster.NodeNameEnv)
+		logger.Errorf("get env:%s failed", topolvm.NodeNameEnv)
+		return fmt.Errorf("get env %s failed", topolvm.NodeNameEnv)
 	}
 
-	namespace := os.Getenv(cluster.PodNameSpaceEnv)
+	namespace := os.Getenv(topolvm.PodNameSpaceEnv)
 	if namespace == "" {
-		logger.Errorf("get env %s failed", cluster.PodNameSpaceEnv)
-		return fmt.Errorf("get env %s failed", cluster.PodNameSpaceEnv)
+		logger.Errorf("get env %s failed", topolvm.PodNameSpaceEnv)
+		return fmt.Errorf("get env %s failed", topolvm.PodNameSpaceEnv)
 	}
 
-	cfg, err := ctrl.GetConfig()
-	if err != nil {
-		return err
-	}
-
-	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:         scheme,
-		LeaderElection: false,
-	})
-	if err != nil {
-		return err
+	topolvmClusterName := os.Getenv(topolvm.ClusterNameEnv)
+	if namespace == "" {
+		logger.Errorf("get env %s failed", topolvm.ClusterNameEnv)
+		return fmt.Errorf("get env %s failed", topolvm.ClusterNameEnv)
 	}
 
 	context := cluster.NewContext()
-	context.Client = mgr.GetClient()
 
-	// used to stop controller when job is completed
-	ctx := ctrl.SetupSignalHandler()
-
-	c := controllers.NewPrepareVgController(nodeName, namespace, context)
-
-	if err := c.SetupWithManager(mgr); err != nil {
-		logger.Error(err, "unable to create controller", "controller", "Node")
+	topolvmClientset, err := topolvmclient.NewForConfig(context.KubeConfig)
+	if err != nil {
 		return err
 	}
-
-	logger.Info("starting manager")
-	if err := mgr.Start(ctx); err != nil {
-		logger.Error(err, "problem running manager")
-		os.Exit(1)
-	}
-
-	return nil
-
+	context.TopolvmClusterClientset = topolvmClientset
+	c := volumegroup.NewPrepareVg(nodeName, namespace, topolvmClusterName, context)
+	return c.Start()
 }

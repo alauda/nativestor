@@ -19,7 +19,7 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/alauda/topolvm-operator/pkg/cluster"
+	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -32,7 +32,7 @@ func testPrepareVg() {
 		Eventually(func() error {
 			By("check prepare job count and status")
 
-			result, stderr, err := kubectl("get", "-n", "topolvm-system", "pod", fmt.Sprintf("--selector=%s=%s", cluster.AppAttr, cluster.PrePareVgAppName), "-o=json")
+			result, stderr, err := kubectl("get", "-n", "topolvm-system", "pod", fmt.Sprintf("--selector=%s=%s", topolvm.AppAttr, topolvm.PrePareVgAppName), "-o=json")
 
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)

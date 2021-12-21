@@ -18,7 +18,7 @@ package k8sutil
 
 import (
 	"context"
-	"github.com/alauda/topolvm-operator/pkg/cluster"
+	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,7 +35,7 @@ func TestDeleteConfigMap(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-configmap",
 			Namespace: "test-namespace",
-			Labels:    map[string]string{cluster.LvmdConfigMapLabelKey: cluster.LvmdConfigMapLabelValue},
+			Labels:    map[string]string{topolvm.LvmdConfigMapLabelKey: topolvm.LvmdConfigMapLabelValue},
 		},
 		Data: map[string]string{
 			"test": "data",

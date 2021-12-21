@@ -20,7 +20,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/alauda/topolvm-operator/pkg/cluster"
+	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -109,7 +109,7 @@ func PatchConfigMap(clientset kubernetes.Interface, namespace string, oldConfigM
 func GetOperatorSetting(clientset kubernetes.Interface, configMapName, settingName, defaultValue string) (string, error) {
 	// config must be in operator pod namespace
 	ctx := context.TODO()
-	cm, err := clientset.CoreV1().ConfigMaps(cluster.NameSpace).Get(ctx, configMapName, metav1.GetOptions{})
+	cm, err := clientset.CoreV1().ConfigMaps(topolvm.NameSpace).Get(ctx, configMapName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			if settingValue, ok := os.LookupEnv(settingName); ok {

@@ -90,7 +90,90 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.7.0
+    controller-gen.kubebuilder.io/version: v0.5.0
+  creationTimestamp: null
+  name: rawdevices.rawdevice.nativestor.io
+spec:
+  group: rawdevice.nativestor.io
+  names:
+    kind: RawDevice
+    listKind: RawDeviceList
+    plural: rawdevices
+    singular: rawdevice
+  scope: Cluster
+  versions:
+  - name: v1
+    schema:
+      openAPIV3Schema:
+        description: RawDevice is the Schema for the rawdevices API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: RawDeviceSpec defines the desired state of RawDevice
+            properties:
+              available:
+                type: boolean
+              major:
+                format: int32
+                type: integer
+              minor:
+                format: int32
+                type: integer
+              nodeName:
+                description: 'INSERT ADDITIONAL SPEC FIELDS - desired state of cluster Important: Run "make" to regenerate code after modifying this file'
+                type: string
+              realPath:
+                type: string
+              size:
+                format: int64
+                type: integer
+              type:
+                type: string
+              uuid:
+                type: string
+            required:
+            - available
+            - major
+            - minor
+            - nodeName
+            - realPath
+            - size
+            - type
+            - uuid
+            type: object
+          status:
+            description: RawDeviceStatus defines the observed state of RawDevice
+            properties:
+              name:
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state of cluster Important: Run "make" to regenerate code after modifying this file'
+                type: string
+            required:
+            - name
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.5.0
   creationTimestamp: null
   name: topolvmclusters.topolvm.cybozu.com
 spec:
@@ -235,6 +318,8 @@ spec:
                                   type: string
                               type: object
                             type: array
+                          message:
+                            type: string
                           state:
                             type: string
                           vgName:
@@ -282,6 +367,8 @@ spec:
                                   type: string
                               type: object
                             type: array
+                          message:
+                            type: string
                           state:
                             type: string
                           vgName:
@@ -340,6 +427,18 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: topolvm-preparevg
+  namespace: topolvm-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: topolvm-raw-device-plugin
+  namespace: topolvm-system
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: topolvm-raw-device-provisioner
   namespace: topolvm-system
 ---
 apiVersion: policy/v1beta1
@@ -776,6 +875,19 @@ rules:
   - update
   - delete
 - apiGroups:
+  - rawdevice.nativestor.io
+  resources:
+  - rawdevices
+  - rawdevices/status
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+  - patch
+- apiGroups:
   - storage.k8s.io
   resources:
   - storageclasses
@@ -875,6 +987,19 @@ rules:
   resources:
   - logicalvolumes
   - logicalvolumes/status
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+  - patch
+- apiGroups:
+  - rawdevice.nativestor.io
+  resources:
+  - rawdevices
+  - rawdevices/status
   verbs:
   - get
   - list
@@ -986,6 +1111,19 @@ rules:
   - update
   - patch
   - delete
+- apiGroups:
+  - rawdevice.nativestor.io
+  resources:
+  - rawdevices
+  - rawdevices/status
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - update
+  - delete
+  - patch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -999,6 +1137,9 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: topolvm-controller
+  namespace: topolvm-system
+- kind: ServiceAccount
+  name: topolvm-raw-device-provisioner
   namespace: topolvm-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -1014,6 +1155,9 @@ subjects:
 - kind: ServiceAccount
   name: topolvm-controller
   namespace: topolvm-system
+- kind: ServiceAccount
+  name: topolvm-raw-device-provisioner
+  namespace: topolvm-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -1027,6 +1171,9 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: topolvm-controller
+  namespace: topolvm-system
+- kind: ServiceAccount
+  name: topolvm-raw-device-provisioner
   namespace: topolvm-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -1099,6 +1246,9 @@ subjects:
 - kind: ServiceAccount
   name: topolvm-controller
   namespace: topolvm-system
+- kind: ServiceAccount
+  name: topolvm-raw-device-provisioner
+  namespace: topolvm-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -1112,6 +1262,9 @@ subjects:
 - kind: ServiceAccount
   name: topolvm-operator
   namespace: topolvm-system
+- kind: ServiceAccount
+  name: topolvm-discover
+  namespace: topolvm-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -1124,6 +1277,9 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: topolvm-node
+  namespace: topolvm-system
+- kind: ServiceAccount
+  name: topolvm-raw-device-plugin
   namespace: topolvm-system
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -1153,6 +1309,9 @@ roleRef:
 subjects:
 - kind: ServiceAccount
   name: topolvm-controller
+  namespace: topolvm-system
+- kind: ServiceAccount
+  name: topolvm-raw-device-provisioner
   namespace: topolvm-system
 ---
 apiVersion: v1

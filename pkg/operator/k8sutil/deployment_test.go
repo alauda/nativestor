@@ -18,7 +18,7 @@ package k8sutil
 
 import (
 	"context"
-	"github.com/alauda/topolvm-operator/pkg/cluster"
+	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
 	"github.com/stretchr/testify/assert"
 	apps "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -44,14 +44,14 @@ func makeDeployment(deploymentName string, nameSpace string, image string) *apps
 			Replicas: &replicas,
 			Selector: &metav1.LabelSelector{
 				MatchLabels: map[string]string{
-					cluster.AppAttr: deploymentName,
+					topolvm.AppAttr: deploymentName,
 				},
 			},
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: deploymentName,
 					Labels: map[string]string{
-						cluster.AppAttr: deploymentName,
+						topolvm.AppAttr: deploymentName,
 					},
 				},
 				Spec: corev1.PodSpec{
@@ -72,7 +72,7 @@ func TestCreateDeployment(t *testing.T) {
 
 	dep := makeDeployment(deploymentName, nameSpace, image)
 
-	err := CreateDeployment(k8s, deploymentName, nameSpace, dep)
+	_, err := CreateDeployment(context.TODO(), k8s, dep)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -85,7 +85,7 @@ func TestCreateDeployment(t *testing.T) {
 	}
 
 	dep.Spec.Template.Spec.Containers[0].Image = "new-image"
-	err = CreateDeployment(k8s, deploymentName, nameSpace, dep)
+	_, err = CreateOrUpdateDeployment(context.TODO(), k8s, dep)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -111,7 +111,7 @@ func TestDeleteDeployment(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = DeleteDeployment(k8s, nameSpace, deploymentName)
+	err = DeleteDeployment(ctx, k8s, nameSpace, deploymentName)
 	if err != nil {
 		t.Fatal(err)
 	}

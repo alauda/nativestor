@@ -14,7 +14,7 @@ resources:
   domain: cybozu.com
   group: topolvm
   kind: TopolvmCluster
-  path: github.com/alauda/topolvm-operator/api/v2
+  path: github.com/alauda/topolvm-operator/apis/topolvm/v2
   version: v2
 - controller: true
   domain: cybozu.com

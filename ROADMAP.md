@@ -8,6 +8,7 @@
 - [Operator SDK framework](#Operator-SDK-framework)
 - [Metric optimization](#Metric-optimization)
 - [TopolvmCluster status optimization](#TopolvmCluster-status-optimization)
+- [PVC rollback](#PVC-rollback)
 
 ### Raw devices Implement
 Not only lvm, operator could orchestrate csi driver that support raw devices. we should implement csi driver.
@@ -32,3 +33,6 @@ Collect status and capacity information about each component pouring into promet
 
 ### TopolvmCluster status optimization
 Add and optimize the progress and health status of the deployment process.
+
+### PVC rollback
+If node down, operator should make pvc rollback let pod rescheduled to another node.

@@ -20,7 +20,7 @@ import (
 	osexec "os/exec"
 	"testing"
 
-	topolvmv2 "github.com/alauda/topolvm-operator/api/v2"
+	topolvmv2 "github.com/alauda/topolvm-operator/apis/topolvm/v2"
 	"github.com/alauda/topolvm-operator/pkg/util/exec"
 	"github.com/stretchr/testify/assert"
 )
