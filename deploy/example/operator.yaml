@@ -1254,7 +1254,7 @@ spec:
               fieldPath: metadata.namespace
         - name: IS_OPERATOR_HUB
           value: "0"
-        image: docker.io/alaudapublic/topolvm-operator:2.2.0
+        image: docker.io/alaudapublic/topolvm-operator:2.3.0
         name: topolvm-operator
       serviceAccountName: topolvm-operator
 ---
