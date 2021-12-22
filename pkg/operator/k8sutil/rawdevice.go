@@ -12,7 +12,12 @@ func CreateOrUpdateRawDevice(ctx context.Context, clientset rawclient.Interface,
 
 	_, err := CreateRawDevice(ctx, clientset, device)
 	if k8serrors.IsAlreadyExists(err) {
-		dev, err := clientset.RawdeviceV1().RawDevices().Update(ctx, device, metav1.UpdateOptions{})
+		newDev, err := clientset.RawdeviceV1().RawDevices().Get(ctx, device.Name, metav1.GetOptions{})
+		if err != nil {
+			return nil, err
+		}
+		newDev.Spec = device.Spec
+		dev, err := clientset.RawdeviceV1().RawDevices().Update(ctx, newDev, metav1.UpdateOptions{})
 		if err != nil {
 			return dev, err
 		}

@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"k8s.io/client-go/rest"
 	"path/filepath"
 
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -29,11 +30,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sYAML "k8s.io/apimachinery/pkg/util/yaml"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 func getMonitoringClient() (*monitoringclient.Clientset, error) {
-	cfg, err := clientcmd.BuildConfigFromFlags("", "")
+	cfg, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build config. %v", err)
 	}

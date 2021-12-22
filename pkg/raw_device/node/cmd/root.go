@@ -30,9 +30,9 @@ var config struct {
 }
 
 var rootCmd = &cobra.Command{
-	Use:     "raw-device-node",
+	Use:     "raw-device-plugin",
 	Version: raw_device2.Version,
-	Short:   "Raw device node",
+	Short:   "Raw device plugin",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cmd.SilenceUsage = true
 		return subMain()

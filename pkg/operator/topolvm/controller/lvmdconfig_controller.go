@@ -225,6 +225,9 @@ func getClientObject(obj interface{}) (cm *v1.ConfigMap, err error) {
 func (l *lvmdConfigController) updateClusterStatus(cm *v1.ConfigMap) {
 
 	status := cm.Data[topolvm.VgStatusConfigMapKey]
+	if status == "" {
+		return
+	}
 	nodeStatus := &topolvmv2.NodeStorageState{}
 	err := json.Unmarshal([]byte(status), nodeStatus)
 	if err != nil {
@@ -238,6 +241,9 @@ func (l *lvmdConfigController) updateClusterStatus(cm *v1.ConfigMap) {
 
 func (l *lvmdConfigController) checkUpdateClusterStatus(old, new *v1.ConfigMap) error {
 
+	if new.Data[topolvm.VgStatusConfigMapKey] == "" {
+		return nil
+	}
 	if old.Data[topolvm.VgStatusConfigMapKey] != new.Data[topolvm.VgStatusConfigMapKey] {
 		status := new.Data[topolvm.VgStatusConfigMapKey]
 		nodeStatus := &topolvmv2.NodeStorageState{}

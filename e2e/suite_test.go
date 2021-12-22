@@ -140,4 +140,5 @@ var _ = Describe("TopoLVM", func() {
 	Context("topolvm-node", testNode)
 	Context("scheduler", testScheduler)
 	Context("raw-device", testCSIRawDevice)
+	Context("raw-device-delete", testRawDeviceDelete)
 })

@@ -196,7 +196,8 @@ func (m *DeviceManager) checkRawDeviceDeleted(devices []*sys.LocalDiskAppendInfo
 				found = true
 			}
 		}
-		if !found && dev.Status.Name != "" {
+		if !found && dev.Status.Name == "" {
+			logger.Infof("device %s disappear should delete raw device %s", dev.Spec.RealPath, dev.Name)
 			err = m.context.RawDeviceClientset.RawdeviceV1().RawDevices().Delete(context.TODO(), dev.Name, metav1.DeleteOptions{})
 			if err != nil {
 				logger.Errorf("delete raw device %s failed err %v", dev.Name, err)

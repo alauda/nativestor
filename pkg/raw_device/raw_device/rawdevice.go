@@ -9,11 +9,11 @@ import (
 )
 
 func usage() {
-	io.WriteString(os.Stderr, `Usage: rawdevice COMMAND [ARGS ...]
+	io.WriteString(os.Stderr, `Usage: raw-device COMMAND [ARGS ...]
 
 COMMAND:
-    raw-device-controller:  raw-device CSI controller service.
-    raw-device-node:        raw-device CSI node service.
+    raw-device-provisioner:  raw-device CSI provisioner driver.
+    raw-device-plugin:        raw-device CSI plugin driver.
 `)
 }
 

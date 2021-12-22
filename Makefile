@@ -238,7 +238,7 @@ catalog-push: ## Push a catalog image.
 
 build/raw-device:
 	mkdir -p build
-	GOPROXY=https://goproxy.cn go build -o $@  ./pkg/raw_device/raw_device
+	go build -o $@  ./pkg/raw_device/raw_device
 
 .PHONY: csi.proto
 csi.proto:

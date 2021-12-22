@@ -11,14 +11,16 @@ User manual
 - [How to use loop device for developing](#How-to-use-loop-device-for-developing)
 - [How to get available devices in your cluster](#How-to-get-available-devices-in-your-cluster)
 - [How to create pvc snapshot](#How-to-create-pvc-snapshot)
+- [How to enable and use raw device](#How-to-enable-and-use-raw-device)
 
 TopolvmCluster
 ------------
 
 A kubernetes cluster map to a `TopolvmCluster` instance. No support a kubernetes cluster has multi `TopolvmCluster` instances
 
-###Use all node and devices
-An example of TopolvmCluster look like this:
+### Use all node and devices
+An example of TopolvmCluster look like this
+
 ```yaml
 apiVersion: topolvm.cybozu.com/v2
 kind: TopolvmCluster
@@ -47,7 +49,7 @@ a kubernetes cluster only existing a TopolvmCluster , not support multi TopolvmC
 `volumeGroupName` each node will create volume group.
 `className` used for classifying devices. such as hdd and ssd.
 
-###Use all node and specific device
+### Use all node and specific device
 
 ```yaml
 apiVersion: topolvm.cybozu.com/v2
@@ -74,7 +76,7 @@ spec:
 `devices` you can assign some devices to topolvm instead of using all available devices.
 note: if you want to use this case, you must set `useAllDevices` false
 
-###Specific nodes and devices
+### Specific nodes and devices
 
 ```yaml
 apiVersion: topolvm.cybozu.com/v2
@@ -251,6 +253,90 @@ How to use block pvc
 -----------
 [PersistentVolumeClaim requesting a Raw Block Volume](https://kubernetes.io/docs/concepts/storage/persistent-volumes/#persistent-volume-claim-requesting-a-raw-block-volume)
 
+
+How to enable and use raw device
+------------
+
+### Enable raw device
+
+update `topolvm-operator-setting` configmap.  set the field `RAW_DEVICE_ENABLE` be true.
+
+```yaml
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: topolvm-operator-setting
+  namespace: topolvm-system
+data:
+#  KUBELET_ROOT_DIR: "/var/lib/kubelet"
+#  OPERATOR_LOG_LEVEL: "INFO"
+  RAW_DEVICE_ENABLE: "true"
+  TOPOLVM_ENABLE: "true"
+  RAW_DEVICE_IMAGE: "docker.io/alaudapublic/raw-device:v1.0.0"
+#  TOPOLVM_IMAGE: "build-harbor.alauda.cn/acp/topolvm:v3.6.0"
+#  # Set replicas for csi provisioner deployment.
+#  CSI_PROVISIONER_REPLICAS: "2"
+#  CSI_LOG_LEVEL: "DEBUG"
+#  CSI_REGISTRAR_IMAGE: "k8s.gcr.io/sig-storage/csi-node-driver-registrar:v2.3.0"
+#  CSI_RESIZER_IMAGE: "k8s.gcr.io/sig-storage/csi-resizer:v1.3.0"
+#  CSI_PROVISIONER_IMAGE: "k8s.gcr.io/sig-storage/csi-provisioner:v3.0.0"
+#  CSI_SNAPSHOTTER_IMAGE: "k8s.gcr.io/sig-storage/csi-snapshotter:v4.2.0"
+#  CSI_ATTACHER_IMAGE: "k8s.gcr.io/sig-storage/csi-attacher:v3.3.0"
+#  CSI_LIVENESS_IMAGE: "k8s.gcr.io/sig-storage/livenessprobe:v2.4.0"
+```
+
+### raw device storageclass
+crate raw device storageclass 
+
+```yaml
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: rawdevice-provisioner
+provisioner: rawdevice.nativestor.io
+volumeBindingMode: WaitForFirstConsumer
+```
+### create pvc 
+
+`volumeMode` must be set to `Block`
+```yaml
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pvc-raw-device
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi
+  storageClassName: rawdevice-provisioner
+  volumeMode: Block
+```
+### create pod
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: raw-test
+  labels:
+    app.kubernetes.io/name: raw-test
+spec:
+  containers:
+    - name: ubuntu
+      image: quay.io/cybozu/ubuntu:20.04
+      command: ["/usr/local/bin/pause"]
+      volumeDevices:
+        - devicePath: /dev/sdf
+          name: my-volume
+  volumes:
+    - name: my-volume
+      persistentVolumeClaim:
+        claimName: pvc-raw-device
+```
+
+
 How to use loop device for developing
 ----------
 
@@ -301,25 +387,7 @@ spec:
 
 How to get available devices in your cluster
 --------------
-
-After deploying topolvm-operator, use may don't know available devices in your kubernetes cluster. Use could use auto discover devices to find available devices.  
-
-### How to enable discover devices
-
-you could create a configmap to enable feature
-```yaml
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: topolvm-operator-setting
-  namespace: topolvm-system
-data:
-  #if user's kubernetes cluster kubelet root dir is not default directory /var/lib/kublet
-  # use could set KUBELET_ROOT_DIR dynamically
-  KUBELET_ROOT_DIR: "/var/lib/kubelet/"
-  # set ENABLE_DISCOVER_DEVICES true will enable auto discover devices
-  ENABLE_DISCOVER_DEVICES: "true"
-```
+After deploying topolvm-operator, user may don't know available devices in your kubernetes cluster. User could use auto discover devices to find available devices.
 operator will create configmap that contains available devices info for every node. 
 device info configmap loop like this:
 

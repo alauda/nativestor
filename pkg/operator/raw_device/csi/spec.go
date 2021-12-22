@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	DefaultRawDevicePluginImage = "quay.io/cephcsi/cephcsi:v3.4.0"
+	DefaultRawDevicePluginImage = "docker.io/alaudapublic/raw-device:v1.0.0"
 )
 
 const (

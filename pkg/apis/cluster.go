@@ -18,5 +18,4 @@ package apis
 
 const (
 	CustomResourceGroup = "topolvm.cybozu.com"
-	Version             = "v1"
 )

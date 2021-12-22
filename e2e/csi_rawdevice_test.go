@@ -1,15 +1,18 @@
 package e2e
 
 import (
+	"encoding/json"
 	"fmt"
+	rawv1 "github.com/alauda/topolvm-operator/apis/rawdevice/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/pkg/errors"
+	v1 "k8s.io/api/core/v1"
 	"strings"
 )
 
 func testCSIRawDevice() {
-	It("should be deployed topolvm-scheduler pod", func() {
-
+	It("start test raw device feature", func() {
 		ns := "test-raw-device"
 		_, _, err := kubectl("create", "ns", ns)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -79,5 +82,81 @@ spec:
 			}
 			return nil
 		}).Should(Succeed())
+
+		stdout, _, err := kubectl("-n", ns, "get", "pvc", "pvc-raw-device", "-o", "json")
+		Expect(err).ShouldNot(HaveOccurred())
+		var p v1.PersistentVolumeClaim
+		err = json.Unmarshal(stdout, &p)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		stdout, _, err = kubectl("get", "pv", p.Spec.VolumeName, "-o", "json")
+		Expect(err).ShouldNot(HaveOccurred())
+		var pv v1.PersistentVolume
+		err = json.Unmarshal(stdout, &pv)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("delete pod and pvc")
+		_, _, err = kubectlWithInput([]byte(pod), "-n", ns, "delete", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+		_, _, err = kubectlWithInput([]byte(pvc), "-n", ns, "delete", "-f", "-")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("confirming the raw device has gc")
+
+		Eventually(func() error {
+			stdout, stderr, err := kubectl("get", "rawdevice", pv.Spec.CSI.VolumeHandle, "-o", "json")
+			if err != nil {
+				return fmt.Errorf("failed to get pod. stdout: %s, stderr: %s, err: %v", stdout, stderr, err)
+			}
+			var rawdevice rawv1.RawDevice
+			err = json.Unmarshal(stdout, &rawdevice)
+			if err != nil {
+				return err
+			}
+			if rawdevice.Status.Name != "" {
+				return errors.New("raw device status.name should empty")
+			}
+			return nil
+		}).Should(Succeed())
 	})
+}
+
+func checkRawDevicAvailableCountBefore() uint32 {
+
+	result, _, err := kubectl("get", "rawdevice", "-o=json")
+	Expect(err).ShouldNot(HaveOccurred())
+	var rawdevices rawv1.RawDeviceList
+	err = json.Unmarshal(result, &rawdevices)
+	Expect(err).ShouldNot(HaveOccurred())
+	var c uint32
+	for _, raw := range rawdevices.Items {
+		if raw.Spec.Available && raw.Status.Name == "" {
+			c++
+		}
+	}
+	return c
+}
+
+func checkRawDevicAvailableCountAfter(count uint32) {
+	Eventually(func() error {
+		result, stderr, err := kubectl("get", "rawdevice", "-o=json")
+		if err != nil {
+			return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
+		}
+		var rawdevices rawv1.RawDeviceList
+		err = json.Unmarshal(result, &rawdevices)
+		if err != nil {
+			return err
+		}
+		var c uint32
+		for _, raw := range rawdevices.Items {
+			if raw.Spec.Available && raw.Status.Name == "" {
+				c++
+			}
+		}
+		if count != c {
+			return fmt.Errorf("raw devie available before is %d after is %d", count, c)
+		}
+		return nil
+	}).Should(Succeed())
 }
