@@ -28,7 +28,7 @@ data:
   RAW_DEVICE_ENABLE: "true"
   TOPOLVM_ENABLE: "true"
   RAW_DEVICE_IMAGE: "docker.io/alaudapublic/raw-device:v1.0.0"
-  TOPOLVM_IMAGE: "build-harbor.alauda.cn/acp/topolvm:v3.6.0"
+  TOPOLVM_IMAGE: "quay.io/topolvm/topolvm-with-sidecar:0.10"
   # Set replicas for csi provisioner deployment.
   CSI_PROVISIONER_REPLICAS: "2"
   CSI_LOG_LEVEL: "3"

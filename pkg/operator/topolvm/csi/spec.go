@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	DefaultTopolvmImage = "build-harbor.alauda.cn/acp/topolvm:v3.6.0"
+	DefaultTopolvmImage = "quay.io/topolvm/topolvm-with-sidecar:0.10"
 )
 
 const (
