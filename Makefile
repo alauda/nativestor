@@ -34,7 +34,7 @@ BUNDLE_METADATA_OPTS ?= $(BUNDLE_CHANNELS) $(BUNDLE_DEFAULT_CHANNEL)
 
 REGISTRY_PREFIX ?= docker.io
 IMAGE_PREFIX ?= alaudapublic/
-IMAGE_TAG_BASE ?= $(IMAGE_PREFIX) nativestor
+IMAGE_TAG_BASE ?= $(IMAGE_PREFIX)nativestor
 BUNDLE_IMG ?= $(IMAGE_TAG_BASE)-bundle:$(NATIVE_STOR_VERSION)
 IMAGE ?= $(REGISTRY_PREFIX)/$(IMAGE_TAG_BASE):$(NATIVE_STOR_VERSION)
 IMG ?= $(REGISTRY_PREFIX)/$(BUNDLE_IMG)
@@ -134,10 +134,10 @@ image: ## Build docker image of  nativestor:devel.
 	docker build -t $(IMAGE_PREFIX)nativestor:devel --build-arg NATIVE_STOR_VERSION=$(NATIVE_STOR_VERSION) .
 
 tag: ## Tag docker image of  nativestor:devel.
-	docker tag $(IMAGE_PREFIX) nativestor:devel $(IMAGE_PREFIX) nativestor:$(IMAGE_TAG)
+	docker tag $(IMAGE_PREFIX)nativestor:devel $(IMAGE_PREFIX)nativestor:$(IMAGE_TAG)
 
 push: ## Push tagged docker image of  nativestor
-	docker push $(IMAGE_PREFIX) nativestor:$(IMAGE_TAG)
+	docker push $(IMAGE_PREFIX)nativestor:$(IMAGE_TAG)
 
 ##@ Deployment
 
@@ -238,7 +238,7 @@ catalog-push: ## Push a catalog image.
 
 build/raw-device:
 	mkdir -p build
-	go build -o $@  ./pkg/raw_device/raw_device
+	GOPROXY=https://goproxy.cn && go build -o $@  ./pkg/raw_device/raw_device
 
 .PHONY: csi.proto
 csi.proto:
