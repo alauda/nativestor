@@ -3,7 +3,8 @@
 NativeStor
 ========
 
-NativeStor is an open source **cloud-native local storage** orchestrator for Kubernetes, which orchestrates [topolvm](https://github.com/topolvm/topolvm) and provides the raw device.
+NativeStor is an open source **cloud-native local storage** orchestrator for Kubernetes, which orchestrates [topolvm](https://github.com/topolvm/topolvm) and provides the raw device.  
+PS：Don't be surprised if you search for Topolvm-operator, NativeStor's original name is Topolvm-operator.
 
 Supported environments
 ----------------------
