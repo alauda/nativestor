@@ -38,7 +38,7 @@ jobs:
         if: always()
         run: |
           export LOG_DIR="/home/runner/work/nativestor/tests/integration/_output/tests/"
-          export CLUSTER_NAMESPACE="topolvm-system"
+          export CLUSTER_NAMESPACE="nativestor-system"
           e2e/scripts/collect-logs.sh
       - name: Artifact
         uses: actions/upload-artifact@v2

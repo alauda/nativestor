@@ -120,7 +120,7 @@ func getNodeAnnotationMapWithPrefix(prefix string) (map[string]map[string]string
 }
 
 func getCSICapacity() (map[string]*resource.Quantity, error) {
-	stdout, stderr, err := kubectl("get", "-n", "topolvm-system", "csistoragecapacities", "-o=json")
+	stdout, stderr, err := kubectl("get", "-n", "nativestor-system", "csistoragecapacities", "-o=json")
 	if err != nil {
 		return nil, fmt.Errorf("stdout=%sr stderr=%s, err=%v", stdout, stderr, err)
 	}

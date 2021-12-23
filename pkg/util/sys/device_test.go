@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"testing"
 
-	exectest "github.com/alauda/topolvm-operator/pkg/util/exec/test"
+	exectest "github.com/alauda/nativestor/pkg/util/exec/test"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	host     = flag.String("host", "controller.topolvm-system.svc", "TLS hostname")
+	host     = flag.String("host", "controller.nativestor-system.svc", "TLS hostname")
 	validFor = flag.Duration("duration", 36500*24*time.Hour, "Duration that certificate is valid for")
 	outDir   = flag.String("outdir", ".", "Directory where the certificate files are created")
 )

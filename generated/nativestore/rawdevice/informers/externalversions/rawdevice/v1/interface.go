@@ -18,7 +18,7 @@ limitations under the License.
 package v1
 
 import (
-	internalinterfaces "github.com/alauda/topolvm-operator/generated/nativestore/rawdevice/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/alauda/nativestor/generated/nativestore/rawdevice/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

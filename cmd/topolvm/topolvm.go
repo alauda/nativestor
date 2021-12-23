@@ -18,12 +18,12 @@ package topolvm
 
 import (
 	"fmt"
-	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
+	"github.com/alauda/nativestor/pkg/cluster/topolvm"
 	"os"
 	"time"
 
-	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
-	"github.com/alauda/topolvm-operator/pkg/util/flags"
+	"github.com/alauda/nativestor/pkg/operator/k8sutil"
+	"github.com/alauda/nativestor/pkg/util/flags"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/spf13/cobra"
 	"k8s.io/client-go/kubernetes"

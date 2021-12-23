@@ -20,7 +20,7 @@ package versioned
 import (
 	"fmt"
 
-	rawdevicev1 "github.com/alauda/topolvm-operator/generated/nativestore/rawdevice/clientset/versioned/typed/rawdevice/v1"
+	rawdevicev1 "github.com/alauda/nativestor/generated/nativestore/rawdevice/clientset/versioned/typed/rawdevice/v1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: operator
+  name: nativestor
   labels:
     operator: topolvm
 spec:
@@ -14,9 +14,9 @@ spec:
       labels:
         app: topolvm-operator
     spec:
-      serviceAccountName: topolvm-operator
+      serviceAccountName: nativestor-operator
       containers:
-        - name: topolvm-operator
+        - name: nativestor-operator
           # set the stable version
           image: controller:latest
           command:

@@ -1,8 +1,8 @@
 package main
 
 import (
-	controller "github.com/alauda/topolvm-operator/pkg/raw_device/controller/cmd"
-	node "github.com/alauda/topolvm-operator/pkg/raw_device/node/cmd"
+	controller "github.com/alauda/nativestor/pkg/raw_device/controller/cmd"
+	node "github.com/alauda/nativestor/pkg/raw_device/node/cmd"
 	"io"
 	"os"
 	"path/filepath"

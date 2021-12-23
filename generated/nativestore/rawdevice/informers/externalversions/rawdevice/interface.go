@@ -18,8 +18,8 @@ limitations under the License.
 package rawdevice
 
 import (
-	internalinterfaces "github.com/alauda/topolvm-operator/generated/nativestore/rawdevice/informers/externalversions/internalinterfaces"
-	v1 "github.com/alauda/topolvm-operator/generated/nativestore/rawdevice/informers/externalversions/rawdevice/v1"
+	internalinterfaces "github.com/alauda/nativestor/generated/nativestore/rawdevice/informers/externalversions/internalinterfaces"
+	v1 "github.com/alauda/nativestor/generated/nativestore/rawdevice/informers/externalversions/rawdevice/v1"
 )
 
 // Interface provides access to each of this group's versions.

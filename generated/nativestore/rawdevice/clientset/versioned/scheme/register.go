@@ -18,7 +18,7 @@ limitations under the License.
 package scheme
 
 import (
-	rawdevicev1 "github.com/alauda/topolvm-operator/apis/rawdevice/v1"
+	rawdevicev1 "github.com/alauda/nativestor/apis/rawdevice/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

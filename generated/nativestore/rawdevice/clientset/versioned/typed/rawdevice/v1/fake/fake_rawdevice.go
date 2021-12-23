@@ -20,7 +20,7 @@ package fake
 import (
 	"context"
 
-	rawdevicev1 "github.com/alauda/topolvm-operator/apis/rawdevice/v1"
+	rawdevicev1 "github.com/alauda/nativestor/apis/rawdevice/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
@@ -34,9 +34,9 @@ type FakeRawDevices struct {
 	Fake *FakeRawdeviceV1
 }
 
-var rawdevicesResource = schema.GroupVersionResource{Group: "rawdevice.nativestor.io", Version: "v1", Resource: "rawdevices"}
+var rawdevicesResource = schema.GroupVersionResource{Group: "nativestor.alauda.io", Version: "v1", Resource: "rawdevices"}
 
-var rawdevicesKind = schema.GroupVersionKind{Group: "rawdevice.nativestor.io", Version: "v1", Kind: "RawDevice"}
+var rawdevicesKind = schema.GroupVersionKind{Group: "nativestor.alauda.io", Version: "v1", Kind: "RawDevice"}
 
 // Get takes name of the rawDevice, and returns the corresponding rawDevice object, and an error if there is any.
 func (c *FakeRawDevices) Get(ctx context.Context, name string, options v1.GetOptions) (result *rawdevicev1.RawDevice, err error) {

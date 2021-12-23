@@ -1,0 +1,200 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: node
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch", "update", "patch"]
+  - apiGroups: ["topolvm.cybozu.com"]
+    resources: ["logicalvolumes", "logicalvolumes/status"]
+    verbs: ["get", "list", "watch", "create", "update", "delete", "patch"]
+  - apiGroups: [ "nativestor.alauda.io" ]
+    resources: [ "rawdevices", "rawdevices/status" ]
+    verbs: [ "get", "list", "watch", "create", "update", "delete", "patch" ]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["csidrivers"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["policy"]
+    resources: ["podsecuritypolicies"]
+    verbs: ["use"]
+    resourceNames: ["topolvm-node"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: controller
+rules:
+  - apiGroups: ["policy", "apps", "extensions"]
+    resources: ["poddisruptionbudgets",  "deployments",  "replicasets"]
+    verbs: ["*"]
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch", "patch", "update"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update", "delete"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses","csidrivers"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["topolvm.cybozu.com"]
+    resources: ["logicalvolumes", "logicalvolumes/status"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: node
+subjects:
+  - kind: ServiceAccount
+    name: topolvm-node
+    namespace: nativestor-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: topolvm-node
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: node
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: controller
+  namespace: default
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: controller
+subjects:
+  - kind: ServiceAccount
+    name: topolvm-controller
+    namespace: nativestor-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: controller
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: external-provisioner-runner
+subjects:
+  - kind: ServiceAccount
+    namespace: nativestor-system
+    name: topolvm-controller
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nativestor-external-provisioner-runner
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: external-resizer-runner
+subjects:
+  - kind: ServiceAccount
+    namespace: nativestor-system
+    name: topolvm-controller
+roleRef:
+  kind: ClusterRole
+  name: nativestor-external-resizer-runner
+  apiGroup: rbac.authorization.k8s.io
+
+---
+
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: node
+spec:
+  privileged: true
+  allowPrivilegeEscalation: true
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'secret'
+    - 'hostPath'
+  allowedHostPaths:
+    - pathPrefix: "/var/lib/kubelet"
+      readOnly: false
+    - pathPrefix: "/run/topolvm"
+      readOnly: false
+    - pathPrefix: "/etc/topolvm"
+      readOnly: false
+  hostNetwork: false
+  hostPID: true
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+  readOnlyRootFilesystem: true
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: leader-election
+subjects:
+  - kind: ServiceAccount
+    namespace: nativestor-system
+    name: topolvm-controller
+roleRef:
+  kind: Role
+  name: leader-election
+  apiGroup: rbac.authorization.k8s.io
+
+
+---
+
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: external-provisioner-cfg
+subjects:
+  - kind: ServiceAccount
+    namespace: nativestor-system
+    name: topolvm-controller
+roleRef:
+  kind: Role
+  name: nativestor-external-provisioner-cfg
+  apiGroup: rbac.authorization.k8s.io
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: lvmd
+rules:
+  - apiGroups: ["policy"]
+    resources: ["podsecuritypolicies"]
+    verbs: ["use"]
+    resourceNames: ["topolvm-node"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: lvmd
+subjects:
+  - kind: ServiceAccount
+    name: topolvm-node
+    namespace: nativestor-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: topolvm-node

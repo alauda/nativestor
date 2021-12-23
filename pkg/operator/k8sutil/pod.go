@@ -19,7 +19,7 @@ package k8sutil
 import (
 	"context"
 	"fmt"
-	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
+	"github.com/alauda/nativestor/pkg/cluster/topolvm"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"

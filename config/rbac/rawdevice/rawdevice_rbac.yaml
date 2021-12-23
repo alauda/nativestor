@@ -1,0 +1,88 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: plugin
+rules:
+  - apiGroups: [ "nativestor.alauda.io" ]
+    resources: [ "rawdevices", "rawdevices/status" ]
+    verbs: [ "get", "list", "watch", "create", "update", "delete", "patch" ]
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: provisioner
+rules:
+  - apiGroups: [ "nativestor.alauda.io" ]
+    resources: [ "rawdevices", "rawdevices/status" ]
+    verbs: [ "get", "list", "watch", "create", "update", "delete", "patch" ]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: plugin
+subjects:
+  - kind: ServiceAccount
+    name: rawdevice-plugin
+    namespace: nativestor-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: plugin
+---
+
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: plugin
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: provisioner
+  namespace: default
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: provisioner
+subjects:
+  - kind: ServiceAccount
+    name: rawdevice-provisioner
+    namespace: nativestor-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: rawdevice-provisioner
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: external-provisioner-runner
+subjects:
+  - kind: ServiceAccount
+    namespace: nativestor-system
+    name: rawdevice-provisioner
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nativestor-external-provisioner-runner
+
+---
+
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: external-provisioner-cfg
+subjects:
+  - kind: ServiceAccount
+    namespace: nativestor-system
+    name: rawdevice-provisioner
+roleRef:
+  kind: Role
+  name: nativestor-external-provisioner-cfg
+  apiGroup: rbac.authorization.k8s.io

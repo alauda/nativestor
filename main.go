@@ -19,10 +19,10 @@ package main
 import (
 	"fmt"
 
-	discovercmd "github.com/alauda/topolvm-operator/cmd/discover"
-	"github.com/alauda/topolvm-operator/cmd/operator"
-	"github.com/alauda/topolvm-operator/cmd/preparevg"
-	"github.com/alauda/topolvm-operator/cmd/topolvm"
+	discovercmd "github.com/alauda/nativestor/cmd/discover"
+	"github.com/alauda/nativestor/cmd/operator"
+	"github.com/alauda/nativestor/cmd/preparevg"
+	"github.com/alauda/nativestor/cmd/topolvm"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 

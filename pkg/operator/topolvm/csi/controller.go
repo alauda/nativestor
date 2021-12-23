@@ -2,11 +2,11 @@ package csi
 
 import (
 	"context"
-	"github.com/alauda/topolvm-operator/pkg/cluster"
-	"github.com/alauda/topolvm-operator/pkg/operator"
-	controllerutil "github.com/alauda/topolvm-operator/pkg/operator/controller"
-	"github.com/alauda/topolvm-operator/pkg/operator/csi"
-	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
+	"github.com/alauda/nativestor/pkg/cluster"
+	"github.com/alauda/nativestor/pkg/operator"
+	controllerutil "github.com/alauda/nativestor/pkg/operator/controller"
+	"github.com/alauda/nativestor/pkg/operator/csi"
+	"github.com/alauda/nativestor/pkg/operator/k8sutil"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	logger = capnslog.NewPackageLogger("github.com/alauda/topolvm-operator", "topolvm-csi")
+	logger = capnslog.NewPackageLogger("github.com/alauda/nativestor", "topolvm-csi")
 )
 
 func Add(mgr manager.Manager, context *cluster.Context, opManagerContext context.Context, opConfig operator.OperatorConfig) error {

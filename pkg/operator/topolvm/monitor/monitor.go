@@ -3,9 +3,9 @@ package monitor
 import (
 	"bytes"
 	"fmt"
-	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
+	"github.com/alauda/nativestor/pkg/cluster/topolvm"
 
-	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
+	"github.com/alauda/nativestor/pkg/operator/k8sutil"
 	"github.com/pkg/errors"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

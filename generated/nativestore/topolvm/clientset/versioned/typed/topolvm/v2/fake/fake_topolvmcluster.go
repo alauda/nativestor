@@ -20,7 +20,7 @@ package fake
 import (
 	"context"
 
-	v2 "github.com/alauda/topolvm-operator/apis/topolvm/v2"
+	v2 "github.com/alauda/nativestor/apis/topolvm/v2"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

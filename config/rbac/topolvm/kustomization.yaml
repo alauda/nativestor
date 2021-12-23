@@ -1,0 +1,4 @@
+namePrefix: topolvm-
+resources:
+- topolvm_rbac.yaml
+

@@ -18,8 +18,8 @@ limitations under the License.
 package topolvm
 
 import (
-	internalinterfaces "github.com/alauda/topolvm-operator/generated/nativestore/topolvm/informers/externalversions/internalinterfaces"
-	v2 "github.com/alauda/topolvm-operator/generated/nativestore/topolvm/informers/externalversions/topolvm/v2"
+	internalinterfaces "github.com/alauda/nativestor/generated/nativestore/topolvm/informers/externalversions/internalinterfaces"
+	v2 "github.com/alauda/nativestor/generated/nativestore/topolvm/informers/externalversions/topolvm/v2"
 )
 
 // Interface provides access to each of this group's versions.

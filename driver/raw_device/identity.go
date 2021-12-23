@@ -2,8 +2,8 @@ package raw_device
 
 import (
 	"context"
-	"github.com/alauda/topolvm-operator/csi"
-	raw_device2 "github.com/alauda/topolvm-operator/pkg/raw_device"
+	"github.com/alauda/nativestor/csi"
+	raw_device2 "github.com/alauda/nativestor/pkg/raw_device"
 	"google.golang.org/protobuf/types/known/wrapperspb"
 	ctrl "sigs.k8s.io/controller-runtime"
 )

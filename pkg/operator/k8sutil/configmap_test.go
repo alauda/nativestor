@@ -18,7 +18,7 @@ package k8sutil
 
 import (
 	"context"
-	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
+	"github.com/alauda/nativestor/pkg/cluster/topolvm"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

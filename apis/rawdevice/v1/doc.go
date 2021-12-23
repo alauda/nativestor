@@ -1,3 +1,3 @@
-// +groupName=rawdevice.nativestor.io
+// +groupName=nativestor.alauda.io
 
 package v1

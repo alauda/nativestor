@@ -41,7 +41,7 @@ spec:
           args:
             - "--v={{ .LogLevel }}"
             - "--csi-address=/run/raw-device/csi-rawdevice.sock"
-            - "--kubelet-registration-path={{ .KubeletDirPath }}/plugins/rawdevice.nativestor.io/node/csi-rawdevice.sock"
+            - "--kubelet-registration-path={{ .KubeletDirPath }}/plugins/nativestor.alauda.io/node/csi-rawdevice.sock"
           image: {{ .RegistrarImage }}
           imagePullPolicy: IfNotPresent
           lifecycle:
@@ -50,7 +50,7 @@ spec:
                 command:
                   - /bin/sh
                   - -c
-                  - rm -rf /registration/rawdevice.nativestor.io /registration/rawdevice.nativestor.io-reg.sock
+                  - rm -rf /registration/nativestor.alauda.io /registration/nativestor.alauda.io-reg.sock
           resources: {}
           terminationMessagePath: /dev/termination-log
           terminationMessagePolicy: File
@@ -72,7 +72,7 @@ spec:
               name: node-plugin-dir
       hostPID: true
       restartPolicy: Always
-      serviceAccountName: topolvm-raw-device-plugin
+      serviceAccountName: rawdevice-plugin
       tolerations:
         - operator: Exists
       volumes:
@@ -81,7 +81,7 @@ spec:
             type: Directory
           name: registration-dir
         - hostPath:
-            path: "{{ .KubeletDirPath }}/plugins/rawdevice.nativestor.io/node"
+            path: "{{ .KubeletDirPath }}/plugins/nativestor.alauda.io/node"
             type: DirectoryOrCreate
           name: node-plugin-dir
         - hostPath:

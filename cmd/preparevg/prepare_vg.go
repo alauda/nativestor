@@ -18,13 +18,13 @@ package preparevg
 
 import (
 	"fmt"
-	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
-	"github.com/alauda/topolvm-operator/pkg/operator/topolvm/volumegroup"
+	"github.com/alauda/nativestor/pkg/cluster/topolvm"
+	"github.com/alauda/nativestor/pkg/operator/topolvm/volumegroup"
 	"os"
 
-	topolvmv2 "github.com/alauda/topolvm-operator/apis/topolvm/v2"
-	topolvmclient "github.com/alauda/topolvm-operator/generated/nativestore/topolvm/clientset/versioned"
-	"github.com/alauda/topolvm-operator/pkg/cluster"
+	topolvmv2 "github.com/alauda/nativestor/apis/topolvm/v2"
+	topolvmclient "github.com/alauda/nativestor/generated/nativestore/topolvm/clientset/versioned"
+	"github.com/alauda/nativestor/pkg/cluster"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/runtime"

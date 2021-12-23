@@ -61,18 +61,18 @@ const (
 	TopolvmPrepareVgCPURequest = "50m"
 	TopolvmPrepareVgCPULimit   = "100m"
 
-	PrepareVgServiceAccount = "topolvm-preparevg"
+	PrepareVgServiceAccount = "nativestor-preparevg"
 	PrePareVgAppName        = "prepare-volume-group"
 	PrepareVgJobFmt         = "topolvm-prepare-vg-%s"
 	PrePareVgContainerName  = "preparevg"
 	PrePareVgJobLogLevel    = "DEBUG"
 
-	TopolvmNodePsp       = "topolvm-node"
-	TopolvmPrepareVgPsp  = "topolvm-preparevg"
+	TopolvmNodePSP       = "topolvm-node"
+	TopolvmPrepareVgPSP  = "nativestor-preparevg"
 	TopolvmCSIDriverName = "topolvm.cybozu.com"
 
 	CapacityKeyPrefix      = "capacity.topolvm.cybozu.com/"
-	DiscoverDevicesAccount = "topolvm-discover"
+	DiscoverDevicesAccount = "nativestor-discover"
 	DiscoverContainerName  = "discover"
 	UseLoop                = "true"
 	LoopCreateSuccessful   = "successful"

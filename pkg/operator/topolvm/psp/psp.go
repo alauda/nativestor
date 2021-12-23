@@ -18,7 +18,7 @@ package psp
 
 import (
 	"context"
-	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
+	"github.com/alauda/nativestor/pkg/cluster/topolvm"
 
 	"github.com/pkg/errors"
 	"k8s.io/api/policy/v1beta1"
@@ -33,7 +33,7 @@ func CreateTopolvmNodePsp(clientset kubernetes.Interface, ref *metav1.OwnerRefer
 
 	topolvmNodePsp := &v1beta1.PodSecurityPolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: topolvm.TopolvmNodePsp,
+			Name: topolvm.TopolvmNodePSP,
 		},
 		Spec: v1beta1.PodSecurityPolicySpec{
 			Privileged:               true,
@@ -75,7 +75,7 @@ func CreateTopolvmPrepareVgPsp(clientset kubernetes.Interface, ref *metav1.Owner
 
 	topolvmPrepareVgPsp := &v1beta1.PodSecurityPolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: topolvm.TopolvmPrepareVgPsp,
+			Name: topolvm.TopolvmPrepareVgPSP,
 		},
 		Spec: v1beta1.PodSecurityPolicySpec{
 			Privileged:               true,

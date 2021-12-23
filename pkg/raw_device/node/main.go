@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/alauda/topolvm-operator/pkg/raw_device/node/cmd"
+	"github.com/alauda/nativestor/pkg/raw_device/node/cmd"
 )
 
 func main() {

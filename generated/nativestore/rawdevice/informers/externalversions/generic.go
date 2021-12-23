@@ -20,7 +20,7 @@ package externalversions
 import (
 	"fmt"
 
-	v1 "github.com/alauda/topolvm-operator/apis/rawdevice/v1"
+	v1 "github.com/alauda/nativestor/apis/rawdevice/v1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -51,7 +51,7 @@ func (f *genericInformer) Lister() cache.GenericLister {
 // TODO extend this to unknown resources with a client pool
 func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource) (GenericInformer, error) {
 	switch resource {
-	// Group=rawdevice.nativestor.io, Version=v1
+	// Group=nativestor.alauda.io, Version=v1
 	case v1.SchemeGroupVersion.WithResource("rawdevices"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Rawdevice().V1().RawDevices().Informer()}, nil
 

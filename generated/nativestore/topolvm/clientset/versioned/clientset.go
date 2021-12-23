@@ -20,7 +20,7 @@ package versioned
 import (
 	"fmt"
 
-	topolvmv2 "github.com/alauda/topolvm-operator/generated/nativestore/topolvm/clientset/versioned/typed/topolvm/v2"
+	topolvmv2 "github.com/alauda/nativestor/generated/nativestore/topolvm/clientset/versioned/typed/topolvm/v2"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

@@ -18,7 +18,7 @@ package csidriver
 
 import (
 	"context"
-	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
+	"github.com/alauda/nativestor/pkg/cluster/topolvm"
 
 	"github.com/pkg/errors"
 	storagev1 "k8s.io/api/storage/v1"

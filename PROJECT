@@ -1,11 +1,11 @@
-domain: cybozu.com
+domain: nativestor.alauda.io
 layout:
 - go.kubebuilder.io/v3
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
 projectName: topolvm-operator
-repo: github.com/alauda/topolvm-operator
+repo: github.com/alauda/nativestor
 resources:
 - api:
     crdVersion: v1
@@ -14,7 +14,7 @@ resources:
   domain: cybozu.com
   group: topolvm
   kind: TopolvmCluster
-  path: github.com/alauda/topolvm-operator/apis/topolvm/v2
+  path: github.com/alauda/nativestor/apis/topolvm/v2
   version: v2
 - controller: true
   domain: cybozu.com

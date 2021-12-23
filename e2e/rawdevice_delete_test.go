@@ -5,7 +5,7 @@ import (
 	"github.com/pkg/errors"
 	"strings"
 
-	rawv1 "github.com/alauda/topolvm-operator/apis/rawdevice/v1"
+	rawv1 "github.com/alauda/nativestor/apis/rawdevice/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

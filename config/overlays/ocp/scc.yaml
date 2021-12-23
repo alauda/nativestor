@@ -28,6 +28,6 @@ volumes:
   - hostPath
   - secret
 users:
-  - system:serviceaccount:topolvm-system:topolvm-node
-  - system:serviceaccount:topolvm-system:topolvm-discover
-  - system:serviceaccount:topolvm-system:topolvm-preparevg
+  - system:serviceaccount:nativestor-system:topolvm-node
+  - system:serviceaccount:nativestor-system:topolvm-discover
+  - system:serviceaccount:nativestor-system:topolvm-preparevg

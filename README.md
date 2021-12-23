@@ -1,9 +1,9 @@
-<img alt="Topolvm-Operator" src="./docs/logo.svg" width="250"/>  
+<img alt="NativeStor" src="./docs/logo.svg" width="250"/>  
 
-Topolvm-Operator
+NativeStor
 ========
 
-Topolvm-Operator is an open source **cloud-native local storage** orchestrator for Kubernetes, which bases on [topolvm](https://github.com/topolvm/topolvm).
+NativeStor is an open source **cloud-native local storage** orchestrator for Kubernetes, which orchestrates [topolvm](https://github.com/topolvm/topolvm) and provides the raw device.
 
 Supported environments
 ----------------------
@@ -22,7 +22,7 @@ Features
 
 OperatorHub.io
 --------
-[Topolvm Operator](https://operatorhub.io/operator/topolvm-operator) had been shared in operatorhub.io home.  
+[NativeStor](https://operatorhub.io/operator/topolvm-operator) had been shared in operatorhub.io home.  
 
 RoadMap
 -------
@@ -40,10 +40,10 @@ A diagram of components and the how they work see below:
 ### How topolvm components work
 ![component diagram](./diagram.svg)
 
-1. `Topolvm-operator` watch the `TopolvmCluster`(CRD) 
-2. `Topolvm-operator` watch the `operator-setting ConfigMap`
-3. `Topolvm-operator` start `discover devices Daemonset`
-4. `Topolvm-operator` start  `ConfigMap controller` to watch `lvmd ConfigMap` if `TopolvmCluster` created
+1. `operator` watch the `TopolvmCluster`(CRD) 
+2. `operator` watch the `operator-setting ConfigMap`
+3. `operator` start `discover devices Daemonset`
+4. `operator` start  `ConfigMap controller` to watch `lvmd ConfigMap` if `TopolvmCluster` created
 5. `TopolvmCluster controller` create `preparevg` Job,`Topolvm-controller` Deployment depend on `TopolvmCluster`
 6. `preparevg` Job on specific node check disk that provided in `TopolvmCluster` and create volume group, if volume group created successfully and then create `lvmd ConfigMap` for the node
 7. `ConfigMap controller` finds the new `lvmd ConfigMap` then create `Topolvm-node` Deployment
@@ -59,7 +59,7 @@ Getting started and Documentation
 [docs](docs/) directory contains documents about installation and specifications
 
 
-Topolvm-operator vs Other local storage Implement
+NativeStor vs Other local storage Implement
 -------------
 
 
@@ -84,7 +84,7 @@ Topolvm-operator vs Other local storage Implement
 Docker images
 ------------
 
-- [alaudapublic/topolvm-operator](https://hub.docker.com/r/alaudapublic/topolvm-operator)
+- [alaudapublic/nativestor](https://hub.docker.com/r/alaudapublic/nativestor)
 - [alaudapublic/raw-device](https://hub.docker.com/r/alaudapublic/raw-device)
 
 Documentation
@@ -94,7 +94,7 @@ Documentation
 
 Report a Bug
 ----------
-For filing bugs, suggesting improvements, or requesting new features, please open an [issue](https://github.com/alauda/topolvm-operator/issues).
+For filing bugs, suggesting improvements, or requesting new features, please open an [issue](https://github.com/alauda/nativestor/issues).
 
 
 

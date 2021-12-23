@@ -2,8 +2,8 @@ package k8sutil
 
 import (
 	"context"
-	v1 "github.com/alauda/topolvm-operator/apis/rawdevice/v1"
-	rawclient "github.com/alauda/topolvm-operator/generated/nativestore/rawdevice/clientset/versioned"
+	v1 "github.com/alauda/nativestor/apis/rawdevice/v1"
+	rawclient "github.com/alauda/nativestor/generated/nativestore/rawdevice/clientset/versioned"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.5.0
   creationTimestamp: null
-  name: rawdevices.rawdevice.nativestor.io
+  name: rawdevices.nativestor.alauda.io
 spec:
-  group: rawdevice.nativestor.io
+  group: nativestor.alauda.io
   names:
     kind: RawDevice
     listKind: RawDeviceList

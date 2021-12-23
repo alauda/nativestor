@@ -17,7 +17,7 @@ limitations under the License.
 package csi
 
 import (
-	"github.com/alauda/topolvm-operator/pkg/operator"
+	"github.com/alauda/nativestor/pkg/operator"
 	"regexp"
 
 	"github.com/google/go-cmp/cmp"

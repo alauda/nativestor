@@ -3,7 +3,7 @@ kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample
   # namespace must be the same with topolvm-operator
-  namespace: topolvm-system
+  namespace: nativestor-system
 spec:
   # Add fields here
   topolvmVersion: quay.io/topolvm/topolvm-with-sidecar:0.10

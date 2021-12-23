@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	topolvmv2 "github.com/alauda/topolvm-operator/apis/topolvm/v2"
+	topolvmv2 "github.com/alauda/nativestor/apis/topolvm/v2"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -33,7 +33,7 @@ func TestMatch(t *testing.T) {
 
 	fakeObject := &topolvmv2.TopolvmCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "topolvm-system",
+			Namespace: "nativestor-system",
 			UID:       "ce6807a0-7270-4874-9e9f-ae493d48b814",
 			Name:      "my-cluster",
 		},
@@ -51,7 +51,7 @@ func TestMatch(t *testing.T) {
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "secret",
-			Namespace: "topolvm-system",
+			Namespace: "nativestor-system",
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: "topolvm.cybozu.com/v1",

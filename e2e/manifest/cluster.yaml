@@ -2,7 +2,7 @@ apiVersion: topolvm.cybozu.com/v2
 kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample
-  namespace: topolvm-system
+  namespace: nativestor-system
 spec:
   topolvmVersion: quay.io/topolvm/topolvm-with-sidecar:0.10
   storage:

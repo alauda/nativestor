@@ -1,0 +1,4 @@
+namePrefix: rawdevice-
+resources:
+- rawdevice_rbac.yaml
+

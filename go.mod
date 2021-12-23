@@ -1,4 +1,4 @@
-module github.com/alauda/topolvm-operator
+module github.com/alauda/nativestor
 
 go 1.16
 

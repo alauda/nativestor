@@ -1,4 +1,4 @@
-Deploying Topolvm-Operator
+Deploying NativeStor
 =============
 
 Prepare Env
@@ -21,7 +21,7 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: topolvm-operator-setting
-  namespace: topolvm-system
+  namespace: nativestor-system
 data:
   KUBELET_ROOT_DIR: "/var/lib/kubelet"
   OPERATOR_LOG_LEVEL: "INFO"

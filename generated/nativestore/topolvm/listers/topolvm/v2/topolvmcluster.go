@@ -18,7 +18,7 @@ limitations under the License.
 package v2
 
 import (
-	v2 "github.com/alauda/topolvm-operator/apis/topolvm/v2"
+	v2 "github.com/alauda/nativestor/apis/topolvm/v2"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"

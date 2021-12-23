@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/alauda/topolvm-operator/pkg/apis"
+	"github.com/alauda/nativestor/pkg/apis"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/meta"

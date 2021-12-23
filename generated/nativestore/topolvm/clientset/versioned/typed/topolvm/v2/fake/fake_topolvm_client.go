@@ -18,7 +18,7 @@ limitations under the License.
 package fake
 
 import (
-	v2 "github.com/alauda/topolvm-operator/generated/nativestore/topolvm/clientset/versioned/typed/topolvm/v2"
+	v2 "github.com/alauda/nativestor/generated/nativestore/topolvm/clientset/versioned/typed/topolvm/v2"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )

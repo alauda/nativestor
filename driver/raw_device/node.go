@@ -2,10 +2,10 @@ package raw_device
 
 import (
 	"context"
-	"github.com/alauda/topolvm-operator/csi"
-	lister "github.com/alauda/topolvm-operator/generated/nativestore/rawdevice/listers/rawdevice/v1"
-	clientctx "github.com/alauda/topolvm-operator/pkg/cluster"
-	"github.com/alauda/topolvm-operator/pkg/raw_device"
+	"github.com/alauda/nativestor/csi"
+	lister "github.com/alauda/nativestor/generated/nativestore/rawdevice/listers/rawdevice/v1"
+	clientctx "github.com/alauda/nativestor/pkg/cluster"
+	"github.com/alauda/nativestor/pkg/raw_device"
 	"github.com/topolvm/topolvm/filesystem"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc/codes"

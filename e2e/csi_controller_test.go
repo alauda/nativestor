@@ -11,7 +11,7 @@ import (
 func testCSIController() {
 	It("should be deployed", func() {
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=topolvm-system", "pod", "--selector=app.kubernetes.io/name=topolvm-controller", "-o=json")
+			result, stderr, err := kubectl("get", "-n=nativestor-system", "pod", "--selector=app.kubernetes.io/name=topolvm-controller", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}

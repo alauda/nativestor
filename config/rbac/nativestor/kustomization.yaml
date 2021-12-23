@@ -1,0 +1,8 @@
+namePrefix: nativestor-
+resources:
+  - custom_role.yaml
+  - psp.yaml
+  - role_binding.yaml
+  - service.yaml
+  - service_account.yaml
+

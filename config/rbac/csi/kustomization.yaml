@@ -1,0 +1,5 @@
+namePrefix: nativestor-
+resources:
+- provisioner_rbac.yaml
+- resizer_rbac.yaml
+

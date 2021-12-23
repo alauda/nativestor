@@ -22,8 +22,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alauda/topolvm-operator/pkg/cluster"
-	"github.com/alauda/topolvm-operator/pkg/util/exec"
+	"github.com/alauda/nativestor/pkg/cluster"
+	"github.com/alauda/nativestor/pkg/util/exec"
 	"github.com/pkg/errors"
 )
 

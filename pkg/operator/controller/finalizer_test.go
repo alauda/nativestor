@@ -19,7 +19,7 @@ package controller
 import (
 	"testing"
 
-	topolvmv2 "github.com/alauda/topolvm-operator/apis/topolvm/v2"
+	topolvmv2 "github.com/alauda/nativestor/apis/topolvm/v2"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,7 +31,7 @@ func TestAddFinalizerIfNotPresent(t *testing.T) {
 	fakeObject := &topolvmv2.TopolvmCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       "test",
-			Namespace:  "topolvm-system",
+			Namespace:  "nativestor-system",
 			Finalizers: []string{},
 		},
 	}

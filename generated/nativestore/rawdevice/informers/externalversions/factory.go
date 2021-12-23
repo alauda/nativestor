@@ -22,9 +22,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/alauda/topolvm-operator/generated/nativestore/rawdevice/clientset/versioned"
-	internalinterfaces "github.com/alauda/topolvm-operator/generated/nativestore/rawdevice/informers/externalversions/internalinterfaces"
-	rawdevice "github.com/alauda/topolvm-operator/generated/nativestore/rawdevice/informers/externalversions/rawdevice"
+	versioned "github.com/alauda/nativestor/generated/nativestore/rawdevice/clientset/versioned"
+	internalinterfaces "github.com/alauda/nativestor/generated/nativestore/rawdevice/informers/externalversions/internalinterfaces"
+	rawdevice "github.com/alauda/nativestor/generated/nativestore/rawdevice/informers/externalversions/rawdevice"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

@@ -3,14 +3,14 @@ package monitor
 import (
 	"context"
 	"fmt"
-	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
+	"github.com/alauda/nativestor/pkg/cluster/topolvm"
 	"reflect"
 	"sync"
 	"time"
 
-	topolvmv2 "github.com/alauda/topolvm-operator/apis/topolvm/v2"
-	"github.com/alauda/topolvm-operator/pkg/cluster"
-	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
+	topolvmv2 "github.com/alauda/nativestor/apis/topolvm/v2"
+	"github.com/alauda/nativestor/pkg/cluster"
+	"github.com/alauda/nativestor/pkg/operator/k8sutil"
 	"github.com/coreos/pkg/capnslog"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"

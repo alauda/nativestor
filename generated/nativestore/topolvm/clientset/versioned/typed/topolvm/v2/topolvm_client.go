@@ -18,8 +18,8 @@ limitations under the License.
 package v2
 
 import (
-	v2 "github.com/alauda/topolvm-operator/apis/topolvm/v2"
-	"github.com/alauda/topolvm-operator/generated/nativestore/topolvm/clientset/versioned/scheme"
+	v2 "github.com/alauda/nativestor/apis/topolvm/v2"
+	"github.com/alauda/nativestor/generated/nativestore/topolvm/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 

@@ -22,8 +22,8 @@ import (
 	"strconv"
 	"strings"
 
-	topolvmv2 "github.com/alauda/topolvm-operator/apis/topolvm/v2"
-	"github.com/alauda/topolvm-operator/pkg/util/exec"
+	topolvmv2 "github.com/alauda/nativestor/apis/topolvm/v2"
+	"github.com/alauda/nativestor/pkg/util/exec"
 	perrors "github.com/pkg/errors"
 )
 

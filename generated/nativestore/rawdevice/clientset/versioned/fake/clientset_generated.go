@@ -18,9 +18,9 @@ limitations under the License.
 package fake
 
 import (
-	clientset "github.com/alauda/topolvm-operator/generated/nativestore/rawdevice/clientset/versioned"
-	rawdevicev1 "github.com/alauda/topolvm-operator/generated/nativestore/rawdevice/clientset/versioned/typed/rawdevice/v1"
-	fakerawdevicev1 "github.com/alauda/topolvm-operator/generated/nativestore/rawdevice/clientset/versioned/typed/rawdevice/v1/fake"
+	clientset "github.com/alauda/nativestor/generated/nativestore/rawdevice/clientset/versioned"
+	rawdevicev1 "github.com/alauda/nativestor/generated/nativestore/rawdevice/clientset/versioned/typed/rawdevice/v1"
+	fakerawdevicev1 "github.com/alauda/nativestor/generated/nativestore/rawdevice/clientset/versioned/typed/rawdevice/v1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

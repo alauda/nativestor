@@ -23,7 +23,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/alauda/topolvm-operator/pkg/util/exec"
+	"github.com/alauda/nativestor/pkg/util/exec"
 
 	"github.com/google/uuid"
 )

@@ -114,13 +114,13 @@ spec:
 	Expect(err).ShouldNot(HaveOccurred(), "stdout=%s, stderr=%s", stdout, stderr)
 
 	Eventually(func() error {
-		result, stderr, err := kubectl("get", "-n", "topolvm-system", "pod", "-l", "app=topolvm-operator", "-o", "name")
+		result, stderr, err := kubectl("get", "-n", "nativestor-system", "pod", "-l", "app=topolvm-operator", "-o", "name")
 		if err != nil {
 			return errors.New(string(stderr))
 		}
 		podName := strings.TrimSuffix(string(result), "\n")
 		fmt.Printf("topolvm operator name %s \n", podName)
-		result, stderr, err = kubectl("get", "-n", "topolvm-system", podName, "-o=json")
+		result, stderr, err = kubectl("get", "-n", "nativestor-system", podName, "-o=json")
 		if err != nil {
 			return errors.New(string(stderr))
 		}

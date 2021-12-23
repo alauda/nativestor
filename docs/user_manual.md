@@ -27,7 +27,7 @@ kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample
   # namespace must be the same with topolvm-operator
-  namespace: topolvm-system
+  namespace: nativestor-system
 spec:
   # Add fields here
   topolvmVersion: alaudapublic/topolvm:2.0.0
@@ -57,7 +57,7 @@ kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample
   # namespace must be the same with topolvm-operator
-  namespace: topolvm-system
+  namespace: nativestor-system
 spec:
   # Add fields here
   topolvmVersion: alaudapublic/topolvm:2.0.0
@@ -84,7 +84,7 @@ kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample
   # namespace must be the same with topolvm-operator
-  namespace: topolvm-system
+  namespace: nativestor-system
 spec:
   # Add fields here
   topolvmVersion: alaudapublic/topolvm:2.0.0
@@ -227,7 +227,7 @@ apiVersion: topolvm.cybozu.com/v2
 kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample
-  namespace: topolvm-system
+  namespace: nativestor-system
 spec:
   topolvmVersion: alaudapublic/topolvm:2.0.0
   # certsSecret: mutatingwebhook
@@ -266,7 +266,7 @@ kind: ConfigMap
 apiVersion: v1
 metadata:
   name: topolvm-operator-setting
-  namespace: topolvm-system
+  namespace: nativestor-system
 data:
 #  KUBELET_ROOT_DIR: "/var/lib/kubelet"
 #  OPERATOR_LOG_LEVEL: "INFO"
@@ -293,7 +293,7 @@ kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: rawdevice-provisioner
-provisioner: rawdevice.nativestor.io
+provisioner: nativestor.alauda.io
 volumeBindingMode: WaitForFirstConsumer
 ```
 ### create pvc 
@@ -348,7 +348,7 @@ kind: TopolvmCluster
 metadata:
   name: topolvmcluster-sample
   # namespace must be the same with topolvm-operator
-  namespace: topolvm-system
+  namespace: nativestor-system
 spec:
   # Add fields here
   topolvmVersion: alaudapublic/topolvm:2.0.0

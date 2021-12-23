@@ -18,11 +18,11 @@ package cluster
 
 import (
 	"fmt"
-	rawclient "github.com/alauda/topolvm-operator/generated/nativestore/rawdevice/clientset/versioned"
+	rawclient "github.com/alauda/nativestor/generated/nativestore/rawdevice/clientset/versioned"
 	"os"
 
-	topolvmclient "github.com/alauda/topolvm-operator/generated/nativestore/topolvm/clientset/versioned"
-	"github.com/alauda/topolvm-operator/pkg/util/exec"
+	topolvmclient "github.com/alauda/nativestor/generated/nativestore/topolvm/clientset/versioned"
+	"github.com/alauda/nativestor/pkg/util/exec"
 	"github.com/coreos/pkg/capnslog"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	"k8s.io/client-go/kubernetes"

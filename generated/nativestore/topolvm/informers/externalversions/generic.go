@@ -20,7 +20,7 @@ package externalversions
 import (
 	"fmt"
 
-	v2 "github.com/alauda/topolvm-operator/apis/topolvm/v2"
+	v2 "github.com/alauda/nativestor/apis/topolvm/v2"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )

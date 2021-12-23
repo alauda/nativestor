@@ -2,8 +2,8 @@ package csi
 
 import (
 	_ "embed"
-	"github.com/alauda/topolvm-operator/pkg/operator/csi"
-	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
+	"github.com/alauda/nativestor/pkg/operator/csi"
+	"github.com/alauda/nativestor/pkg/operator/k8sutil"
 	"github.com/pkg/errors"
 	apps "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -181,7 +181,7 @@ func (r *CSIRawDeviceController) startDrivers(ver *version.Info, ownerInfo *k8su
 func (r *CSIRawDeviceController) stopDrivers(ver *version.Info) {
 	if !EnableRawDevice {
 		logger.Info("CSI raw device driver disabled")
-		succeeded := r.deleteCSIDriverResources(ver, csiRawDevicePlugin, csiRawDeviceProvisioner, "rawdevice.nativestor.io")
+		succeeded := r.deleteCSIDriverResources(ver, csiRawDevicePlugin, csiRawDeviceProvisioner, "nativestor.alauda.io")
 		if succeeded {
 			logger.Info("successfully removed CSI raw device driver")
 		} else {

@@ -30,7 +30,7 @@ func testNode() {
 
 	It("should be deployed", func() {
 		Eventually(func() error {
-			result, stderr, err := kubectl("get", "-n=topolvm-system", "deployment", "--selector=app.kubernetes.io/name=topolvm-node", "-o=json")
+			result, stderr, err := kubectl("get", "-n=nativestor-system", "deployment", "--selector=app.kubernetes.io/name=topolvm-node", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 			}
@@ -83,7 +83,7 @@ func testNode() {
 				By("checking " + node.Name)
 				_, ok = node.Annotations[topolvm.CapacityKeyPrefix+classNameMap[node.Name]]
 				if !ok {
-					result, stderr, err := kubectl("get", "-n=topolvm-system", "pod", "--selector=app.kubernetes.io/name=topolvm-node-"+node.Name, "-o=json")
+					result, stderr, err := kubectl("get", "-n=nativestor-system", "pod", "--selector=app.kubernetes.io/name=topolvm-node-"+node.Name, "-o=json")
 					if err != nil {
 						return fmt.Errorf("%v: stdout=%s, stderr=%s", err, result, stderr)
 					}

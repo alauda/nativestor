@@ -3,7 +3,7 @@
 set -x
 
 # User parameters
-: "${CLUSTER_NAMESPACE:="topolvm-system"}"
+: "${CLUSTER_NAMESPACE:="nativestor-system"}"
 : "${LOG_DIR:="test"}"
 
 LOG_DIR="${LOG_DIR%/}" # remove trailing slash if necessary

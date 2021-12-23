@@ -23,7 +23,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
+	"github.com/alauda/nativestor/pkg/operator/k8sutil"
 	"github.com/pkg/errors"
 	apps "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,7 +33,7 @@ import (
 )
 
 var (
-	logger = capnslog.NewPackageLogger("github.com/alauda/topolvm-operator", "csi")
+	logger = capnslog.NewPackageLogger("github.com/alauda/nativestor", "csi")
 )
 
 func loadTemplate(name, templateData string, p TemplateParam) ([]byte, error) {

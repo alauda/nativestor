@@ -21,8 +21,8 @@ import (
 	"context"
 	"time"
 
-	v2 "github.com/alauda/topolvm-operator/apis/topolvm/v2"
-	scheme "github.com/alauda/topolvm-operator/generated/nativestore/topolvm/clientset/versioned/scheme"
+	v2 "github.com/alauda/nativestor/apis/topolvm/v2"
+	scheme "github.com/alauda/nativestor/generated/nativestore/topolvm/clientset/versioned/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"

@@ -18,8 +18,8 @@ limitations under the License.
 package v1
 
 import (
-	v1 "github.com/alauda/topolvm-operator/apis/rawdevice/v1"
-	"github.com/alauda/topolvm-operator/generated/nativestore/rawdevice/clientset/versioned/scheme"
+	v1 "github.com/alauda/nativestor/apis/rawdevice/v1"
+	"github.com/alauda/nativestor/generated/nativestore/rawdevice/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 
@@ -28,7 +28,7 @@ type RawdeviceV1Interface interface {
 	RawDevicesGetter
 }
 
-// RawdeviceV1Client is used to interact with features provided by the rawdevice.nativestor.io group.
+// RawdeviceV1Client is used to interact with features provided by the nativestor.alauda.io group.
 type RawdeviceV1Client struct {
 	restClient rest.Interface
 }

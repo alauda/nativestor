@@ -1,0 +1,80 @@
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: leader-election
+subjects:
+  - kind: ServiceAccount
+    namespace: nativestor-system
+    name: topolvm-controller
+  - kind: ServiceAccount
+    namespace: nativestor-system
+    name: topolvm-raw-device-provisioner
+roleRef:
+  kind: Role
+  name: leader-election
+  apiGroup: rbac.authorization.k8s.io
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: operator
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nativestor-operator
+subjects:
+  - kind: ServiceAccount
+    name: nativestor-operator
+    namespace: nativestor-system
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: preparevg
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: nativestor-preparevg
+subjects:
+  - kind: ServiceAccount
+    name: nativestor-preparevg
+    namespace: nativestor-system
+  - kind: ServiceAccount
+    name: nativestor-discover
+    namespace: nativestor-system
+---
+
+
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: global
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nativestor-global
+subjects:
+  - kind: ServiceAccount
+    name: nativestor-operator
+    namespace: nativestor-system
+  - kind: ServiceAccount
+    name: nativestor-discover
+    namespace: nativestor-system
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: preparevg
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: nativestor-preparevg
+subjects:
+  - kind: ServiceAccount
+    name: nativestor-preparevg
+    namespace: nativestor-system
+  - kind: ServiceAccount
+    name: nativestor-discover
+    namespace: nativestor-system

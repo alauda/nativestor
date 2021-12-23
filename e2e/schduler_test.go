@@ -97,7 +97,7 @@ spec:
 		Eventually(func() error {
 			By("checking csi storage capacity num")
 			var csiStorageCapacitiesTemp v1alpha1.CSIStorageCapacityList
-			stdout, stderr, err := kubectl("get", "-n", "topolvm-system", "csistoragecapacities", "-o=json")
+			stdout, stderr, err := kubectl("get", "-n", "nativestor-system", "csistoragecapacities", "-o=json")
 			if err != nil {
 				return fmt.Errorf("%v: stdout=%s, stderr=%s", err, stdout, stderr)
 			}

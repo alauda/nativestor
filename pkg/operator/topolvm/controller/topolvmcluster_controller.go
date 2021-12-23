@@ -4,17 +4,17 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	topolvmv2 "github.com/alauda/topolvm-operator/apis/topolvm/v2"
-	"github.com/alauda/topolvm-operator/pkg/cluster"
-	"github.com/alauda/topolvm-operator/pkg/cluster/topolvm"
-	"github.com/alauda/topolvm-operator/pkg/operator"
-	ctr "github.com/alauda/topolvm-operator/pkg/operator/controller"
-	"github.com/alauda/topolvm-operator/pkg/operator/k8sutil"
-	"github.com/alauda/topolvm-operator/pkg/operator/topolvm/csidriver"
-	"github.com/alauda/topolvm-operator/pkg/operator/topolvm/metric"
-	"github.com/alauda/topolvm-operator/pkg/operator/topolvm/monitor"
-	"github.com/alauda/topolvm-operator/pkg/operator/topolvm/psp"
-	"github.com/alauda/topolvm-operator/pkg/operator/topolvm/volumegroup"
+	topolvmv2 "github.com/alauda/nativestor/apis/topolvm/v2"
+	"github.com/alauda/nativestor/pkg/cluster"
+	"github.com/alauda/nativestor/pkg/cluster/topolvm"
+	"github.com/alauda/nativestor/pkg/operator"
+	ctr "github.com/alauda/nativestor/pkg/operator/controller"
+	"github.com/alauda/nativestor/pkg/operator/k8sutil"
+	"github.com/alauda/nativestor/pkg/operator/topolvm/csidriver"
+	"github.com/alauda/nativestor/pkg/operator/topolvm/metric"
+	"github.com/alauda/nativestor/pkg/operator/topolvm/monitor"
+	"github.com/alauda/nativestor/pkg/operator/topolvm/psp"
+	"github.com/alauda/nativestor/pkg/operator/topolvm/volumegroup"
 	"github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
@@ -42,7 +42,7 @@ const (
 )
 
 var (
-	logger = capnslog.NewPackageLogger("github.com/alauda/topolvm-operator", "topolvm-controller")
+	logger = capnslog.NewPackageLogger("github.com/alauda/nativestor", "topolvm-controller")
 )
 
 func Add(mgr manager.Manager, context *cluster.Context, opManagerContext context.Context, opConfig operator.OperatorConfig) error {
@@ -498,32 +498,32 @@ func RemoveNodeCapacityAnnotations(clientset kubernetes.Interface) error {
 
 func checkAndCreatePsp(clientset kubernetes.Interface, ref *metav1.OwnerReference) error {
 
-	existing, err := psp.CheckPspExisting(clientset, topolvm.TopolvmNodePsp)
+	existing, err := psp.CheckPspExisting(clientset, topolvm.TopolvmNodePSP)
 	if err != nil {
-		return errors.Wrapf(err, "check psp %s failed", topolvm.TopolvmNodePsp)
+		return errors.Wrapf(err, "check psp %s failed", topolvm.TopolvmNodePSP)
 	}
 
 	if !existing {
 		err = psp.CreateTopolvmNodePsp(clientset, ref)
 		if err != nil {
-			return errors.Wrapf(err, "create psp %s failed", topolvm.TopolvmNodePsp)
+			return errors.Wrapf(err, "create psp %s failed", topolvm.TopolvmNodePSP)
 		}
 	} else {
-		logger.Infof("psp %s existing", topolvm.TopolvmNodePsp)
+		logger.Infof("psp %s existing", topolvm.TopolvmNodePSP)
 	}
 
-	existing, err = psp.CheckPspExisting(clientset, topolvm.TopolvmPrepareVgPsp)
+	existing, err = psp.CheckPspExisting(clientset, topolvm.TopolvmPrepareVgPSP)
 	if err != nil {
-		return errors.Wrapf(err, "check psp %s failed", topolvm.TopolvmPrepareVgPsp)
+		return errors.Wrapf(err, "check psp %s failed", topolvm.TopolvmPrepareVgPSP)
 	}
 
 	if !existing {
 		err = psp.CreateTopolvmPrepareVgPsp(clientset, ref)
 		if err != nil {
-			return errors.Wrapf(err, "create psp %s failed", topolvm.TopolvmPrepareVgPsp)
+			return errors.Wrapf(err, "create psp %s failed", topolvm.TopolvmPrepareVgPSP)
 		}
 	} else {
-		logger.Infof("psp %s existing", topolvm.TopolvmPrepareVgPsp)
+		logger.Infof("psp %s existing", topolvm.TopolvmPrepareVgPSP)
 	}
 
 	return nil

@@ -1,0 +1,31 @@
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: preparevg
+spec:
+  privileged: true
+  allowPrivilegeEscalation: true
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'secret'
+    - 'hostPath'
+  allowedHostPaths:
+    - pathPrefix: "/dev/"
+      readOnly: false
+    - pathPrefix: "/run/udev"
+      readOnly: false
+    - pathPrefix: "/sys"
+      readOnly: false
+  hostNetwork: true
+  hostPID: true
+  hostIPC: true
+  runAsUser:
+    rule: 'RunAsAny'
+  seLinux:
+    rule: 'RunAsAny'
+  supplementalGroups:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+  readOnlyRootFilesystem: true

@@ -3,7 +3,7 @@ package e2e
 import (
 	"encoding/json"
 	"fmt"
-	rawv1 "github.com/alauda/topolvm-operator/apis/rawdevice/v1"
+	rawv1 "github.com/alauda/nativestor/apis/rawdevice/v1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/pkg/errors"
