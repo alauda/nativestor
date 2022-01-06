@@ -91,7 +91,10 @@ func GetAllDevices(dcontext *cluster.Context) ([]*LocalDiskAppendInfo, error) {
 				continue
 			}
 		}
-
+		if device.Type == LoopType {
+			logger.Infof("skip loop type device:%s", device.RealPath)
+			continue
+		}
 		logger.Debugf("device:%s is available", device.Name)
 		res = append(res, &LocalDiskAppendInfo{
 			LocalDisk: *device,
