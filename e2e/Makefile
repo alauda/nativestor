@@ -52,6 +52,7 @@ BACKING_STORE=./build
 topolvm-operator.img: $(GO_FILES)
 	rm -rf tmpbin
 	mkdir -p tmpbin
+	sed -i  "/device.Type == LoopType/,+3d" ../pkg/util/sys/disks.go
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o tmpbin/topolvm ../main.go
 	docker build --no-cache --rm=false -f Dockerfile.operator -t topolvm-operator:dev tmpbin
 	docker save -o $@ topolvm-operator:dev
