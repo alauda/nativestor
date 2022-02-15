@@ -1,4 +1,4 @@
-apiVersion: topolvm.cybozu.com/v2
+apiVersion: topolvm.cybozu.com/v1
 kind: LogicalVolume
 metadata:
   name: example-logicalvolume

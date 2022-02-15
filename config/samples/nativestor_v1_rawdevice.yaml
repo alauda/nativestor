@@ -1,0 +1,5 @@
+apiVersion: nativestor.alauda.io/v1
+kind: RawDevice
+metadata:
+  name: example-rawdevice
+spec: {}
