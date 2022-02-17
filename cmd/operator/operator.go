@@ -27,6 +27,8 @@ import (
 	rawdev_csi "github.com/alauda/nativestor/pkg/operator/raw_device/csi"
 	topolvmctr "github.com/alauda/nativestor/pkg/operator/topolvm/controller"
 	topolvm_csi "github.com/alauda/nativestor/pkg/operator/topolvm/csi"
+	"github.com/pkg/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"os"
 
@@ -120,29 +122,35 @@ func startOperator(cmd *cobra.Command, args []string) error {
 	}
 
 	operatorImage := topolvm.GetOperatorImage(ctx.Clientset, "")
+	config := operator.OperatorConfig{
+		Image:             operatorImage,
+		NamespaceToWatch:  topolvmcommon.NameSpace,
+		OperatorNamespace: topolvmcommon.NameSpace,
+	}
 
 	opctx := context.TODO()
 	setting, err := ctx.Clientset.CoreV1().ConfigMaps(topolvmcommon.NameSpace).Get(opctx, operator.OperatorSettingConfigMapName, metav1.GetOptions{})
 	if err != nil {
-		logger.Error(err, "unable get configmap operator setting", "configmap", operator.OperatorSettingConfigMapName)
-	}
-
-	config := operator.OperatorConfig{
-		Image:             operatorImage,
-		NamespaceToWatch:  topolvmcommon.NameSpace,
-		Parameters:        setting.Data,
-		OperatorNamespace: topolvmcommon.NameSpace,
+		if kerrors.IsNotFound(err) {
+			logger.Debug("operator's configmap resource not found. will use default value or env var.")
+			config.Parameters = make(map[string]string)
+		} else {
+			// Error reading the object - requeue the request.
+			return errors.Wrap(err, "failed to get operator's configmap")
+		}
+	} else {
+		config.Parameters = setting.Data
 	}
 
 	enableRawDev := k8sutil.GetValue(config.Parameters, operator.EnableRawDeviceEnv, "false")
 	if enableRawDev == "true" {
 		discover.MakeDiscoverDevicesDaemonset(ctx.Clientset, operator.DiscoverAppName, operatorImage, true, true)
 	} else {
-		discover.MakeDiscoverDevicesDaemonset(ctx.Clientset, operator.DiscoverAppName, operatorImage, true, true)
+		discover.MakeDiscoverDevicesDaemonset(ctx.Clientset, operator.DiscoverAppName, operatorImage, true, false)
 	}
 
 	for _, f := range AddToManagerFuncs {
-		if err := f(mgr, ctx, opctx, config); err != nil {
+		if err = f(mgr, ctx, opctx, config); err != nil {
 			return err
 		}
 	}
