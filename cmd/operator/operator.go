@@ -23,7 +23,6 @@ import (
 	topolvmcommon "github.com/alauda/nativestor/pkg/cluster/topolvm"
 	"github.com/alauda/nativestor/pkg/operator"
 	"github.com/alauda/nativestor/pkg/operator/discover"
-	"github.com/alauda/nativestor/pkg/operator/k8sutil"
 	rawdev_csi "github.com/alauda/nativestor/pkg/operator/raw_device/csi"
 	topolvmctr "github.com/alauda/nativestor/pkg/operator/topolvm/controller"
 	topolvm_csi "github.com/alauda/nativestor/pkg/operator/topolvm/csi"
@@ -69,6 +68,7 @@ func addScheme() {
 }
 
 var AddToManagerFuncs = []func(manager.Manager, *cluster.Context, context.Context, operator.OperatorConfig) error{
+	discover.Add,
 	topolvmctr.Add,
 	rawdev_csi.Add,
 	topolvm_csi.Add,
@@ -140,13 +140,6 @@ func startOperator(cmd *cobra.Command, args []string) error {
 		}
 	} else {
 		config.Parameters = setting.Data
-	}
-
-	enableRawDev := k8sutil.GetValue(config.Parameters, operator.EnableRawDeviceEnv, "false")
-	if enableRawDev == "true" {
-		discover.MakeDiscoverDevicesDaemonset(ctx.Clientset, operator.DiscoverAppName, operatorImage, true, true)
-	} else {
-		discover.MakeDiscoverDevicesDaemonset(ctx.Clientset, operator.DiscoverAppName, operatorImage, true, false)
 	}
 
 	for _, f := range AddToManagerFuncs {
