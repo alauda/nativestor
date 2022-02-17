@@ -2,4 +2,5 @@
 resources:
 - topolvm_v2_topolvmcluster.yaml
 - topolvm_v1_logicalvolume.yaml
+- nativestor_v1_rawdevice.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

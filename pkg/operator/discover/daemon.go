@@ -18,30 +18,137 @@ package discover
 
 import (
 	"context"
+	"github.com/alauda/nativestor/pkg/cluster"
 	"github.com/alauda/nativestor/pkg/cluster/topolvm"
 	"github.com/alauda/nativestor/pkg/operator"
+	controllerutil "github.com/alauda/nativestor/pkg/operator/controller"
+	"github.com/alauda/nativestor/pkg/operator/csi"
 	"github.com/alauda/nativestor/pkg/operator/k8sutil"
+	_ "github.com/coreos/pkg/capnslog"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
+	"os"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-func MakeDiscoverDevicesDaemonset(clientset kubernetes.Interface, appName string, image string, useLoop bool, enableRawDevice bool) error {
+const (
+	controllerName                = "discover-device"
+	discoverDeviceTolerationsEnv  = "DISCOVER_DEVICE_TOLERATIONS"
+	discoverDeviceNodeAffinityEnv = "DISCOVER_DEVICE_NODE_AFFINITY"
+	discoverDeviceResource        = "DISCOVER_DEVICE_RESOURCE"
+)
 
-	daemon := getDaemonset(appName, image, useLoop, enableRawDevice)
+func Add(mgr manager.Manager, context *cluster.Context, opManagerContext context.Context, opConfig operator.OperatorConfig) error {
+	return add(mgr, newReconciler(mgr, context, opManagerContext, opConfig))
+}
 
-	operatorPod, err := k8sutil.GetRunningPod(clientset)
+// newReconciler returns a new reconcile.Reconciler
+func newReconciler(mgr manager.Manager, context *cluster.Context, opManagerContext context.Context, opConfig operator.OperatorConfig) reconcile.Reconciler {
+
+	c := &DiscoverDeviceController{
+		client:           mgr.GetClient(),
+		context:          context,
+		opConfig:         opConfig,
+		opManagerContext: opManagerContext,
+	}
+	err := c.startDiscoverDeviceDaemonset()
 	if err != nil {
-		logger.Errorf("failed to get operator pod. %+v", err)
+		logger.Errorf("start discover device daemonset failed %v", err)
+	}
+	return c
+}
+
+type DiscoverDeviceController struct {
+	client           client.Client
+	context          *cluster.Context
+	opManagerContext context.Context
+	opConfig         operator.OperatorConfig
+}
+
+func (r *DiscoverDeviceController) Reconcile(context context.Context, request reconcile.Request) (reconcile.Result, error) {
+	reconcileResponse, err := r.reconcile(request)
+	if err != nil {
+		logger.Errorf("failed to reconcile %v", err)
+	}
+	return reconcileResponse, err
+}
+func (r *DiscoverDeviceController) reconcile(request reconcile.Request) (reconcile.Result, error) {
+
+	err := r.startDiscoverDeviceDaemonset()
+	if err != nil {
+		return controllerutil.ImmediateRetryResult, errors.Wrap(err, "failed configure discover device daemonset")
+	}
+	return reconcile.Result{}, nil
+
+}
+
+func (r *DiscoverDeviceController) startDiscoverDeviceDaemonset() error {
+
+	setting, err := r.context.Clientset.CoreV1().ConfigMaps(r.opConfig.OperatorNamespace).Get(r.opManagerContext, operator.OperatorSettingConfigMapName, metav1.GetOptions{})
+	if err != nil {
+		if kerrors.IsNotFound(err) {
+			logger.Debug("operator's configmap resource not found. will use default value or env var.")
+			r.opConfig.Parameters = make(map[string]string)
+		} else {
+			// Error reading the object - requeue the request.
+			return errors.Wrap(err, "failed to get operator's configmap")
+		}
 	} else {
-		k8sutil.SetOwnerRefsWithoutBlockOwner(&daemon.ObjectMeta, operatorPod.OwnerReferences)
+		r.opConfig.Parameters = setting.Data
 	}
-	if err := k8sutil.CreateDaemonSet(context.TODO(), appName, topolvm.NameSpace, clientset, daemon); err != nil {
-		return errors.Wrapf(err, "create daemonset  %s failed", appName)
+
+	ownerRef, err := k8sutil.GetDeploymentOwnerReference(r.opManagerContext, r.context.Clientset, os.Getenv(k8sutil.PodNameEnvVar), r.opConfig.OperatorNamespace)
+	if err != nil {
+		logger.Warningf("could not find deployment owner reference to assign to discover daemonset. %v", err)
 	}
+	if ownerRef != nil {
+		blockOwnerDeletion := false
+		ownerRef.BlockOwnerDeletion = &blockOwnerDeletion
+	}
+
+	ownerInfo := k8sutil.NewOwnerInfoWithOwnerRef(ownerRef, r.opConfig.OperatorNamespace)
+
+	daemon := getDaemonset(operator.DiscoverAppName, r.opConfig.Image, false, true)
+
+	tolerations := csi.GetToleration(r.opConfig.Parameters, discoverDeviceTolerationsEnv, []corev1.Toleration{})
+	nodeAffinity := csi.GetNodeAffinity(r.opConfig.Parameters, discoverDeviceNodeAffinityEnv, &corev1.NodeAffinity{})
+	csi.ApplyToPodSpec(&daemon.Spec.Template.Spec, nodeAffinity, tolerations)
+	csi.ApplyResourcesToContainers(r.opConfig.Parameters, discoverDeviceResource, &daemon.Spec.Template.Spec)
+	err = ownerInfo.SetControllerReference(daemon)
+	if err != nil {
+		return errors.Wrapf(err, "failed to set owner reference to raw device plugin daemonset %q", daemon.Name)
+	}
+	err = k8sutil.CreateDaemonSet(r.opManagerContext, daemon.Name, r.opConfig.OperatorNamespace, r.context.Clientset, daemon)
+	if err != nil {
+		return errors.Wrapf(err, "failed to start discover device daemonset %q", daemon.Name)
+	}
+	return nil
+}
+
+func add(mgr manager.Manager, r reconcile.Reconciler) error {
+	// Create a new controller
+	c, err := controller.New(controllerName, mgr, controller.Options{Reconciler: r})
+	if err != nil {
+		return err
+	}
+	logger.Infof("%s successfully started", controllerName)
+
+	// Watch for ConfigMap (operator config)
+	err = c.Watch(&source.Kind{
+		Type: &corev1.ConfigMap{TypeMeta: metav1.TypeMeta{Kind: "ConfigMap", APIVersion: v1.SchemeGroupVersion.String()}}}, &handler.EnqueueRequestForObject{}, predicateController())
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -137,5 +244,4 @@ func getDaemonset(appName string, image string, useLoop bool, enableRawDevice bo
 		},
 	}
 	return daemonset
-
 }

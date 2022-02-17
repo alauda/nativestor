@@ -259,13 +259,13 @@ How to enable and use raw device
 
 ### Enable raw device
 
-update `topolvm-operator-setting` configmap.  set the field `RAW_DEVICE_ENABLE` be true.
+update `nativestor-setting` configmap.  set the field `RAW_DEVICE_ENABLE` be true.
 
 ```yaml
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: topolvm-operator-setting
+  name: nativestor-setting
   namespace: nativestor-system
 data:
 #  KUBELET_ROOT_DIR: "/var/lib/kubelet"

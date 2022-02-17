@@ -20,7 +20,7 @@ Operator setting
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: topolvm-operator-setting
+  name: nativestor-setting
   namespace: nativestor-system
 data:
   KUBELET_ROOT_DIR: "/var/lib/kubelet"

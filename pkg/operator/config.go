@@ -9,7 +9,7 @@ type OperatorConfig struct {
 }
 
 const (
-	OperatorSettingConfigMapName string = "topolvm-operator-setting"
+	OperatorSettingConfigMapName string = "nativestor-setting"
 	EnableRawDeviceEnv           string = "RAW_DEVICE_ENABLE"
 	DiscoverAppName              string = "discover-device"
 )
