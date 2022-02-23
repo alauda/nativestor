@@ -29,5 +29,6 @@ volumes:
   - secret
 users:
   - system:serviceaccount:nativestor-system:topolvm-node
-  - system:serviceaccount:nativestor-system:topolvm-discover
-  - system:serviceaccount:nativestor-system:topolvm-preparevg
+  - system:serviceaccount:nativestor-system:nativestor-discover
+  - system:serviceaccount:nativestor-system:nativestor-preparevg
+  - system:serviceaccount:nativestor-system:nativestor-cleanup

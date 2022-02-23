@@ -32,6 +32,7 @@ type TopolvmClusterSpec struct {
 	//+optional
 	CertsSecret string `json:"certsSecret"`
 	Storage     `json:"storage"`
+	CleanUp     bool `json:"cleanup"`
 }
 
 type Storage struct {

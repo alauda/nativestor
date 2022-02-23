@@ -141,14 +141,20 @@ func (r *TopolvmController) reconcileDelete(topolvmCluster *topolvmv2.TopolvmClu
 	logger.Infof("deleting topolvm cluster %q", topolvmCluster.Name)
 	r.stopCheckClusterStatus()
 	// Remove finalizer
-	err := removeFinalizer(r.context.Client, nsName)
-	if err != nil {
-		return errors.Wrap(err, "failed to remove finalize")
-	}
+
 	r.updateCluster(nil)
-	err = r.cleanCluster()
+	err := r.cleanCluster()
 	if err != nil {
 		return errors.Wrap(err, "clean cluster failed")
+	}
+	if topolvmCluster.Spec.CleanUp {
+		logger.Infof("start clean job")
+		r.startCleanUpJobs(topolvmCluster)
+	}
+
+	err = removeFinalizer(r.context.Client, nsName)
+	if err != nil {
+		return errors.Wrap(err, "failed to remove finalize")
 	}
 	return nil
 

@@ -18,6 +18,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/alauda/nativestor/cmd/cleanup"
 
 	discovercmd "github.com/alauda/nativestor/cmd/discover"
 	"github.com/alauda/nativestor/cmd/operator"
@@ -34,5 +35,5 @@ func main() {
 }
 
 func addCommands() {
-	topolvm.RootCmd.AddCommand(operator.OperatorCmd, preparevg.PrepareVgCmd, discovercmd.DiscoverCmd)
+	topolvm.RootCmd.AddCommand(operator.OperatorCmd, preparevg.PrepareVgCmd, discovercmd.DiscoverCmd, cleanup.CleanCmd)
 }

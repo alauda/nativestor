@@ -34,6 +34,8 @@ spec:
             properties:
               certsSecret:
                 type: string
+              cleanup:
+                type: boolean
               storage:
                 properties:
                   className:
@@ -124,6 +126,7 @@ spec:
               topolvmVersion:
                 type: string
             required:
+            - cleanup
             - storage
             - topolvmVersion
             type: object
