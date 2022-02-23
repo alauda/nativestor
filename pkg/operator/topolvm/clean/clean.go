@@ -64,7 +64,13 @@ func getVgInfo(topolvmCluster *topolvmv2.TopolvmCluster, node string) (map[strin
 func cleanVgs(executor exec.Executor, vgs map[string]string, pvs map[string]string) error {
 
 	for _, vg := range vgs {
-		err := sys.RemoveVolumeGroup(executor, vg)
+		res, err := sys.GetPhysicalVolume(executor, vg)
+		if err == nil {
+			for k, _ := range res {
+				delete(pvs, k)
+			}
+		}
+		err = sys.RemoveVolumeGroup(executor, vg)
 		if err != nil {
 			logger.Errorf("clean vg %s failed err %v", vg, err)
 		}
