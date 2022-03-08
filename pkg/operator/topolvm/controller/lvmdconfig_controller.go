@@ -64,17 +64,6 @@ func (l *lvmdConfigController) onAdd(obj interface{}) {
 		return
 	}
 
-	if l.topolvmController.getRef() == nil {
-		lvmdLogger.Info("waiting fot topolvm cluster created")
-		return
-	}
-
-	cm.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*l.topolvmController.getRef()}
-	_, err = l.topolvmController.context.Clientset.CoreV1().ConfigMaps(cm.Namespace).Update(l.topolvmController.opManagerContext, cm, metav1.UpdateOptions{})
-	if err != nil {
-		lvmdLogger.Errorf("failed update cm:%s  own ref", cm.Name)
-	}
-
 	l.updateClusterStatus(cm)
 
 	err = l.startTopolvmNodePlugin(cm)
@@ -121,18 +110,6 @@ func (l *lvmdConfigController) onUpdate(oldObj, newobj interface{}) {
 	if err != nil {
 		lvmdLogger.Errorf("failed to get new client object. %v", err)
 		return
-	}
-
-	if l.topolvmController.getRef() == nil {
-		lvmdLogger.Info("waiting for topolvm cluster created")
-		return
-	}
-	if newCm.OwnerReferences == nil {
-		newCm.ObjectMeta.OwnerReferences = []metav1.OwnerReference{*l.topolvmController.getRef()}
-		_, err = l.topolvmController.context.Clientset.CoreV1().ConfigMaps(newCm.Namespace).Update(l.topolvmController.opManagerContext, newCm, metav1.UpdateOptions{})
-		if err != nil {
-			lvmdLogger.Errorf("failed update cm:%s  own ref", newCm.Name)
-		}
 	}
 
 	err = l.checkUpdateClusterStatus(oldCm, newCm)

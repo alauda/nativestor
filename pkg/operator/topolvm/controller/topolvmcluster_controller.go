@@ -114,7 +114,7 @@ func (r *TopolvmController) reconcile(request reconcile.Request) (reconcile.Resu
 
 		err = r.reconcileDelete(topolvmCluster)
 		if err != nil {
-			return reconcile.Result{}, errors.Wrap(err, "failed to clean cluster")
+			return ctr.ImmediateRetryResultNoBackoff, errors.Wrap(err, "failed to clean cluster")
 		}
 		return reconcile.Result{}, nil
 	}
@@ -260,7 +260,13 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 func (r *TopolvmController) cleanCluster() error {
 
-	err := RemoveNodeCapacityAnnotations(r.context.Clientset)
+	err := cleanLvmdConfigmap(r.context.Clientset, r.namespacedName.Namespace)
+	if err != nil {
+		logger.Errorf("failed to clean lvmd configmap err %v", err)
+		return err
+	}
+
+	err = RemoveNodeCapacityAnnotations(r.context.Clientset)
 	if err != nil {
 		logger.Errorf("failed to remove node capacity annotations err %v", err)
 		return errors.Wrap(err, "failed to remove node capacity annotations")
@@ -500,6 +506,24 @@ func RemoveNodeCapacityAnnotations(clientset kubernetes.Interface) error {
 		}
 	}
 	return err
+}
+
+func cleanLvmdConfigmap(clientset kubernetes.Interface, namespace string) error {
+
+	ctx := context.TODO()
+	cms, err := clientset.CoreV1().ConfigMaps(namespace).List(ctx, metav1.ListOptions{LabelSelector: fmt.Sprintf("%s=%s", topolvm.LvmdConfigMapLabelKey, topolvm.LvmdConfigMapLabelValue)})
+	if err != nil {
+		return err
+	}
+	for _, cm := range cms.Items {
+		delete(cm.Data, topolvm.LvmdConfigMapKey)
+		delete(cm.Data, topolvm.VgStatusConfigMapKey)
+		_, err = clientset.CoreV1().ConfigMaps(namespace).Update(ctx, &cm, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func checkAndCreatePsp(clientset kubernetes.Interface, ref *metav1.OwnerReference) error {
