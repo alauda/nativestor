@@ -341,7 +341,11 @@ func (r *TopolvmController) UpdateStatus(state *topolvmv2.NodeStorageState) erro
 }
 
 func (r *TopolvmController) UseAllNodeAndDevices() bool {
-	return r.getCluster().Spec.UseAllNodes
+	if r.getCluster() != nil {
+		return r.getCluster().Spec.UseAllNodes
+	} else {
+		return false
+	}
 }
 
 func (r *TopolvmController) onAdd(topolvmCluster *topolvmv2.TopolvmCluster, ref *metav1.OwnerReference) error {
