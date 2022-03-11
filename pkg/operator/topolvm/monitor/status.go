@@ -145,7 +145,7 @@ func (c *ClusterStatusChecker) checkStatus() {
 
 			for _, s := range item.Status.ContainerStatuses {
 				if !s.Ready {
-					n.Phase = topolvmv2.ConditionFailure
+					n.Phase = topolvmv2.ConditionUnknown
 					nodeMetric.Status = 1
 					break
 				}
@@ -158,7 +158,7 @@ func (c *ClusterStatusChecker) checkStatus() {
 		if !found {
 			n := topolvmv2.NodeStorageState{
 				Node:  node,
-				Phase: topolvmv2.ConditionFailure,
+				Phase: topolvmv2.ConditionUnknown,
 			}
 			nodeMetric := topolvm.NodeStatusMetrics{
 				Node:   node,
@@ -218,7 +218,7 @@ func (c *ClusterStatusChecker) checkStatus() {
 		}
 
 		if !nodeReady {
-			clusterStatus.NodeStorageStatus[index].Phase = topolvmv2.ConditionFailure
+			clusterStatus.NodeStorageStatus[index].Phase = topolvmv2.ConditionUnknown
 		}
 
 		for index1, n1 := range clusterMetric.NodeStatus {
