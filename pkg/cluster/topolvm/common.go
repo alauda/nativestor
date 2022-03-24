@@ -62,10 +62,13 @@ const (
 	TopolvmPrepareVgCPULimit   = "100m"
 
 	PrepareVgServiceAccount = "nativestor-preparevg"
+	CleanUpServiceAccount   = "nativestor-cleanup"
 	PrePareVgAppName        = "prepare-volume-group"
 	PrepareVgJobFmt         = "topolvm-prepare-vg-%s"
+	CleanDeviceJobFmt       = "topolvm-clean-%s"
 	PrePareVgContainerName  = "preparevg"
 	PrePareVgJobLogLevel    = "DEBUG"
+	CleanUpJobLogLevel      = "DEBUG"
 
 	TopolvmNodePSP       = "topolvm-node"
 	TopolvmPrepareVgPSP  = "nativestor-preparevg"

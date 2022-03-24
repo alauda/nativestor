@@ -78,3 +78,6 @@ subjects:
   - kind: ServiceAccount
     name: nativestor-discover
     namespace: nativestor-system
+  - kind: ServiceAccount
+    name: nativestor-cleanup
+    namespace: nativestor-system

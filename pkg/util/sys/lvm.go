@@ -122,6 +122,11 @@ func CheckVgHasLogicalVolume(executor exec.Executor, vgname string) (bool, error
 	return false, nil
 }
 
+func RemovePhysicalVolume(executor exec.Executor, pv string) error {
+	args := []string{"pvremove", pv}
+	return wrapExecCommand(executor, lvm, args...)
+}
+
 func RemoveVolumeGroup(executor exec.Executor, vgName string) error {
 
 	ok, err := CheckVgHasLogicalVolume(executor, vgName)

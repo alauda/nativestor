@@ -189,6 +189,7 @@ func (r *CSITopolvmController) updateTopolvmPlugin(deployment *apps.Deployment, 
 		lvmdName := k8sutil.TruncateNodeName(topolvm.LvmdConfigMapFmt, plugin.Spec.Template.Spec.NodeSelector[corev1.LabelHostname])
 		v := corev1.Volume{Name: "lvmd-config-dir", VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{LocalObjectReference: corev1.LocalObjectReference{Name: lvmdName}}}}
 		plugin.Spec.Template.Spec.Volumes = append(plugin.Spec.Template.Spec.Volumes, v)
+		plugin.OwnerReferences = dep.OwnerReferences
 		topolvmPluginTolerations := csi.GetToleration(r.opConfig.Parameters, TopolvmPluginTolerationsEnv, pluginTolerations)
 		topolvmPluginNodeAffinity := csi.GetNodeAffinity(r.opConfig.Parameters, TopolvmPluginNodeAffinityEnv, pluginNodeAffinity)
 		csi.ApplyToPodSpec(&plugin.Spec.Template.Spec, topolvmPluginNodeAffinity, topolvmPluginTolerations)
